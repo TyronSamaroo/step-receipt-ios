@@ -21,6 +21,18 @@ final class ActivityRepository: ObservableObject {
             refreshCompetition()
         }
     }
+    @Published var localCompetitors: [CompetitorProfile] {
+        didSet {
+            saveLocalCompetitors()
+            refreshCompetition()
+        }
+    }
+    @Published var localCompetitionCheckIns: [LocalCompetitionCheckIn] {
+        didSet {
+            saveLocalCompetitionCheckIns()
+            refreshCompetition()
+        }
+    }
     @Published var preferences: UserPreferences {
         didSet {
             savePreferences()
@@ -49,6 +61,8 @@ final class ActivityRepository: ObservableObject {
     private let competitorIDKey = "stepReceipt.currentCompetitorID.v1"
     private let goalsKey = "stepReceipt.goals.v1"
     private let preferencesKey = "stepReceipt.preferences.v1"
+    private let localCompetitorsKey = "stepReceipt.localCompetitors.v1"
+    private let localCompetitionCheckInsKey = "stepReceipt.localCompetitionCheckIns.v1"
     private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
     private let currentCompetitorID: UUID
     private var activityDataSource: ActivityDataSource = .none
@@ -67,6 +81,8 @@ final class ActivityRepository: ObservableObject {
         self.competitionEngine = CompetitionEngine(calendar: calendar)
         self.goals = Self.loadGoals(key: goalsKey, userDefaults: userDefaults)
         self.preferences = Self.loadPreferences(key: preferencesKey, userDefaults: userDefaults)
+        self.localCompetitors = Self.loadLocalCompetitors(key: localCompetitorsKey, userDefaults: userDefaults)
+        self.localCompetitionCheckIns = Self.loadLocalCompetitionCheckIns(key: localCompetitionCheckInsKey, userDefaults: userDefaults)
         self.currentCompetitorID = Self.loadCompetitorID(key: competitorIDKey, userDefaults: userDefaults)
     }
 
@@ -299,18 +315,93 @@ final class ActivityRepository: ObservableObject {
         refreshCompetition()
     }
 
-    private func refreshCompetition() {
-        let entries = competitionEngine.sampleEntries(
-            currentUserID: currentCompetitorID,
-            currentUserName: preferences.displayName,
-            summaries: history
+    @discardableResult
+    func addLocalCompetitionCheckIn(
+        displayName: String,
+        date: Date,
+        steps: Int,
+        distanceMeters: Double,
+        activeEnergyKilocalories: Double,
+        workoutMinutes: Double
+    ) -> CompetitorProfile {
+        let competitor = upsertLocalCompetitor(displayName: displayName)
+        let checkIn = LocalCompetitionCheckIn(
+            competitorID: competitor.id,
+            dayKey: ActivityFormatting.dayKey(for: date, calendar: calendar),
+            steps: steps,
+            distanceMeters: distanceMeters,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            workoutMinutes: workoutMinutes
         )
+        localCompetitionCheckIns.removeAll {
+            $0.competitorID == competitor.id && $0.dayKey == checkIn.dayKey
+        }
+        localCompetitionCheckIns.append(checkIn)
+        localCompetitionCheckIns.sort {
+            if $0.dayKey == $1.dayKey {
+                return competitorName(for: $0.competitorID).localizedCaseInsensitiveCompare(competitorName(for: $1.competitorID)) == .orderedAscending
+            }
+            return $0.dayKey > $1.dayKey
+        }
+        return competitor
+    }
+
+    func removeLocalCompetitionCheckIn(_ checkIn: LocalCompetitionCheckIn) {
+        localCompetitionCheckIns.removeAll { $0.id == checkIn.id }
+    }
+
+    func removeLocalCompetitor(_ competitor: CompetitorProfile) {
+        localCompetitors.removeAll { $0.id == competitor.id }
+        localCompetitionCheckIns.removeAll { $0.competitorID == competitor.id }
+    }
+
+    private func refreshCompetition() {
+        let currentUser = CompetitorProfile(
+            id: currentCompetitorID,
+            displayName: preferences.displayName,
+            accentHex: "#1C856F"
+        )
+        var entries = history.map { summary in
+            competitionEngine.entry(from: summary, competitor: currentUser)
+        }
+        let localEntries = competitionEngine.entries(
+            from: localCompetitionCheckIns,
+            competitors: localCompetitors
+        )
+        if localEntries.isEmpty, activityDataSource == .sample {
+            entries = competitionEngine.sampleEntries(
+                currentUserID: currentCompetitorID,
+                currentUserName: preferences.displayName,
+                summaries: history
+            )
+        } else {
+            entries.append(contentsOf: localEntries)
+        }
         competitionReceipt = competitionEngine.receipt(
             entries: entries,
             currentUserID: currentCompetitorID,
             window: competitionWindow,
             metric: competitionMetric
         )
+    }
+
+    private func upsertLocalCompetitor(displayName: String) -> CompetitorProfile {
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let safeName = trimmedName.isEmpty ? "Friend" : trimmedName
+        if let existing = localCompetitors.first(where: { $0.displayName.caseInsensitiveCompare(safeName) == .orderedSame }) {
+            return existing
+        }
+        let accents = ["#3364C3", "#E86332", "#7A5CCF", "#B7791F", "#2F855A"]
+        let competitor = CompetitorProfile(
+            displayName: safeName,
+            accentHex: accents[localCompetitors.count % accents.count]
+        )
+        localCompetitors.append(competitor)
+        return competitor
+    }
+
+    private func competitorName(for id: UUID) -> String {
+        localCompetitors.first { $0.id == id }?.displayName ?? ""
     }
 
     private var hasRequestedHealthAuthorization: Bool {
@@ -341,10 +432,14 @@ final class ActivityRepository: ObservableObject {
             competitorIDKey,
             goalsKey,
             preferencesKey,
+            localCompetitorsKey,
+            localCompetitionCheckInsKey,
             activityCacheKey
         ].forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
+        localCompetitors = []
+        localCompetitionCheckIns = []
         lastError = nil
     }
 
@@ -457,8 +552,8 @@ final class ActivityRepository: ObservableObject {
             goals: goals
         )
         receipt = engine.receipt(for: history, goals: goals)
-        refreshCompetition()
         activityDataSource = .sample
+        refreshCompetition()
     }
 
     private func saveGoals() {
@@ -483,6 +578,16 @@ final class ActivityRepository: ObservableObject {
         userDefaults.set(data, forKey: preferencesKey)
     }
 
+    private func saveLocalCompetitors() {
+        guard let data = try? JSONEncoder().encode(localCompetitors) else { return }
+        userDefaults.set(data, forKey: localCompetitorsKey)
+    }
+
+    private func saveLocalCompetitionCheckIns() {
+        guard let data = try? JSONEncoder().encode(localCompetitionCheckIns) else { return }
+        userDefaults.set(data, forKey: localCompetitionCheckInsKey)
+    }
+
     private static func loadGoals(key: String, userDefaults: UserDefaults) -> UserGoals {
         guard
             let data = userDefaults.data(forKey: key),
@@ -501,6 +606,26 @@ final class ActivityRepository: ObservableObject {
             return UserPreferences()
         }
         return preferences
+    }
+
+    private static func loadLocalCompetitors(key: String, userDefaults: UserDefaults) -> [CompetitorProfile] {
+        guard
+            let data = userDefaults.data(forKey: key),
+            let competitors = try? JSONDecoder().decode([CompetitorProfile].self, from: data)
+        else {
+            return []
+        }
+        return competitors
+    }
+
+    private static func loadLocalCompetitionCheckIns(key: String, userDefaults: UserDefaults) -> [LocalCompetitionCheckIn] {
+        guard
+            let data = userDefaults.data(forKey: key),
+            let checkIns = try? JSONDecoder().decode([LocalCompetitionCheckIn].self, from: data)
+        else {
+            return []
+        }
+        return checkIns
     }
 
     private static func loadCompetitorID(key: String, userDefaults: UserDefaults) -> UUID {

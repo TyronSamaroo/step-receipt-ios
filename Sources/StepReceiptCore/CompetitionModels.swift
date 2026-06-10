@@ -43,13 +43,22 @@ public struct CompetitorProfile: Codable, Equatable, Identifiable, Sendable {
     public init(
         id: UUID = UUID(),
         displayName: String,
-        initials: String,
+        initials: String? = nil,
         accentHex: String = "#1C856F"
     ) {
         self.id = id
         self.displayName = displayName
-        self.initials = initials
+        self.initials = initials ?? Self.initials(from: displayName)
         self.accentHex = accentHex
+    }
+
+    private static func initials(from name: String) -> String {
+        let letters = name
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap(\.first)
+        let value = letters.isEmpty ? "FR" : String(letters).uppercased()
+        return String(value.prefix(2))
     }
 }
 
@@ -74,6 +83,37 @@ public struct CompetitionEntry: Codable, Equatable, Identifiable, Sendable {
         updatedAt: Date
     ) {
         self.competitor = competitor
+        self.dayKey = dayKey
+        self.steps = max(0, steps)
+        self.distanceMeters = max(0, distanceMeters)
+        self.activeEnergyKilocalories = max(0, activeEnergyKilocalories)
+        self.workoutMinutes = max(0, workoutMinutes)
+        self.updatedAt = updatedAt
+    }
+}
+
+public struct LocalCompetitionCheckIn: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let competitorID: UUID
+    public let dayKey: String
+    public let steps: Int
+    public let distanceMeters: Double
+    public let activeEnergyKilocalories: Double
+    public let workoutMinutes: Double
+    public let updatedAt: Date
+
+    public init(
+        id: UUID = UUID(),
+        competitorID: UUID,
+        dayKey: String,
+        steps: Int,
+        distanceMeters: Double = 0,
+        activeEnergyKilocalories: Double = 0,
+        workoutMinutes: Double = 0,
+        updatedAt: Date = Date()
+    ) {
+        self.id = id
+        self.competitorID = competitorID
         self.dayKey = dayKey
         self.steps = max(0, steps)
         self.distanceMeters = max(0, distanceMeters)

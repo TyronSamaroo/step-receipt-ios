@@ -2,6 +2,7 @@ import SwiftUI
 
 struct CompetitionView: View {
     @EnvironmentObject private var repository: ActivityRepository
+    @State private var isPresentingCheckIn = false
 
     var body: some View {
         NavigationStack {
@@ -12,6 +13,7 @@ struct CompetitionView: View {
                     if let receipt = repository.competitionReceipt {
                         CompetitionSummaryCard(receipt: receipt, distanceUnit: repository.preferences.distanceUnit)
                         leaderboard(receipt)
+                        localCheckIns
                         privacyNote
                     } else {
                         ContentUnavailableView(
@@ -27,6 +29,20 @@ struct CompetitionView: View {
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle("Compete")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        isPresentingCheckIn = true
+                    } label: {
+                        Image(systemName: "plus.circle")
+                    }
+                    .accessibilityLabel("Add friend check-in")
+                }
+            }
+            .sheet(isPresented: $isPresentingCheckIn) {
+                CompetitionCheckInSheet()
+                    .environmentObject(repository)
+            }
         }
     }
 
@@ -45,6 +61,15 @@ struct CompetitionView: View {
                 }
             }
             .pickerStyle(.menu)
+
+            Button {
+                isPresentingCheckIn = true
+            } label: {
+                Label("Add Check-In", systemImage: "plus.circle")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.stepAccent)
         }
         .metricCard()
     }
@@ -67,6 +92,36 @@ struct CompetitionView: View {
         .metricCard()
     }
 
+    private var localCheckIns: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Friend Check-Ins")
+                    .font(.headline)
+                Spacer()
+                Text("\(repository.localCompetitionCheckIns.count)")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+
+            if repository.localCompetitionCheckIns.isEmpty {
+                Text("No local check-ins yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.stepMuted)
+            } else {
+                ForEach(repository.localCompetitionCheckIns.prefix(8)) { checkIn in
+                    CompetitionCheckInRow(
+                        checkIn: checkIn,
+                        competitor: repository.localCompetitors.first { $0.id == checkIn.competitorID },
+                        distanceUnit: repository.preferences.distanceUnit
+                    ) {
+                        repository.removeLocalCompetitionCheckIn(checkIn)
+                    }
+                }
+            }
+        }
+        .metricCard()
+    }
+
     private var privacyNote: some View {
         VStack(alignment: .leading, spacing: 8) {
             Label("Privacy-safe by design", systemImage: "lock.shield")
@@ -78,6 +133,122 @@ struct CompetitionView: View {
                 .fixedSize(horizontal: false, vertical: true)
         }
         .metricCard()
+    }
+}
+
+struct CompetitionCheckInSheet: View {
+    @EnvironmentObject private var repository: ActivityRepository
+    @Environment(\.dismiss) private var dismiss
+    @State private var displayName = ""
+    @State private var date = Date()
+    @State private var steps = ""
+    @State private var distance = ""
+    @State private var activeEnergy = ""
+    @State private var workoutMinutes = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Friend") {
+                    TextField("Name", text: $displayName)
+                        .textInputAutocapitalization(.words)
+                    DatePicker("Day", selection: $date, in: repository.selectableDateRange(), displayedComponents: .date)
+                }
+
+                Section("Totals") {
+                    TextField("Steps", text: $steps)
+                        .keyboardType(.numberPad)
+                    TextField(repository.preferences.distanceUnit == .miles ? "Distance miles" : "Distance kilometers", text: $distance)
+                        .keyboardType(.decimalPad)
+                    TextField("Active calories", text: $activeEnergy)
+                        .keyboardType(.numberPad)
+                    TextField("Workout minutes", text: $workoutMinutes)
+                        .keyboardType(.numberPad)
+                }
+            }
+            .navigationTitle("Check-In")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        repository.addLocalCompetitionCheckIn(
+                            displayName: displayName,
+                            date: date,
+                            steps: Int(steps) ?? 0,
+                            distanceMeters: distanceMeters,
+                            activeEnergyKilocalories: Double(activeEnergy) ?? 0,
+                            workoutMinutes: Double(workoutMinutes) ?? 0
+                        )
+                        dismiss()
+                    }
+                    .disabled(displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+            .onAppear {
+                if displayName.isEmpty, let first = repository.localCompetitors.first {
+                    displayName = first.displayName
+                }
+            }
+        }
+    }
+
+    private var distanceMeters: Double {
+        let value = Double(distance) ?? 0
+        switch repository.preferences.distanceUnit {
+        case .miles:
+            return value * 1_609.344
+        case .kilometers:
+            return value * 1_000
+        }
+    }
+}
+
+struct CompetitionCheckInRow: View {
+    let checkIn: LocalCompetitionCheckIn
+    let competitor: CompetitorProfile?
+    let distanceUnit: DistanceUnit
+    let onDelete: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Text(competitor?.initials ?? "FR")
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(.white)
+                .frame(width: 36, height: 36)
+                .background(Color.stepDistance)
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(competitor?.displayName ?? "Friend")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                    .lineLimit(1)
+                Text("\(checkIn.dayKey) · \(checkIn.steps.formatted()) steps · \(ActivityFormatting.formattedDistance(from: checkIn.distanceMeters, unit: distanceUnit)) · \(ActivityFormatting.formattedMinutes(checkIn.workoutMinutes))")
+                    .font(.caption)
+                    .foregroundStyle(Color.stepMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+            }
+            .layoutPriority(1)
+
+            Spacer(minLength: 8)
+
+            Button(action: onDelete) {
+                Image(systemName: "trash")
+                    .frame(width: 32, height: 32)
+            }
+            .buttonStyle(.borderless)
+            .foregroundStyle(Color.stepMuted)
+            .accessibilityLabel("Delete check-in")
+        }
+        .padding(12)
+        .background(Color.stepBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 }
 

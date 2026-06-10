@@ -23,6 +23,28 @@ public struct CompetitionEngine: Sendable {
         )
     }
 
+    public func entries(
+        from checkIns: [LocalCompetitionCheckIn],
+        competitors: [CompetitorProfile]
+    ) -> [CompetitionEntry] {
+        var competitorsByID: [UUID: CompetitorProfile] = [:]
+        for competitor in competitors {
+            competitorsByID[competitor.id] = competitor
+        }
+        return checkIns.compactMap { checkIn in
+            guard let competitor = competitorsByID[checkIn.competitorID] else { return nil }
+            return CompetitionEntry(
+                competitor: competitor,
+                dayKey: checkIn.dayKey,
+                steps: checkIn.steps,
+                distanceMeters: checkIn.distanceMeters,
+                activeEnergyKilocalories: checkIn.activeEnergyKilocalories,
+                workoutMinutes: checkIn.workoutMinutes,
+                updatedAt: checkIn.updatedAt
+            )
+        }
+    }
+
     public func receipt(
         entries: [CompetitionEntry],
         currentUserID: UUID,

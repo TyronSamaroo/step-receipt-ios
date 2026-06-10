@@ -216,6 +216,27 @@ try expect(competitionReceipt.currentUserRank == 2, "competition should expose c
 try expect(competitionReceipt.gapToNextRank == 1_250, "competition should compute gap to next rank")
 try expect(competitionReceipt.headline.contains("1,250"), "competition headline should include gap")
 
+let localFriend = CompetitorProfile(
+    id: UUID(uuidString: "00000000-0000-0000-0000-000000000005")!,
+    displayName: "Taylor Brooks"
+)
+let localEntries = competitionEngine.entries(
+    from: [
+        LocalCompetitionCheckIn(
+            competitorID: localFriend.id,
+            dayKey: "2026-06-10",
+            steps: 9_400,
+            distanceMeters: 7_100,
+            activeEnergyKilocalories: 410,
+            workoutMinutes: 45,
+            updatedAt: try date("2026-06-10T18:00:00Z")
+        )
+    ],
+    competitors: [localFriend]
+)
+try expect(localFriend.initials == "TB", "competition profile should derive initials")
+try expect(localEntries.first?.steps == 9_400, "local competition check-ins should become aggregate entries")
+
 let tieBreakerFriend = CompetitorProfile(
     id: UUID(uuidString: "00000000-0000-0000-0000-000000000003")!,
     displayName: "Alex",

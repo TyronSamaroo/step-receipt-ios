@@ -192,6 +192,104 @@ struct ActivityRepositoryTests {
         #expect(deniedRepository.receipt?.bestDay?.steps == 1_800)
     }
 
+    @Test
+    func testLocalCompetitionCheckInsPersistAndAffectLeaderboard() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 3_900, distance: 2_900, energy: 150),
+                bucket(day, hour: 18, steps: 4_100, distance: 3_100, energy: 165)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 8_000, distance: 6_000, energy: 315)
+            ],
+            workouts: []
+        )
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        repository.addLocalCompetitionCheckIn(
+            displayName: "Taylor Brooks",
+            date: day,
+            steps: 9_250,
+            distanceMeters: 6_850,
+            activeEnergyKilocalories: 360,
+            workoutMinutes: 30
+        )
+
+        #expect(repository.localCompetitors.first?.initials == "TB")
+        #expect(repository.localCompetitionCheckIns.count == 1)
+        #expect(repository.competitionReceipt?.rows.first?.competitor.displayName == "Taylor Brooks")
+        #expect(repository.competitionReceipt?.currentUserRank == 2)
+
+        let restoredRepository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await restoredRepository.bootstrap()
+
+        #expect(restoredRepository.localCompetitors.map(\.displayName) == ["Taylor Brooks"])
+        #expect(restoredRepository.localCompetitionCheckIns.first?.steps == 9_250)
+        #expect(restoredRepository.competitionReceipt?.rows.first?.competitor.displayName == "Taylor Brooks")
+        #expect(restoredRepository.competitionReceipt?.currentUserRank == 2)
+    }
+
+    @Test
+    func testSampleCompetitionRowsAreReplacedByLocalCheckIns() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.previewWithSampleData()
+
+        let sampleNames = repository.competitionReceipt?.rows.map(\.competitor.displayName) ?? []
+        #expect(sampleNames.contains("Maya"))
+
+        repository.addLocalCompetitionCheckIn(
+            displayName: "Taylor Brooks",
+            date: day,
+            steps: 20_000,
+            distanceMeters: 14_000,
+            activeEnergyKilocalories: 800,
+            workoutMinutes: 90
+        )
+
+        let localNames = repository.competitionReceipt?.rows.map(\.competitor.displayName) ?? []
+        #expect(localNames.contains("Taylor Brooks"))
+        #expect(!localNames.contains("Maya"))
+        #expect(repository.localCompetitionCheckIns.count == 1)
+
+        repository.addLocalCompetitionCheckIn(
+            displayName: "Taylor Brooks",
+            date: day,
+            steps: 21_000,
+            distanceMeters: 14_800,
+            activeEnergyKilocalories: 840,
+            workoutMinutes: 95
+        )
+
+        #expect(repository.localCompetitionCheckIns.count == 1)
+        #expect(repository.localCompetitionCheckIns.first?.steps == 21_000)
+    }
+
     private func defaultsSuiteName() -> String {
         "StepReceiptTests.\(UUID().uuidString)"
     }

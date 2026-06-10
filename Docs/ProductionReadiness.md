@@ -12,7 +12,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Insights receipt | Verified with unit and UI tests | Core receipt tests plus UI smoke test |
 | Workout details and sharing | Implemented | SwiftUI workout detail and share sheet views |
 | Goals and customization | Implemented | Settings view persists goals, distance unit, name, and visible metrics |
-| Competition | V1 scaffold | Aggregate-only leaderboard models, engine, and tab |
+| Competition | Local v1 implemented | Aggregate-only leaderboard models, local friend check-ins, rank/gap UI, and persistence tests |
 | Analytics correctness | Verified locally | Swift Testing suite covers aggregation, averages, streaks, filters, projections, and sync shape |
 | Repository resilience | Verified with fakes | Xcode unit tests cover iCloud sync outage, duplicate daily summary merge behavior, and cached derived data fallback |
 | HealthKit read path | Implemented, device validation pending | `HealthKitClient` requests read-only authorization and queries metrics/workouts |
@@ -30,7 +30,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Confirm CloudKit records contain only aggregate daily summaries.
 - Add real CloudKit account/device coverage after the container is configured.
 - Decide repository license before presenting the public repo as open source.
-- Decide whether v1 competition remains local/sample-based or moves to real friend sharing.
+- Decide when to graduate local/manual competition into real friend sharing.
 
 ## Explicit Non-Goals For V1
 

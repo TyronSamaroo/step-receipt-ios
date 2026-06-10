@@ -395,6 +395,75 @@ struct InsightEngineTests {
     }
 
     @Test
+    func testLocalCompetitionCheckInsBecomeAggregateEntries() throws {
+        let competitionEngine = CompetitionEngine(calendar: calendar)
+        let currentUser = try CompetitorProfile(
+            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001")),
+            displayName: "You"
+        )
+        let friend = try CompetitorProfile(
+            id: #require(UUID(uuidString: "00000000-0000-0000-0000-000000000005")),
+            displayName: "Taylor Brooks"
+        )
+        let renamedFriend = CompetitorProfile(
+            id: friend.id,
+            displayName: "Taylor B"
+        )
+        let unknownID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000099"))
+        let now = try date("2026-06-10T18:00:00Z")
+        let localEntries = competitionEngine.entries(
+            from: [
+                LocalCompetitionCheckIn(
+                    competitorID: friend.id,
+                    dayKey: "2026-06-10",
+                    steps: 9_400,
+                    distanceMeters: 7_100,
+                    activeEnergyKilocalories: 410,
+                    workoutMinutes: 45,
+                    updatedAt: now
+                ),
+                LocalCompetitionCheckIn(
+                    competitorID: unknownID,
+                    dayKey: "2026-06-10",
+                    steps: 50_000,
+                    updatedAt: now
+                )
+            ],
+            competitors: [friend, renamedFriend]
+        )
+        let entries = [
+            CompetitionEntry(
+                competitor: currentUser,
+                dayKey: "2026-06-10",
+                steps: 8_100,
+                distanceMeters: 6_000,
+                activeEnergyKilocalories: 300,
+                workoutMinutes: 25,
+                updatedAt: now
+            )
+        ] + localEntries
+
+        let receipt = competitionEngine.receipt(
+            entries: entries,
+            currentUserID: currentUser.id,
+            window: .today,
+            metric: .steps,
+            now: now
+        )
+
+        #expect(friend.initials == "TB")
+        #expect(localEntries.count == 1)
+        #expect(receipt.rows.map(\.competitor.displayName) == ["Taylor B", "You"])
+        #expect(receipt.gapToNextRank == 1_300)
+
+        let encoded = try JSONEncoder().encode(entries[1])
+        let text = String(data: encoded, encoding: .utf8) ?? ""
+        #expect(text.contains("steps"))
+        #expect(!text.contains("sourceIdentifier"))
+        #expect(!text.contains("workouts"))
+    }
+
+    @Test
     func testEmptyReceiptIsStable() throws {
         let now = try date("2026-06-10T09:00:00Z")
         let receipt = engine.receipt(for: [], goals: UserGoals(), now: now)

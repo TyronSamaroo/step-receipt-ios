@@ -29,6 +29,8 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to private ag
 - `CloudKitSummarySync` writes only daily aggregate records to the user's private CloudKit database.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
 
+See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and remaining device-only gates.
+
 ## Privacy
 
 This repo can be public without exposing personal activity data. It contains source code, generated sample screenshots, and a CloudKit container identifier, but it does not contain real HealthKit samples.
@@ -94,6 +96,8 @@ xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'plat
 The latest local validation used `platform=iOS Simulator,name=iPhone 17,OS=26.5`.
 
 Real HealthKit and CloudKit behavior still need physical-device validation with the final Apple Developer team.
+
+GitHub Actions runs the same core, typecheck, plist, asset, app build, and test-bundle build checks on `macos-26` with Xcode 26.5. The simulator UI smoke test is available as a manual workflow dispatch option because UI automation can be slower and noisier in hosted CI.
 
 ## CloudKit Data Shape
 

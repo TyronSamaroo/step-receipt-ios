@@ -1,0 +1,382 @@
+import Foundation
+
+public enum ActivityKind: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case walking
+    case running
+    case cycling
+    case strengthTraining
+    case hiking
+    case swimming
+    case elliptical
+    case stairClimbing
+    case rowing
+    case yoga
+    case other
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .walking: "Walking"
+        case .running: "Running"
+        case .cycling: "Cycling"
+        case .strengthTraining: "Strength"
+        case .hiking: "Hiking"
+        case .swimming: "Swimming"
+        case .elliptical: "Elliptical"
+        case .stairClimbing: "Stairs"
+        case .rowing: "Rowing"
+        case .yoga: "Yoga"
+        case .other: "Other"
+        }
+    }
+}
+
+public struct HealthMetricBucket: Codable, Equatable, Identifiable, Sendable {
+    public var id: String {
+        "\(Int(startDate.timeIntervalSince1970))-\(Int(endDate.timeIntervalSince1970))"
+    }
+
+    public let startDate: Date
+    public let endDate: Date
+    public let steps: Int
+    public let distanceMeters: Double
+    public let activeEnergyKilocalories: Double
+    public let flightsClimbed: Int
+    public let workoutMinutes: Double
+
+    public init(
+        startDate: Date,
+        endDate: Date,
+        steps: Int = 0,
+        distanceMeters: Double = 0,
+        activeEnergyKilocalories: Double = 0,
+        flightsClimbed: Int = 0,
+        workoutMinutes: Double = 0
+    ) {
+        self.startDate = startDate
+        self.endDate = endDate
+        self.steps = max(0, steps)
+        self.distanceMeters = max(0, distanceMeters)
+        self.activeEnergyKilocalories = max(0, activeEnergyKilocalories)
+        self.flightsClimbed = max(0, flightsClimbed)
+        self.workoutMinutes = max(0, workoutMinutes)
+    }
+}
+
+public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
+    public let id: UUID
+    public let sourceIdentifier: String
+    public let type: ActivityKind
+    public let title: String
+    public let startDate: Date
+    public let endDate: Date
+    public let durationMinutes: Double
+    public let distanceMeters: Double?
+    public let activeEnergyKilocalories: Double?
+    public let steps: Int?
+    public let sourceName: String
+
+    public init(
+        id: UUID = UUID(),
+        sourceIdentifier: String,
+        type: ActivityKind,
+        title: String? = nil,
+        startDate: Date,
+        endDate: Date,
+        durationMinutes: Double? = nil,
+        distanceMeters: Double? = nil,
+        activeEnergyKilocalories: Double? = nil,
+        steps: Int? = nil,
+        sourceName: String = "Health"
+    ) {
+        self.id = id
+        self.sourceIdentifier = sourceIdentifier
+        self.type = type
+        self.title = title ?? type.displayName
+        self.startDate = startDate
+        self.endDate = endDate
+        self.durationMinutes = max(0, durationMinutes ?? endDate.timeIntervalSince(startDate) / 60)
+        self.distanceMeters = distanceMeters.map { max(0, $0) }
+        self.activeEnergyKilocalories = activeEnergyKilocalories.map { max(0, $0) }
+        self.steps = steps.map { max(0, $0) }
+        self.sourceName = sourceName
+    }
+}
+
+public struct UserGoals: Codable, Equatable, Sendable {
+    public var stepsPerDay: Int
+    public var workoutMinutesPerWeek: Int
+    public var activeEnergyKilocaloriesPerDay: Int?
+
+    public init(
+        stepsPerDay: Int = 10_000,
+        workoutMinutesPerWeek: Int = 150,
+        activeEnergyKilocaloriesPerDay: Int? = nil
+    ) {
+        self.stepsPerDay = max(1, stepsPerDay)
+        self.workoutMinutesPerWeek = max(0, workoutMinutesPerWeek)
+        self.activeEnergyKilocaloriesPerDay = activeEnergyKilocaloriesPerDay.map { max(0, $0) }
+    }
+}
+
+public enum DistanceUnit: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case miles
+    case kilometers
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .miles: "Miles"
+        case .kilometers: "Kilometers"
+        }
+    }
+}
+
+public enum DashboardMetric: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case distance
+    case activeEnergy
+    case flights
+    case workoutMinutes
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .distance: "Distance"
+        case .activeEnergy: "Active Burn"
+        case .flights: "Flights"
+        case .workoutMinutes: "Workout"
+        }
+    }
+}
+
+public enum DailySummaryFilter: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case all
+    case activeDays
+    case goalHit
+    case goalMissed
+    case workoutDays
+    case lightDays
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .all: "All"
+        case .activeDays: "Active"
+        case .goalHit: "Goal Hit"
+        case .goalMissed: "Goal Missed"
+        case .workoutDays: "Workouts"
+        case .lightDays: "Light"
+        }
+    }
+}
+
+public enum DailySummarySort: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case newest
+    case steps
+    case distance
+    case activeEnergy
+    case workoutMinutes
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .newest: "Newest"
+        case .steps: "Steps"
+        case .distance: "Distance"
+        case .activeEnergy: "Burn"
+        case .workoutMinutes: "Workout"
+        }
+    }
+}
+
+public struct UserPreferences: Codable, Equatable, Sendable {
+    public var displayName: String
+    public var distanceUnit: DistanceUnit
+    public var visibleDashboardMetrics: [DashboardMetric]
+
+    public init(
+        displayName: String = "You",
+        distanceUnit: DistanceUnit = .miles,
+        visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases
+    ) {
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.displayName = trimmedName.isEmpty ? "You" : trimmedName
+        self.distanceUnit = distanceUnit
+        self.visibleDashboardMetrics = visibleDashboardMetrics.isEmpty ? DashboardMetric.allCases : visibleDashboardMetrics
+    }
+
+    public func shows(_ metric: DashboardMetric) -> Bool {
+        visibleDashboardMetrics.contains(metric)
+    }
+}
+
+public struct DailyActivitySummary: Codable, Equatable, Identifiable, Sendable {
+    public var id: String { "\(Int(dateStart.timeIntervalSince1970))" }
+
+    public let dateStart: Date
+    public let steps: Int
+    public let distanceMeters: Double
+    public let activeEnergyKilocalories: Double
+    public let flightsClimbed: Int
+    public let workoutMinutes: Double
+    public let buckets: [HealthMetricBucket]
+    public let workouts: [WorkoutActivity]
+    public let goals: UserGoals
+
+    public init(
+        dateStart: Date,
+        steps: Int,
+        distanceMeters: Double,
+        activeEnergyKilocalories: Double,
+        flightsClimbed: Int,
+        workoutMinutes: Double,
+        buckets: [HealthMetricBucket],
+        workouts: [WorkoutActivity],
+        goals: UserGoals
+    ) {
+        self.dateStart = dateStart
+        self.steps = max(0, steps)
+        self.distanceMeters = max(0, distanceMeters)
+        self.activeEnergyKilocalories = max(0, activeEnergyKilocalories)
+        self.flightsClimbed = max(0, flightsClimbed)
+        self.workoutMinutes = max(0, workoutMinutes)
+        self.buckets = buckets.sorted { $0.startDate < $1.startDate }
+        self.workouts = workouts.sorted { $0.startDate > $1.startDate }
+        self.goals = goals
+    }
+
+    public var stepGoalProgress: Double {
+        min(1, Double(steps) / Double(max(1, goals.stepsPerDay)))
+    }
+
+    public var activeEnergyGoalProgress: Double? {
+        guard let goal = goals.activeEnergyKilocaloriesPerDay, goal > 0 else { return nil }
+        return min(1, activeEnergyKilocalories / Double(goal))
+    }
+
+    public var hasActivityData: Bool {
+        steps > 0 || distanceMeters > 0 || activeEnergyKilocalories > 0 || flightsClimbed > 0 || workoutMinutes > 0
+    }
+}
+
+public struct DailyHighlight: Codable, Equatable, Sendable {
+    public let date: Date
+    public let steps: Int
+    public let distanceMeters: Double
+    public let activeEnergyKilocalories: Double
+
+    public init(date: Date, steps: Int, distanceMeters: Double, activeEnergyKilocalories: Double) {
+        self.date = date
+        self.steps = steps
+        self.distanceMeters = distanceMeters
+        self.activeEnergyKilocalories = activeEnergyKilocalories
+    }
+}
+
+public struct MonthHighlight: Codable, Equatable, Sendable {
+    public let monthStart: Date
+    public let steps: Int
+    public let activeDays: Int
+
+    public init(monthStart: Date, steps: Int, activeDays: Int) {
+        self.monthStart = monthStart
+        self.steps = steps
+        self.activeDays = activeDays
+    }
+}
+
+public struct InsightReceipt: Codable, Equatable, Sendable {
+    public let periodStart: Date
+    public let periodEnd: Date
+    public let generatedAt: Date
+    public let totalSteps: Int
+    public let totalDistanceMeters: Double
+    public let totalActiveEnergyKilocalories: Double
+    public let totalFlightsClimbed: Int
+    public let totalWorkoutMinutes: Double
+    public let dailyAverageSteps: Int
+    public let bestDay: DailyHighlight?
+    public let bestMonth: MonthHighlight?
+    public let currentStepGoalStreakDays: Int
+    public let projectedStepsToday: Int?
+    public let stepGoalCompletionRate: Double
+    public let onTrackMessage: String
+
+    public init(
+        periodStart: Date,
+        periodEnd: Date,
+        generatedAt: Date,
+        totalSteps: Int,
+        totalDistanceMeters: Double,
+        totalActiveEnergyKilocalories: Double,
+        totalFlightsClimbed: Int,
+        totalWorkoutMinutes: Double,
+        dailyAverageSteps: Int,
+        bestDay: DailyHighlight?,
+        bestMonth: MonthHighlight?,
+        currentStepGoalStreakDays: Int,
+        projectedStepsToday: Int?,
+        stepGoalCompletionRate: Double,
+        onTrackMessage: String
+    ) {
+        self.periodStart = periodStart
+        self.periodEnd = periodEnd
+        self.generatedAt = generatedAt
+        self.totalSteps = max(0, totalSteps)
+        self.totalDistanceMeters = max(0, totalDistanceMeters)
+        self.totalActiveEnergyKilocalories = max(0, totalActiveEnergyKilocalories)
+        self.totalFlightsClimbed = max(0, totalFlightsClimbed)
+        self.totalWorkoutMinutes = max(0, totalWorkoutMinutes)
+        self.dailyAverageSteps = max(0, dailyAverageSteps)
+        self.bestDay = bestDay
+        self.bestMonth = bestMonth
+        self.currentStepGoalStreakDays = max(0, currentStepGoalStreakDays)
+        self.projectedStepsToday = projectedStepsToday.map { max(0, $0) }
+        self.stepGoalCompletionRate = max(0, min(1, stepGoalCompletionRate))
+        self.onTrackMessage = onTrackMessage
+    }
+}
+
+public struct SyncedSummaryRecord: Codable, Equatable, Identifiable, Sendable {
+    public var id: String { dayKey }
+
+    public let dayKey: String
+    public let dateStart: Date
+    public let steps: Int
+    public let distanceMeters: Double
+    public let activeEnergyKilocalories: Double
+    public let flightsClimbed: Int
+    public let workoutMinutes: Double
+    public let workoutCount: Int
+    public let stepGoal: Int
+    public let updatedAt: Date
+
+    public init(
+        dayKey: String,
+        dateStart: Date,
+        steps: Int,
+        distanceMeters: Double,
+        activeEnergyKilocalories: Double,
+        flightsClimbed: Int,
+        workoutMinutes: Double,
+        workoutCount: Int,
+        stepGoal: Int,
+        updatedAt: Date = Date()
+    ) {
+        self.dayKey = dayKey
+        self.dateStart = dateStart
+        self.steps = max(0, steps)
+        self.distanceMeters = max(0, distanceMeters)
+        self.activeEnergyKilocalories = max(0, activeEnergyKilocalories)
+        self.flightsClimbed = max(0, flightsClimbed)
+        self.workoutMinutes = max(0, workoutMinutes)
+        self.workoutCount = max(0, workoutCount)
+        self.stepGoal = max(1, stepGoal)
+        self.updatedAt = updatedAt
+    }
+}

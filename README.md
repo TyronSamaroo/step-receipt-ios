@@ -92,6 +92,7 @@ Before shipping a fork or using a different Apple Developer account:
 These checks are the current local validation path:
 
 ```bash
+Tools/device-testflight-readiness.sh
 xcodegen generate
 swift run StepReceiptCoreCheck
 swift test --enable-swift-testing
@@ -103,6 +104,8 @@ xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'plat
 The latest local validation used `platform=iOS Simulator,name=iPhone 17,OS=26.5`.
 
 Real HealthKit and CloudKit behavior still need physical-device validation with the final Apple Developer team.
+
+`Tools/device-testflight-readiness.sh` intentionally fails until `DEVELOPMENT_TEAM` is set, a valid signing identity exists, and an iPhone is connected or paired.
 
 GitHub Actions runs the same core, repository, typecheck, plist, asset, app build, test-bundle build, and Xcode unit-test checks on `macos-26` with Xcode 26.5. The simulator UI smoke test is available as a manual workflow dispatch option because UI automation can be slower and noisier in hosted CI.
 

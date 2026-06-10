@@ -20,6 +20,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition board snapshots only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
 | TestFlight runbook | Ready for signing handoff | `Docs/TestFlightRunbook.md` captures the Apple team, iPhone proof, archive, and Family Beta path |
+| Device/TestFlight readiness gate | Implemented locally | `Tools/device-testflight-readiness.sh` verifies local toolchain, plist shape, entitlements, signing identity, connected device, and repo state |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
 ## Gates Before Calling It Production

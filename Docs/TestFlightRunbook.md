@@ -16,6 +16,14 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
 | Device proof | Pending; no iPhone proof is complete until the app runs on a trusted physical iPhone |
 | GitHub push | Pending; do not push until repository visibility is confirmed |
 
+Run the local readiness gate whenever signing, device, or repository state changes:
+
+```bash
+Tools/device-testflight-readiness.sh
+```
+
+It should fail until `DEVELOPMENT_TEAM` is set, a valid signing identity exists, and Tyron's iPhone is connected or paired.
+
 ## Apple Account And Signing
 
 1. Open Xcode and sign in under **Xcode > Settings > Accounts**.
@@ -75,6 +83,7 @@ Use Tyron's iPhone as the first proof device before TestFlight.
 Run this suite before creating an App Store archive:
 
 ```bash
+Tools/device-testflight-readiness.sh
 xcodegen generate
 plutil -lint StepReceiptApp/Info.plist StepReceiptApp/StepReceipt.entitlements StepReceiptApp/PrivacyInfo.xcprivacy
 swift run StepReceiptCoreCheck

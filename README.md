@@ -29,7 +29,7 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to private ag
 - `CloudKitSummarySync` writes only daily aggregate records to the user's private CloudKit database.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
 
-See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and remaining device-only gates.
+See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and [TestFlight Runbook](Docs/TestFlightRunbook.md) for the iPhone, App Store Connect, and wife-install path.
 
 ## Privacy
 
@@ -40,6 +40,7 @@ This repo can be public without exposing personal activity data. It contains sou
 - Does not upload raw workouts, hourly buckets, or HealthKit samples.
 - Syncs only `SyncedSummaryRecord`-style aggregate daily totals to the user's private CloudKit database.
 - Stores local friend competition check-ins as manually entered aggregate totals only.
+- Includes a privacy manifest for required-reason API review.
 - Keeps the app useful when HealthKit, iCloud, or individual metric permissions are unavailable.
 - Caches the last derived dashboard data on device so a HealthKit refresh failure does not erase the real activity view.
 - Defers real friend sharing and shared leaderboards until CloudKit sharing rules are designed.
@@ -72,6 +73,8 @@ open StepReceipt.xcodeproj
 In Xcode, set a real Development Team, confirm HealthKit and iCloud/CloudKit capabilities, then run on a physical iPhone for real Apple Health data.
 
 The simulator path is useful for UI work. Use **Preview Sample Data** on the onboarding screen to exercise the app without HealthKit data.
+
+For the physical-device and wife TestFlight flow, follow [Docs/TestFlightRunbook.md](Docs/TestFlightRunbook.md).
 
 ## Fork Setup
 
@@ -126,6 +129,7 @@ Local competition check-ins use the same aggregate privacy boundary: competitor 
 
 - Set `DEVELOPMENT_TEAM` in `project.yml` or Xcode before device/App Store builds.
 - Confirm the CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected Apple Developer team.
+- Confirm `StepReceiptApp/PrivacyInfo.xcprivacy` is included in the app target before archiving.
 - Run on a physical iPhone to verify HealthKit permission prompts, partial Health permissions, and real step/workout reads.
 - Verify iCloud disabled/offline behavior on device.
 - Keep local competition manual/check-in based until CloudKit sharing and privacy rules are designed.

@@ -17,6 +17,8 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Repository resilience | Verified with fakes | Xcode unit tests cover iCloud sync outage, duplicate daily summary merge behavior, and cached derived data fallback |
 | HealthKit read path | Implemented, device validation pending | `HealthKitClient` requests read-only authorization and queries metrics/workouts |
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
+| Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
+| TestFlight runbook | Ready for signing handoff | `Docs/TestFlightRunbook.md` captures the Apple team, iPhone proof, archive, and Family Beta path |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
 ## Gates Before Calling It Production
@@ -26,9 +28,11 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Test partial Health permissions and denied Health access.
 - Set a real Apple Developer Team and confirm signing works on device.
 - Confirm `iCloud.com.tyronsamaroo.stepreceipt` exists for that team.
+- Set `DEVELOPMENT_TEAM` in `project.yml`, regenerate `StepReceipt.xcodeproj`, and commit the signing setup once the real team ID is known.
 - Verify CloudKit behavior when iCloud is available, disabled, offline, and later restored.
 - Confirm CloudKit records contain only aggregate daily summaries.
 - Add real CloudKit account/device coverage after the container is configured.
+- Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including the `Family Beta` external tester group.
 - Decide repository license before presenting the public repo as open source.
 - Decide when to graduate local/manual competition into real friend sharing.
 

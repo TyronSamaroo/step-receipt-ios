@@ -75,7 +75,7 @@ Use Tyron's iPhone as the first proof device before TestFlight.
    - Settings goals/customization
    - Competition tab with local check-ins and household-code sync controls
    - CloudKit status when iCloud is available, disabled, and offline
-7. Create a household code on Tyron's iPhone, sync, and confirm the leaderboard still shows Tyron's aggregate row if CloudKit is offline.
+7. In the Competition tab, set the board name to `Tyron`, create a household code, sync, and confirm the leaderboard still shows Tyron's aggregate row if CloudKit is offline.
 8. Repeat with partial permissions denied so the app still shows useful available data.
 
 ## Local Validation Before Archive
@@ -149,6 +149,7 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
    - App opens to onboarding.
    - Health permission prompt appears.
    - Denied or partial Health access still leaves the app usable.
+   - Competition board name is set to `Tiffany` before syncing.
    - The same household code shows both Tyron and Tiffany on the competition leaderboard after each phone syncs.
    - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionBoard.entriesJSON`.
 

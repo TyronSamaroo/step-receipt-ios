@@ -1,8 +1,10 @@
 import SwiftUI
+import UIKit
 
 struct CompetitionView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var isPresentingCheckIn = false
+    @State private var profileNameDraft = ""
     @State private var inviteCodeDraft = ""
     @State private var inviteShare: CompetitionInviteShare?
 
@@ -50,7 +52,11 @@ struct CompetitionView: View {
                 ShareSheet(items: [inviteShare.message])
             }
             .onAppear {
+                profileNameDraft = repository.preferences.displayName
                 inviteCodeDraft = repository.sharedCompetitionSettings.inviteCode
+            }
+            .onChange(of: repository.preferences.displayName) { _, newValue in
+                profileNameDraft = newValue
             }
             .onChange(of: repository.sharedCompetitionSettings.inviteCode) { _, newValue in
                 inviteCodeDraft = newValue
@@ -106,6 +112,13 @@ struct CompetitionView: View {
                 .background(Color.stepBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
+            TextField("Your board name", text: $profileNameDraft)
+                .textInputAutocapitalization(.words)
+                .autocorrectionDisabled()
+                .padding(12)
+                .background(Color.stepBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
             HStack(spacing: 8) {
                 Button {
                     inviteCodeDraft = repository.generatedSharedCompetitionInviteCode()
@@ -117,6 +130,7 @@ struct CompetitionView: View {
 
                 Button {
                     Task {
+                        saveBoardProfileName()
                         await repository.updateSharedCompetition(isEnabled: true, inviteCode: inviteCodeDraft)
                     }
                 } label: {
@@ -139,7 +153,19 @@ struct CompetitionView: View {
                 .disabled(!repository.sharedCompetitionSettings.canSync)
 
                 Button {
+                    UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!repository.sharedCompetitionSettings.canSync)
+            }
+
+            HStack(spacing: 8) {
+                Button {
                     Task {
+                        saveBoardProfileName()
                         await repository.syncSharedCompetition()
                     }
                 } label: {
@@ -167,6 +193,11 @@ struct CompetitionView: View {
                 .foregroundStyle(Color.stepMuted)
         }
         .metricCard()
+    }
+
+    private func saveBoardProfileName() {
+        repository.updatePreferences(displayName: profileNameDraft)
+        profileNameDraft = repository.preferences.displayName
     }
 
     private var sharedStatusText: String {

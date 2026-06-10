@@ -23,8 +23,10 @@ final class StepReceiptUITests: XCTestCase {
 
         app.tabBars.buttons["Compete"].tap()
         XCTAssertTrue(app.staticTexts["Household Board"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["Your board name"].exists)
         XCTAssertTrue(app.buttons["Generate"].exists)
         XCTAssertTrue(app.buttons["Sync"].exists)
+        XCTAssertTrue(app.buttons["Copy"].exists)
         XCTAssertTrue(app.staticTexts["Leaderboard"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Add Check-In"].waitForExistence(timeout: 3))
         app.buttons["Add Check-In"].tap()

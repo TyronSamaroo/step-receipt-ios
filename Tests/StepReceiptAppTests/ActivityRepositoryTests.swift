@@ -400,6 +400,16 @@ struct ActivityRepositoryTests {
         #expect(repository.sharedCompetitionSyncState == .unavailable("Competition sync offline"))
     }
 
+    @Test
+    func testSharedCompetitionBoardRecordNameUsesNormalizedInviteHash() {
+        let spacedHash = CloudKitCompetitionSync.groupHash(for: " family-beta ")
+        let normalizedHash = CloudKitCompetitionSync.groupHash(for: "FAMILYBETA")
+
+        #expect(spacedHash == normalizedHash)
+        #expect(spacedHash.count == 64)
+        #expect(CloudKitCompetitionSync.boardRecordName(for: spacedHash) == "competition-board-\(spacedHash)")
+    }
+
     private func defaultsSuiteName() -> String {
         "StepReceiptTests.\(UUID().uuidString)"
     }

@@ -26,7 +26,7 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
 4. Create or confirm the CloudKit container `iCloud.com.tyronsamaroo.stepreceipt`.
 5. In CloudKit Dashboard, confirm the app can create these record types in the development environment:
    - `DailyActivitySummary` in the private database.
-   - `CompetitionDailyEntry` in the public database, with `groupHash` queryable for the household-code lookup.
+   - `CompetitionBoard` in the public database. Each board is fetched by deterministic record ID from the hashed household code, so no public query index is required for the wife beta.
 6. Copy the Apple Developer Team ID into `project.yml`:
 
    ```yaml
@@ -141,7 +141,7 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
    - Health permission prompt appears.
    - Denied or partial Health access still leaves the app usable.
    - The same household code shows both Tyron and Tiffany on the competition leaderboard after each phone syncs.
-   - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionDailyEntry` records.
+   - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionBoard.entriesJSON`.
 
 Tiffany's phone does not need to be connected to this Mac for the TestFlight path.
 
@@ -151,7 +151,7 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 - [ ] `DEVELOPMENT_TEAM` set and committed.
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
-- [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionDailyEntry`.
+- [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionBoard`.
 - [ ] Tyron's iPhone runs the app from Xcode with real Health data.
 - [ ] Household-code competition sync shows Tyron and Tiffany aggregate leaderboard rows.
 - [ ] Local validation suite passes before archive.

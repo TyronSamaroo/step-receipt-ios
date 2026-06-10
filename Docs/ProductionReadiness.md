@@ -17,7 +17,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Repository resilience | Verified with fakes | Xcode unit tests cover iCloud sync outage, duplicate daily summary merge behavior, and cached derived data fallback |
 | HealthKit read path | Implemented, device validation pending | `HealthKitClient` requests read-only authorization and queries metrics/workouts |
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
-| Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition entries only; tests cover wife row merge and sync failure fallback |
+| Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition board snapshots only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
 | TestFlight runbook | Ready for signing handoff | `Docs/TestFlightRunbook.md` captures the Apple team, iPhone proof, archive, and Family Beta path |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
@@ -34,7 +34,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Confirm CloudKit records contain only private aggregate daily summaries and opt-in household competition totals.
 - Add real CloudKit account/device coverage after the container is configured.
 - Validate household-code competition sync with Tyron and Tiffany Apple IDs before treating wife competition as complete.
-- Deploy/verify the CloudKit development schema for `CompetitionDailyEntry` and its `groupHash` lookup before TestFlight acceptance.
+- Deploy/verify the CloudKit development schema for public `CompetitionBoard` records before TestFlight acceptance.
 - Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including the `Family Beta` external tester group.
 - Decide repository license before presenting the public repo as open source.
 - Decide when to graduate local/manual competition into real friend sharing.

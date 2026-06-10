@@ -27,7 +27,7 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to aggregate 
 - `ActivityRepository` normalizes HealthKit reads into app state, on-device derived summaries, receipts, household competition entries, local competition check-ins, and sample preview data.
 - `InsightEngine` is pure Swift logic for daily aggregation, averages, best day/month, streaks, goal pacing, filters, and sync-record shaping.
 - `CloudKitSummarySync` writes only daily aggregate records to the user's private CloudKit database.
-- `CloudKitCompetitionSync` publishes and fetches opt-in household competition entries keyed by a hashed invite code.
+- `CloudKitCompetitionSync` publishes and fetches an opt-in household competition board keyed by a hashed invite code.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
 
 See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and [TestFlight Runbook](Docs/TestFlightRunbook.md) for the iPhone, App Store Connect, and wife-install path.
@@ -129,7 +129,7 @@ Household competition sync uses the same aggregate privacy boundary: competitor 
 
 Local competition check-ins stay on device and remain available as an offline fallback.
 
-CloudKit competition records use `CompetitionDailyEntry` with a hashed household invite code. The code is an invite secret for the household board, not a replacement for future CKShare-based private invites.
+CloudKit competition records use one public `CompetitionBoard` record per hashed household invite code. The board stores a compact aggregate JSON snapshot so both phones can fetch the same board by record ID without a CloudKit query index. The code is an invite secret for the household board, not a replacement for future CKShare-based private invites.
 
 ## Production Checklist
 

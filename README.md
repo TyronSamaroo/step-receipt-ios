@@ -97,7 +97,7 @@ The latest local validation used `platform=iOS Simulator,name=iPhone 17,OS=26.5`
 
 Real HealthKit and CloudKit behavior still need physical-device validation with the final Apple Developer team.
 
-GitHub Actions runs the same core, typecheck, plist, asset, app build, and test-bundle build checks on `macos-26` with Xcode 26.5. The simulator UI smoke test is available as a manual workflow dispatch option because UI automation can be slower and noisier in hosted CI.
+GitHub Actions runs the same core, repository, typecheck, plist, asset, app build, test-bundle build, and Xcode unit-test checks on `macos-26` with Xcode 26.5. The simulator UI smoke test is available as a manual workflow dispatch option because UI automation can be slower and noisier in hosted CI.
 
 ## CloudKit Data Shape
 

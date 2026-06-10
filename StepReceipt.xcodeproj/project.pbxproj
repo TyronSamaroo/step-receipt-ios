@@ -12,18 +12,22 @@
 		165E2C740BA12624FADDA990 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DCB0108D22D9887D64D763 /* TodayView.swift */; };
 		17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
 		1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
+		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		3C9290E64EBEE8D1D186287F /* PermissionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */; };
 		4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */; };
+		55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
 		7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCCA4BE75DE26E667433C90 /* InsightsView.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
 		9D0DA8357E5F916B3D0894EB /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
 		A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
+		AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
 		BE150B31D7F0F53A8CA5EF26 /* StepReceiptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */; };
 		C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
+		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
@@ -70,6 +74,7 @@
 		C91B022F49B7155BF630F06F /* ActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModels.swift; sourceTree = "<group>"; };
 		D59919A8F9748A60F3DF35DD /* StepReceipt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StepReceipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7AA520E58D9123739472025 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryTests.swift; sourceTree = "<group>"; };
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
@@ -145,6 +150,15 @@
 			path = Sources/StepReceiptCore;
 			sourceTree = "<group>";
 		};
+		591C7FB6E989A88D1E029FB9 /* StepReceiptAppTests */ = {
+			isa = PBXGroup;
+			children = (
+				DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */,
+			);
+			name = StepReceiptAppTests;
+			path = Tests/StepReceiptAppTests;
+			sourceTree = "<group>";
+		};
 		62B83B43F9A93198B1D3FADB /* Products */ = {
 			isa = PBXGroup;
 			children = (
@@ -178,6 +192,7 @@
 			isa = PBXGroup;
 			children = (
 				105AE4026E32E03DA963A150 /* StepReceiptApp */,
+				591C7FB6E989A88D1E029FB9 /* StepReceiptAppTests */,
 				3B4C326B859CB84076B4F1A8 /* StepReceiptCore */,
 				A385142CBBD07E9ABFDEE00C /* StepReceiptCoreTests */,
 				1F23641E4AA06ACFEC251895 /* StepReceiptUITests */,
@@ -309,8 +324,12 @@
 			files = (
 				9D0DA8357E5F916B3D0894EB /* ActivityFormatting.swift in Sources */,
 				C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */,
+				55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */,
+				D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */,
+				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
+				30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */,
 				E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */,
 				F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */,
 			);

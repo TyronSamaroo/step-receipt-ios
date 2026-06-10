@@ -8,6 +8,15 @@ enum HealthAuthorizationState: Equatable, Sendable {
     case deniedOrLimited
 }
 
+protocol HealthKitProviding: Sendable {
+    var isAvailable: Bool { get }
+
+    func requestAuthorization() async throws -> HealthAuthorizationState
+    func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket]
+    func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket]
+    func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity]
+}
+
 final class HealthKitClient: @unchecked Sendable {
     private let store = HKHealthStore()
     private let calendar: Calendar
@@ -240,3 +249,5 @@ final class HealthKitClient: @unchecked Sendable {
         }
     }
 }
+
+extension HealthKitClient: HealthKitProviding {}

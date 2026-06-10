@@ -38,11 +38,12 @@ final class ActivityRepository: ObservableObject {
 
     let historyLookbackDays = 90
 
-    private let healthKit: HealthKitClient
-    private let cloudKit: CloudKitSummarySync
+    private let healthKit: any HealthKitProviding
+    private let cloudKit: any CloudKitSummarySyncing
     private let engine: InsightEngine
     private let competitionEngine: CompetitionEngine
     private let calendar: Calendar
+    private let userDefaults: UserDefaults
     private let authorizationRequestedKey = "stepReceipt.healthAuthorizationRequested.v1"
     private let samplePreviewEnabledKey = "stepReceipt.samplePreviewEnabled.v1"
     private let competitorIDKey = "stepReceipt.currentCompetitorID.v1"
@@ -51,18 +52,20 @@ final class ActivityRepository: ObservableObject {
     private let currentCompetitorID: UUID
 
     init(
-        healthKit: HealthKitClient = HealthKitClient(),
-        cloudKit: CloudKitSummarySync = CloudKitSummarySync(),
-        calendar: Calendar = .current
+        healthKit: any HealthKitProviding = HealthKitClient(),
+        cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
+        calendar: Calendar = .current,
+        userDefaults: UserDefaults = .standard
     ) {
         self.healthKit = healthKit
         self.cloudKit = cloudKit
         self.calendar = calendar
+        self.userDefaults = userDefaults
         self.engine = InsightEngine(calendar: calendar)
         self.competitionEngine = CompetitionEngine(calendar: calendar)
-        self.goals = Self.loadGoals(key: goalsKey)
-        self.preferences = Self.loadPreferences(key: preferencesKey)
-        self.currentCompetitorID = Self.loadCompetitorID(key: competitorIDKey)
+        self.goals = Self.loadGoals(key: goalsKey, userDefaults: userDefaults)
+        self.preferences = Self.loadPreferences(key: preferencesKey, userDefaults: userDefaults)
+        self.currentCompetitorID = Self.loadCompetitorID(key: competitorIDKey, userDefaults: userDefaults)
     }
 
     func bootstrap() async {
@@ -301,23 +304,23 @@ final class ActivityRepository: ObservableObject {
     }
 
     private var hasRequestedHealthAuthorization: Bool {
-        UserDefaults.standard.bool(forKey: authorizationRequestedKey)
+        userDefaults.bool(forKey: authorizationRequestedKey)
     }
 
     private var isSamplePreviewEnabled: Bool {
-        UserDefaults.standard.bool(forKey: samplePreviewEnabledKey)
+        userDefaults.bool(forKey: samplePreviewEnabledKey)
     }
 
     private func markHealthAuthorizationRequested() {
-        UserDefaults.standard.set(true, forKey: authorizationRequestedKey)
+        userDefaults.set(true, forKey: authorizationRequestedKey)
     }
 
     private func enableSamplePreview() {
-        UserDefaults.standard.set(true, forKey: samplePreviewEnabledKey)
+        userDefaults.set(true, forKey: samplePreviewEnabledKey)
     }
 
     private func disableSamplePreview() {
-        UserDefaults.standard.set(false, forKey: samplePreviewEnabledKey)
+        userDefaults.set(false, forKey: samplePreviewEnabledKey)
     }
 
     private func resetDefaultsForUITestingIfNeeded() {
@@ -328,7 +331,7 @@ final class ActivityRepository: ObservableObject {
             competitorIDKey,
             goalsKey,
             preferencesKey
-        ].forEach(UserDefaults.standard.removeObject)
+        ].forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
         lastError = nil
@@ -393,7 +396,7 @@ final class ActivityRepository: ObservableObject {
 
     private func saveGoals() {
         guard let data = try? JSONEncoder().encode(goals) else { return }
-        UserDefaults.standard.set(data, forKey: goalsKey)
+        userDefaults.set(data, forKey: goalsKey)
     }
 
     func updatePreferences(
@@ -410,12 +413,12 @@ final class ActivityRepository: ObservableObject {
 
     private func savePreferences() {
         guard let data = try? JSONEncoder().encode(preferences) else { return }
-        UserDefaults.standard.set(data, forKey: preferencesKey)
+        userDefaults.set(data, forKey: preferencesKey)
     }
 
-    private static func loadGoals(key: String) -> UserGoals {
+    private static func loadGoals(key: String, userDefaults: UserDefaults) -> UserGoals {
         guard
-            let data = UserDefaults.standard.data(forKey: key),
+            let data = userDefaults.data(forKey: key),
             let goals = try? JSONDecoder().decode(UserGoals.self, from: data)
         else {
             return UserGoals()
@@ -423,9 +426,9 @@ final class ActivityRepository: ObservableObject {
         return goals
     }
 
-    private static func loadPreferences(key: String) -> UserPreferences {
+    private static func loadPreferences(key: String, userDefaults: UserDefaults) -> UserPreferences {
         guard
-            let data = UserDefaults.standard.data(forKey: key),
+            let data = userDefaults.data(forKey: key),
             let preferences = try? JSONDecoder().decode(UserPreferences.self, from: data)
         else {
             return UserPreferences()
@@ -433,15 +436,15 @@ final class ActivityRepository: ObservableObject {
         return preferences
     }
 
-    private static func loadCompetitorID(key: String) -> UUID {
+    private static func loadCompetitorID(key: String, userDefaults: UserDefaults) -> UUID {
         if
-            let stored = UserDefaults.standard.string(forKey: key),
+            let stored = userDefaults.string(forKey: key),
             let id = UUID(uuidString: stored)
         {
             return id
         }
         let id = UUID()
-        UserDefaults.standard.set(id.uuidString, forKey: key)
+        userDefaults.set(id.uuidString, forKey: key)
         return id
     }
 }

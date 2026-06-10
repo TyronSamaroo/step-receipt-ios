@@ -40,7 +40,9 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tyronsamaroo.stepreceipt.tests
     sources:
       - Tests/StepReceiptCoreTests
+      - Tests/StepReceiptAppTests
       - Sources/StepReceiptCore
+      - StepReceiptApp/Services
   StepReceiptUITests:
     type: bundle.ui-testing
     platform: iOS

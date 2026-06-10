@@ -21,6 +21,11 @@ enum CloudSyncError: LocalizedError, Sendable {
     }
 }
 
+protocol CloudKitSummarySyncing: Sendable {
+    func status() async -> CloudSyncState
+    func sync(records: [SyncedSummaryRecord]) async throws
+}
+
 final class CloudKitSummarySync: @unchecked Sendable {
     private let container: CKContainer
     private let database: CKDatabase
@@ -99,3 +104,5 @@ final class CloudKitSummarySync: @unchecked Sendable {
         return ckRecord
     }
 }
+
+extension CloudKitSummarySync: CloudKitSummarySyncing {}

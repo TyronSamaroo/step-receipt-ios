@@ -14,8 +14,9 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Goals and customization | Implemented | Settings view persists goals, distance unit, name, and visible metrics |
 | Competition | V1 scaffold | Aggregate-only leaderboard models, engine, and tab |
 | Analytics correctness | Verified locally | Swift Testing suite covers aggregation, averages, streaks, filters, projections, and sync shape |
+| Repository resilience | Verified with fakes | Xcode unit tests cover iCloud sync outage and duplicate daily summary merge behavior |
 | HealthKit read path | Implemented, device validation pending | `HealthKitClient` requests read-only authorization and queries metrics/workouts |
-| CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only |
+| CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
 ## Gates Before Calling It Production
@@ -27,6 +28,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Confirm `iCloud.com.tyronsamaroo.stepreceipt` exists for that team.
 - Verify CloudKit behavior when iCloud is available, disabled, offline, and later restored.
 - Confirm CloudKit records contain only aggregate daily summaries.
+- Add real CloudKit account/device coverage after the container is configured.
 - Decide repository license before presenting the public repo as open source.
 - Decide whether v1 competition remains local/sample-based or moves to real friend sharing.
 

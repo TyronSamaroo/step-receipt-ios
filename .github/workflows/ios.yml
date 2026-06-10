@@ -88,6 +88,15 @@ jobs:
             -destination "$SIMULATOR_DESTINATION" \
             build-for-testing
 
+      - name: Run Xcode unit tests
+        run: |
+          xcodebuild \
+            -project StepReceipt.xcodeproj \
+            -scheme StepReceipt \
+            -destination "$SIMULATOR_DESTINATION" \
+            -only-testing:StepReceiptTests \
+            test
+
       - name: Run simulator UI smoke test
         if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ui_smoke == 'true' }}
         run: |

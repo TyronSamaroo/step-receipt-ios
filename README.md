@@ -24,7 +24,7 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to private ag
 
 - `HealthKitClient` requests Health read authorization and queries steps, walking/running distance, active energy, flights climbed, and workouts.
 - `HKStatisticsCollectionQuery` powers hourly and daily metric buckets.
-- `ActivityRepository` normalizes HealthKit reads into app state, cached summaries, receipts, competition state, and sample preview data.
+- `ActivityRepository` normalizes HealthKit reads into app state, on-device derived summaries, receipts, competition state, and sample preview data.
 - `InsightEngine` is pure Swift logic for daily aggregation, averages, best day/month, streaks, goal pacing, filters, and sync-record shaping.
 - `CloudKitSummarySync` writes only daily aggregate records to the user's private CloudKit database.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
@@ -40,6 +40,7 @@ This repo can be public without exposing personal activity data. It contains sou
 - Does not upload raw workouts, hourly buckets, or HealthKit samples.
 - Syncs only `SyncedSummaryRecord`-style aggregate daily totals to the user's private CloudKit database.
 - Keeps the app useful when HealthKit, iCloud, or individual metric permissions are unavailable.
+- Caches the last derived dashboard data on device so a HealthKit refresh failure does not erase the real activity view.
 - Defers real friend sharing and shared leaderboards until CloudKit sharing rules are designed.
 
 ## Requirements

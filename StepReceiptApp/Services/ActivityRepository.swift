@@ -49,7 +49,9 @@ final class ActivityRepository: ObservableObject {
     private let competitorIDKey = "stepReceipt.currentCompetitorID.v1"
     private let goalsKey = "stepReceipt.goals.v1"
     private let preferencesKey = "stepReceipt.preferences.v1"
+    private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
     private let currentCompetitorID: UUID
+    private var activityDataSource: ActivityDataSource = .none
 
     init(
         healthKit: any HealthKitProviding = HealthKitClient(),
@@ -73,7 +75,7 @@ final class ActivityRepository: ObservableObject {
         cloudSyncState = await cloudKit.status()
         if !healthKit.isAvailable {
             authorizationState = .unavailable
-            loadSampleData()
+            loadCachedDataOrSample()
             return
         }
 
@@ -84,7 +86,7 @@ final class ActivityRepository: ObservableObject {
                 return
             }
             authorizationState = .notDetermined
-            loadSampleData()
+            loadCachedDataOrSample()
             return
         }
 
@@ -99,7 +101,7 @@ final class ActivityRepository: ObservableObject {
             let state = try await healthKit.requestAuthorization()
             authorizationState = state
             guard state == .authorized else {
-                loadSampleData()
+                loadCachedDataOrSample()
                 return
             }
 
@@ -107,7 +109,7 @@ final class ActivityRepository: ObservableObject {
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
-            loadSampleData()
+            loadCachedDataOrSample()
         }
     }
 
@@ -151,15 +153,17 @@ final class ActivityRepository: ObservableObject {
             )
             receipt = engine.receipt(for: history, goals: goals)
             refreshCompetition()
+            activityDataSource = .healthKit
             authorizationState = .authorized
             lastError = nil
+            saveDerivedActivityCache(selectedSummary: todaySummary)
 
             await syncAggregateSummaries(selectedSummary: todaySummary)
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
             if history.isEmpty {
-                loadSampleData()
+                loadCachedDataOrSample()
             }
         }
     }
@@ -194,6 +198,9 @@ final class ActivityRepository: ObservableObject {
                 goals: goals
             )
             lastError = nil
+            if activityDataSource == .healthKit || activityDataSource == .cache {
+                saveDerivedActivityCache(selectedSummary: todaySummary)
+            }
         } catch {
             lastError = error.localizedDescription
             loadSelectedSummaryFromHistory()
@@ -226,6 +233,9 @@ final class ActivityRepository: ObservableObject {
                 workouts: todaySummary.workouts,
                 goals: goals
             )
+        }
+        if activityDataSource == .healthKit || activityDataSource == .cache {
+            saveDerivedActivityCache(selectedSummary: todaySummary)
         }
     }
 
@@ -330,11 +340,67 @@ final class ActivityRepository: ObservableObject {
             samplePreviewEnabledKey,
             competitorIDKey,
             goalsKey,
-            preferencesKey
+            preferencesKey,
+            activityCacheKey
         ].forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
         lastError = nil
+    }
+
+    private func loadCachedDataOrSample() {
+        if !loadCachedActivityData() {
+            loadSampleData()
+        }
+    }
+
+    @discardableResult
+    private func loadCachedActivityData() -> Bool {
+        guard
+            let data = userDefaults.data(forKey: activityCacheKey),
+            let cache = try? JSONDecoder().decode(DerivedActivityCache.self, from: data),
+            !cache.history.isEmpty || cache.selectedSummary != nil || !cache.workouts.isEmpty
+        else {
+            return false
+        }
+
+        workouts = cache.workouts
+        history = cache.history.map(rebuildSummaryWithCurrentGoals)
+        selectedDate = normalizedActivityDate(cache.selectedDate)
+        if
+            let selectedSummary = cache.selectedSummary.map(rebuildSummaryWithCurrentGoals),
+            calendar.isDate(selectedSummary.dateStart, inSameDayAs: selectedDate)
+        {
+            todaySummary = selectedSummary
+        } else {
+            loadSelectedSummaryFromHistory()
+        }
+        receipt = engine.receipt(for: history, goals: goals)
+        refreshCompetition()
+        activityDataSource = .cache
+        return true
+    }
+
+    private func saveDerivedActivityCache(selectedSummary: DailyActivitySummary?) {
+        guard activityDataSource == .healthKit || activityDataSource == .cache else { return }
+        let cache = DerivedActivityCache(
+            cachedAt: Date(),
+            selectedDate: selectedDate,
+            history: history,
+            workouts: workouts,
+            selectedSummary: selectedSummary
+        )
+        guard let data = try? JSONEncoder().encode(cache) else { return }
+        userDefaults.set(data, forKey: activityCacheKey)
+    }
+
+    private func rebuildSummaryWithCurrentGoals(_ summary: DailyActivitySummary) -> DailyActivitySummary {
+        engine.aggregateDay(
+            containing: summary.dateStart,
+            buckets: summary.buckets,
+            workouts: summary.workouts,
+            goals: goals
+        )
     }
 
     private func loadSampleData() {
@@ -392,6 +458,7 @@ final class ActivityRepository: ObservableObject {
         )
         receipt = engine.receipt(for: history, goals: goals)
         refreshCompetition()
+        activityDataSource = .sample
     }
 
     private func saveGoals() {
@@ -447,4 +514,19 @@ final class ActivityRepository: ObservableObject {
         userDefaults.set(id.uuidString, forKey: key)
         return id
     }
+}
+
+private enum ActivityDataSource {
+    case none
+    case healthKit
+    case cache
+    case sample
+}
+
+private struct DerivedActivityCache: Codable {
+    let cachedAt: Date
+    let selectedDate: Date
+    let history: [DailyActivitySummary]
+    let workouts: [WorkoutActivity]
+    let selectedSummary: DailyActivitySummary?
 }

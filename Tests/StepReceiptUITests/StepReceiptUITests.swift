@@ -22,6 +22,9 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Workouts"].exists)
 
         app.tabBars.buttons["Compete"].tap()
+        XCTAssertTrue(app.staticTexts["Household Board"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Generate"].exists)
+        XCTAssertTrue(app.buttons["Sync"].exists)
         XCTAssertTrue(app.staticTexts["Leaderboard"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Add Check-In"].waitForExistence(timeout: 3))
         app.buttons["Add Check-In"].tap()
@@ -36,7 +39,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Display name"].exists)
 
         let privacyCopy = app.staticTexts
-            .matching(NSPredicate(format: "label CONTAINS 'syncs only aggregate daily summary records'"))
+            .matching(NSPredicate(format: "label CONTAINS 'opt-in household competition totals'"))
             .firstMatch
         if !privacyCopy.waitForExistence(timeout: 1) {
             app.swipeUp()

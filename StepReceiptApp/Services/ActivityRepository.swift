@@ -33,6 +33,18 @@ final class ActivityRepository: ObservableObject {
             refreshCompetition()
         }
     }
+    @Published var sharedCompetitionSettings: SharedCompetitionSettings {
+        didSet {
+            saveSharedCompetitionSettings()
+            refreshCompetition()
+        }
+    }
+    @Published private(set) var sharedCompetitionEntries: [CompetitionEntry] = [] {
+        didSet {
+            refreshCompetition()
+        }
+    }
+    @Published var sharedCompetitionSyncState: CompetitionSyncState = .off
     @Published var preferences: UserPreferences {
         didSet {
             savePreferences()
@@ -52,6 +64,7 @@ final class ActivityRepository: ObservableObject {
 
     private let healthKit: any HealthKitProviding
     private let cloudKit: any CloudKitSummarySyncing
+    private let competitionSync: any SharedCompetitionSyncing
     private let engine: InsightEngine
     private let competitionEngine: CompetitionEngine
     private let calendar: Calendar
@@ -63,6 +76,7 @@ final class ActivityRepository: ObservableObject {
     private let preferencesKey = "stepReceipt.preferences.v1"
     private let localCompetitorsKey = "stepReceipt.localCompetitors.v1"
     private let localCompetitionCheckInsKey = "stepReceipt.localCompetitionCheckIns.v1"
+    private let sharedCompetitionSettingsKey = "stepReceipt.sharedCompetitionSettings.v1"
     private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
     private let currentCompetitorID: UUID
     private var activityDataSource: ActivityDataSource = .none
@@ -70,11 +84,13 @@ final class ActivityRepository: ObservableObject {
     init(
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
+        competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
         calendar: Calendar = .current,
         userDefaults: UserDefaults = .standard
     ) {
         self.healthKit = healthKit
         self.cloudKit = cloudKit
+        self.competitionSync = competitionSync
         self.calendar = calendar
         self.userDefaults = userDefaults
         self.engine = InsightEngine(calendar: calendar)
@@ -83,7 +99,9 @@ final class ActivityRepository: ObservableObject {
         self.preferences = Self.loadPreferences(key: preferencesKey, userDefaults: userDefaults)
         self.localCompetitors = Self.loadLocalCompetitors(key: localCompetitorsKey, userDefaults: userDefaults)
         self.localCompetitionCheckIns = Self.loadLocalCompetitionCheckIns(key: localCompetitionCheckInsKey, userDefaults: userDefaults)
+        self.sharedCompetitionSettings = Self.loadSharedCompetitionSettings(key: sharedCompetitionSettingsKey, userDefaults: userDefaults)
         self.currentCompetitorID = Self.loadCompetitorID(key: competitorIDKey, userDefaults: userDefaults)
+        self.sharedCompetitionSyncState = sharedCompetitionSettings.canSync ? .idle : .off
     }
 
     func bootstrap() async {
@@ -92,6 +110,7 @@ final class ActivityRepository: ObservableObject {
         if !healthKit.isAvailable {
             authorizationState = .unavailable
             loadCachedDataOrSample()
+            await syncSharedCompetition()
             return
         }
 
@@ -99,10 +118,12 @@ final class ActivityRepository: ObservableObject {
             if isSamplePreviewEnabled {
                 authorizationState = .deniedOrLimited
                 loadSampleData()
+                await syncSharedCompetition()
                 return
             }
             authorizationState = .notDetermined
             loadCachedDataOrSample()
+            await syncSharedCompetition()
             return
         }
 
@@ -175,6 +196,7 @@ final class ActivityRepository: ObservableObject {
             saveDerivedActivityCache(selectedSummary: todaySummary)
 
             await syncAggregateSummaries(selectedSummary: todaySummary)
+            await syncSharedCompetition()
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
@@ -355,27 +377,61 @@ final class ActivityRepository: ObservableObject {
         localCompetitionCheckIns.removeAll { $0.competitorID == competitor.id }
     }
 
-    private func refreshCompetition() {
-        let currentUser = CompetitorProfile(
-            id: currentCompetitorID,
-            displayName: preferences.displayName,
-            accentHex: "#1C856F"
-        )
-        var entries = history.map { summary in
-            competitionEngine.entry(from: summary, competitor: currentUser)
+    func updateSharedCompetition(isEnabled: Bool, inviteCode: String) async {
+        let settings = SharedCompetitionSettings(isEnabled: isEnabled, inviteCode: inviteCode)
+        sharedCompetitionSettings = settings
+        if settings.canSync {
+            await syncSharedCompetition()
+        } else {
+            sharedCompetitionEntries = []
+            sharedCompetitionSyncState = .off
         }
+    }
+
+    func syncSharedCompetition() async {
+        guard sharedCompetitionSettings.canSync else {
+            sharedCompetitionEntries = []
+            sharedCompetitionSyncState = .off
+            return
+        }
+
+        sharedCompetitionSyncState = .syncing
+        do {
+            let remoteEntries = try await competitionSync.sync(
+                entries: entriesForSharedCompetitionSync(),
+                inviteCode: sharedCompetitionSettings.inviteCode
+            )
+            sharedCompetitionEntries = deduplicatedCompetitionEntries(remoteEntries)
+            sharedCompetitionSyncState = .synced(Date())
+        } catch {
+            sharedCompetitionSyncState = .unavailable(error.localizedDescription)
+            refreshCompetition()
+        }
+    }
+
+    func generatedSharedCompetitionInviteCode() -> String {
+        let random = UUID().uuidString.replacingOccurrences(of: "-", with: "")
+        return SharedCompetitionSettings.normalizedInviteCode("SR\(random.prefix(8))")
+    }
+
+    private func refreshCompetition() {
+        var entries: [CompetitionEntry] = []
+        var entriesByID: [String: CompetitionEntry] = [:]
+        merge(sharedCompetitionEntries, into: &entriesByID)
+        merge(currentUserCompetitionEntries(from: history), into: &entriesByID)
         let localEntries = competitionEngine.entries(
             from: localCompetitionCheckIns,
             competitors: localCompetitors
         )
-        if localEntries.isEmpty, activityDataSource == .sample {
+        if localEntries.isEmpty, sharedCompetitionEntries.isEmpty, activityDataSource == .sample {
             entries = competitionEngine.sampleEntries(
                 currentUserID: currentCompetitorID,
                 currentUserName: preferences.displayName,
                 summaries: history
             )
         } else {
-            entries.append(contentsOf: localEntries)
+            merge(localEntries, into: &entriesByID)
+            entries = Array(entriesByID.values)
         }
         competitionReceipt = competitionEngine.receipt(
             entries: entries,
@@ -383,6 +439,45 @@ final class ActivityRepository: ObservableObject {
             window: competitionWindow,
             metric: competitionMetric
         )
+    }
+
+    private func entriesForSharedCompetitionSync() -> [CompetitionEntry] {
+        guard activityDataSource == .healthKit || activityDataSource == .cache else {
+            return []
+        }
+        return currentUserCompetitionEntries(from: history)
+    }
+
+    private func currentUserCompetitionEntries(from summaries: [DailyActivitySummary]) -> [CompetitionEntry] {
+        let currentUser = CompetitorProfile(
+            id: currentCompetitorID,
+            displayName: preferences.displayName,
+            accentHex: "#1C856F"
+        )
+        return summaries.map { summary in
+            competitionEngine.entry(from: summary, competitor: currentUser)
+        }
+    }
+
+    private func deduplicatedCompetitionEntries(_ entries: [CompetitionEntry]) -> [CompetitionEntry] {
+        var entriesByID: [String: CompetitionEntry] = [:]
+        merge(entries, into: &entriesByID)
+        return Array(entriesByID.values)
+            .sorted {
+                if $0.dayKey == $1.dayKey {
+                    return $0.competitor.displayName.localizedCaseInsensitiveCompare($1.competitor.displayName) == .orderedAscending
+                }
+                return $0.dayKey > $1.dayKey
+            }
+    }
+
+    private func merge(_ entries: [CompetitionEntry], into entriesByID: inout [String: CompetitionEntry]) {
+        for entry in entries {
+            if let existing = entriesByID[entry.id], existing.updatedAt > entry.updatedAt {
+                continue
+            }
+            entriesByID[entry.id] = entry
+        }
     }
 
     private func upsertLocalCompetitor(displayName: String) -> CompetitorProfile {
@@ -434,12 +529,16 @@ final class ActivityRepository: ObservableObject {
             preferencesKey,
             localCompetitorsKey,
             localCompetitionCheckInsKey,
+            sharedCompetitionSettingsKey,
             activityCacheKey
         ].forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
         localCompetitors = []
         localCompetitionCheckIns = []
+        sharedCompetitionSettings = SharedCompetitionSettings()
+        sharedCompetitionEntries = []
+        sharedCompetitionSyncState = .off
         lastError = nil
     }
 
@@ -588,6 +687,11 @@ final class ActivityRepository: ObservableObject {
         userDefaults.set(data, forKey: localCompetitionCheckInsKey)
     }
 
+    private func saveSharedCompetitionSettings() {
+        guard let data = try? JSONEncoder().encode(sharedCompetitionSettings) else { return }
+        userDefaults.set(data, forKey: sharedCompetitionSettingsKey)
+    }
+
     private static func loadGoals(key: String, userDefaults: UserDefaults) -> UserGoals {
         guard
             let data = userDefaults.data(forKey: key),
@@ -626,6 +730,16 @@ final class ActivityRepository: ObservableObject {
             return []
         }
         return checkIns
+    }
+
+    private static func loadSharedCompetitionSettings(key: String, userDefaults: UserDefaults) -> SharedCompetitionSettings {
+        guard
+            let data = userDefaults.data(forKey: key),
+            let settings = try? JSONDecoder().decode(SharedCompetitionSettings.self, from: data)
+        else {
+            return SharedCompetitionSettings()
+        }
+        return settings
     }
 
     private static func loadCompetitorID(key: String, userDefaults: UserDefaults) -> UUID {

@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
+		0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
 		0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D7B3688BBF71678CEEFABC /* SettingsView.swift */; };
 		165E2C740BA12624FADDA990 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DCB0108D22D9887D64D763 /* TodayView.swift */; };
@@ -68,6 +70,7 @@
 		7BCCA4BE75DE26E667433C90 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
 		7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistoryView.swift; sourceTree = "<group>"; };
 		7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepository.swift; sourceTree = "<group>"; };
+		8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSync.swift; sourceTree = "<group>"; };
 		959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSummarySync.swift; sourceTree = "<group>"; };
 		99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.entitlements; sourceTree = "<group>"; };
 		A1C02F7D43B39AEA6366E622 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -185,6 +188,7 @@
 			isa = PBXGroup;
 			children = (
 				7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */,
+				8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */,
 				959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */,
 				69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */,
 			);
@@ -330,6 +334,7 @@
 				C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */,
 				55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */,
 				D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */,
+				0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */,
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
@@ -348,6 +353,7 @@
 				C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */,
 				17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */,
 				FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */,
+				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
 				1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */,
 				4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */,

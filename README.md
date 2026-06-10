@@ -2,7 +2,7 @@
 
 StepReceipt is a native SwiftUI iPhone app for daily movement, workout history, shareable activity receipts, and simple Apple Health insights.
 
-Raw HealthKit samples stay on the device. CloudKit sync is limited to private aggregate summaries, goals, and preference-shaped app data.
+Raw HealthKit samples stay on the device. CloudKit sync is limited to aggregate summaries, goals, preference-shaped app data, and opt-in household competition totals.
 
 ![StepReceipt onboarding](Docs/Screenshots/onboarding.png)
 
@@ -16,7 +16,7 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to private ag
 - Workout detail pages with duration, distance, burn, source, and share actions.
 - Insight receipt with totals, best day, best month, daily average, streaks, and goal pacing.
 - Share-card flow for workout and receipt snapshots.
-- Competition tab with local friend check-ins, aggregate-only leaderboards, rank, gap insight, and challenge-ready models.
+- Competition tab with household-code sync, local friend check-ins, aggregate-only leaderboards, rank, and gap insight.
 - Settings for display name, miles/kilometers, visible Today metrics, step goal, workout goal, and optional calorie goal.
 - Sample preview mode for simulator runs, denied Health access, and public demo screenshots.
 
@@ -24,9 +24,10 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to private ag
 
 - `HealthKitClient` requests Health read authorization and queries steps, walking/running distance, active energy, flights climbed, and workouts.
 - `HKStatisticsCollectionQuery` powers hourly and daily metric buckets.
-- `ActivityRepository` normalizes HealthKit reads into app state, on-device derived summaries, receipts, local competition check-ins, and sample preview data.
+- `ActivityRepository` normalizes HealthKit reads into app state, on-device derived summaries, receipts, household competition entries, local competition check-ins, and sample preview data.
 - `InsightEngine` is pure Swift logic for daily aggregation, averages, best day/month, streaks, goal pacing, filters, and sync-record shaping.
 - `CloudKitSummarySync` writes only daily aggregate records to the user's private CloudKit database.
+- `CloudKitCompetitionSync` publishes and fetches opt-in household competition entries keyed by a hashed invite code.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
 
 See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and [TestFlight Runbook](Docs/TestFlightRunbook.md) for the iPhone, App Store Connect, and wife-install path.
@@ -39,11 +40,12 @@ This repo can be public without exposing personal activity data. It contains sou
 - Does not write workouts or health samples in v1.
 - Does not upload raw workouts, hourly buckets, or HealthKit samples.
 - Syncs only `SyncedSummaryRecord`-style aggregate daily totals to the user's private CloudKit database.
+- Shares only aggregate daily competition entries when a household code is enabled.
 - Stores local friend competition check-ins as manually entered aggregate totals only.
 - Includes a privacy manifest for required-reason API review.
 - Keeps the app useful when HealthKit, iCloud, or individual metric permissions are unavailable.
 - Caches the last derived dashboard data on device so a HealthKit refresh failure does not erase the real activity view.
-- Defers real friend sharing and shared leaderboards until CloudKit sharing rules are designed.
+- Treat household competition codes like invites; anyone using the same code can see aggregate leaderboard totals for that board.
 
 ## Requirements
 
@@ -106,7 +108,7 @@ GitHub Actions runs the same core, repository, typecheck, plist, asset, app buil
 
 ## CloudKit Data Shape
 
-Only aggregate daily summaries are synced:
+Private summary sync stores only aggregate daily summaries:
 
 | Field | Meaning |
 | --- | --- |
@@ -123,7 +125,11 @@ Only aggregate daily summaries are synced:
 
 Raw samples, hourly buckets, workout source IDs, and individual workout details are intentionally excluded.
 
-Local competition check-ins use the same aggregate privacy boundary: competitor name, day key, steps, distance, active burn, workout minutes, and update time. They are stored on device in v1 and are not CloudKit-shared until friend sharing rules are designed.
+Household competition sync uses the same aggregate privacy boundary: competitor profile, day key, steps, distance, active burn, workout minutes, and update time. It excludes buckets, workouts, source identifiers, workout details, and raw samples.
+
+Local competition check-ins stay on device and remain available as an offline fallback.
+
+CloudKit competition records use `CompetitionDailyEntry` with a hashed household invite code. The code is an invite secret for the household board, not a replacement for future CKShare-based private invites.
 
 ## Production Checklist
 
@@ -132,13 +138,12 @@ Local competition check-ins use the same aggregate privacy boundary: competitor 
 - Confirm `StepReceiptApp/PrivacyInfo.xcprivacy` is included in the app target before archiving.
 - Run on a physical iPhone to verify HealthKit permission prompts, partial Health permissions, and real step/workout reads.
 - Verify iCloud disabled/offline behavior on device.
-- Keep local competition manual/check-in based until CloudKit sharing and privacy rules are designed.
-- Prepare App Store privacy labels around HealthKit reads and private aggregate CloudKit sync.
+- Verify household-code competition sync on two Apple IDs before wife TestFlight acceptance.
+- Prepare App Store privacy labels around HealthKit reads, private aggregate CloudKit sync, and opt-in aggregate competition totals.
 
 ## Roadmap
 
 - Device-tested HealthKit onboarding and partial-permission handling.
-- CloudKit conflict/offline test doubles.
-- Friend invites and shared challenge zones.
+- CKShare-based private friend invites and shared challenge zones.
 - Widgets and lock-screen summaries.
 - Exportable weekly and monthly receipt cards.

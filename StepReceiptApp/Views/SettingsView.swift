@@ -93,7 +93,7 @@ struct SettingsView: View {
                 }
 
                 Section("Privacy") {
-                    Text("StepReceipt reads HealthKit data on-device and syncs only aggregate daily summary records to your private CloudKit database. Raw samples, hourly buckets, and individual workout details are not uploaded.")
+                    Text("StepReceipt reads HealthKit data on-device and syncs only aggregate daily summary records, preferences, goals, and opt-in household competition totals. Raw samples, hourly buckets, workout details, and source identifiers are not uploaded.")
                         .font(.footnote)
                         .foregroundStyle(Color.stepMuted)
                 }

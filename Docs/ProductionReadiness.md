@@ -12,11 +12,12 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | Insights receipt | Verified with unit and UI tests | Core receipt tests plus UI smoke test |
 | Workout details and sharing | Implemented | SwiftUI workout detail and share sheet views |
 | Goals and customization | Implemented | Settings view persists goals, distance unit, name, and visible metrics |
-| Competition | Local v1 implemented | Aggregate-only leaderboard models, local friend check-ins, rank/gap UI, and persistence tests |
+| Competition | Household-code beta implemented, device validation pending | Aggregate-only leaderboard models, household code sync, local friend check-ins, rank/gap UI, and persistence tests |
 | Analytics correctness | Verified locally | Swift Testing suite covers aggregation, averages, streaks, filters, projections, and sync shape |
 | Repository resilience | Verified with fakes | Xcode unit tests cover iCloud sync outage, duplicate daily summary merge behavior, and cached derived data fallback |
 | HealthKit read path | Implemented, device validation pending | `HealthKitClient` requests read-only authorization and queries metrics/workouts |
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
+| Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition entries only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
 | TestFlight runbook | Ready for signing handoff | `Docs/TestFlightRunbook.md` captures the Apple team, iPhone proof, archive, and Family Beta path |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
@@ -30,8 +31,10 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Confirm `iCloud.com.tyronsamaroo.stepreceipt` exists for that team.
 - Set `DEVELOPMENT_TEAM` in `project.yml`, regenerate `StepReceipt.xcodeproj`, and commit the signing setup once the real team ID is known.
 - Verify CloudKit behavior when iCloud is available, disabled, offline, and later restored.
-- Confirm CloudKit records contain only aggregate daily summaries.
+- Confirm CloudKit records contain only private aggregate daily summaries and opt-in household competition totals.
 - Add real CloudKit account/device coverage after the container is configured.
+- Validate household-code competition sync with Tyron and Tiffany Apple IDs before treating wife competition as complete.
+- Deploy/verify the CloudKit development schema for `CompetitionDailyEntry` and its `groupHash` lookup before TestFlight acceptance.
 - Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including the `Family Beta` external tester group.
 - Decide repository license before presenting the public repo as open source.
 - Decide when to graduate local/manual competition into real friend sharing.
@@ -40,5 +43,5 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 
 - Writing HealthKit samples or workouts.
 - Uploading raw HealthKit samples, hourly buckets, workout source IDs, or individual workout details.
-- Real shared leaderboards before CloudKit sharing and privacy rules are designed.
+- CKShare-based private invites before the first household-code beta proves the end-to-end competition loop.
 - App Store release before privacy labels, device testing, and signing are complete.

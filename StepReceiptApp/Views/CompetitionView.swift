@@ -3,12 +3,15 @@ import SwiftUI
 struct CompetitionView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var isPresentingCheckIn = false
+    @State private var inviteCodeDraft = ""
+    @State private var inviteShare: CompetitionInviteShare?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     controls
+                    householdBoard
 
                     if let receipt = repository.competitionReceipt {
                         CompetitionSummaryCard(receipt: receipt, distanceUnit: repository.preferences.distanceUnit)
@@ -43,6 +46,15 @@ struct CompetitionView: View {
                 CompetitionCheckInSheet()
                     .environmentObject(repository)
             }
+            .sheet(item: $inviteShare) { inviteShare in
+                ShareSheet(items: [inviteShare.message])
+            }
+            .onAppear {
+                inviteCodeDraft = repository.sharedCompetitionSettings.inviteCode
+            }
+            .onChange(of: repository.sharedCompetitionSettings.inviteCode) { _, newValue in
+                inviteCodeDraft = newValue
+            }
         }
     }
 
@@ -72,6 +84,117 @@ struct CompetitionView: View {
             .tint(.stepAccent)
         }
         .metricCard()
+    }
+
+    private var householdBoard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                Label("Household Board", systemImage: "person.2")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                Text(sharedStatusText)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(sharedStatusColor)
+            }
+
+            TextField("Code", text: $inviteCodeDraft)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .font(.headline.monospaced())
+                .padding(12)
+                .background(Color.stepBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            HStack(spacing: 8) {
+                Button {
+                    inviteCodeDraft = repository.generatedSharedCompetitionInviteCode()
+                } label: {
+                    Label("Generate", systemImage: "wand.and.stars")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+
+                Button {
+                    Task {
+                        await repository.updateSharedCompetition(isEnabled: true, inviteCode: inviteCodeDraft)
+                    }
+                } label: {
+                    Label("Sync", systemImage: "arrow.triangle.2.circlepath")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.stepAccent)
+                .disabled(SharedCompetitionSettings.normalizedInviteCode(inviteCodeDraft).isEmpty)
+            }
+
+            HStack(spacing: 8) {
+                Button {
+                    inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
+                } label: {
+                    Label("Share", systemImage: "square.and.arrow.up")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!repository.sharedCompetitionSettings.canSync)
+
+                Button {
+                    Task {
+                        await repository.syncSharedCompetition()
+                    }
+                } label: {
+                    Label("Refresh", systemImage: "arrow.clockwise")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!repository.sharedCompetitionSettings.canSync)
+
+                Button(role: .destructive) {
+                    Task {
+                        await repository.updateSharedCompetition(isEnabled: false, inviteCode: "")
+                    }
+                } label: {
+                    Image(systemName: "xmark.circle")
+                        .frame(width: 36, height: 36)
+                }
+                .buttonStyle(.bordered)
+                .disabled(!repository.sharedCompetitionSettings.canSync)
+                .accessibilityLabel("Stop household board")
+            }
+
+            Text("Daily totals only")
+                .font(.caption)
+                .foregroundStyle(Color.stepMuted)
+        }
+        .metricCard()
+    }
+
+    private var sharedStatusText: String {
+        switch repository.sharedCompetitionSyncState {
+        case .off:
+            "Off"
+        case .idle:
+            "Ready"
+        case .syncing:
+            "Syncing"
+        case .synced:
+            "Synced"
+        case .unavailable:
+            "Offline"
+        }
+    }
+
+    private var sharedStatusColor: Color {
+        switch repository.sharedCompetitionSyncState {
+        case .synced:
+            .stepAccent
+        case .syncing, .idle:
+            .stepDistance
+        case .off:
+            .stepMuted
+        case .unavailable:
+            .stepWarning
+        }
     }
 
     private func leaderboard(_ receipt: CompetitionReceipt) -> some View {
@@ -127,12 +250,21 @@ struct CompetitionView: View {
             Label("Privacy-safe by design", systemImage: "lock.shield")
                 .font(.headline)
                 .foregroundStyle(Color.stepInk)
-            Text("Competition uses daily aggregate totals only. Raw HealthKit samples, hourly buckets, and workout details stay on-device.")
+            Text("Competition uses daily aggregate totals only. Raw HealthKit samples, hourly buckets, workout details, and source identifiers stay on-device.")
                 .font(.footnote)
                 .foregroundStyle(Color.stepMuted)
                 .fixedSize(horizontal: false, vertical: true)
         }
         .metricCard()
+    }
+}
+
+struct CompetitionInviteShare: Identifiable {
+    let id = UUID()
+    let code: String
+
+    var message: String {
+        "StepReceipt household code: \(code)"
     }
 }
 

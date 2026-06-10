@@ -245,6 +245,19 @@ struct InsightEngineTests {
     }
 
     @Test
+    func testSharedCompetitionSettingsNormalizeInviteCodes() {
+        let enabled = SharedCompetitionSettings(isEnabled: true, inviteCode: " sr-wife-2026!!! ")
+
+        #expect(enabled.isEnabled)
+        #expect(enabled.canSync)
+        #expect(enabled.inviteCode == "SRWIFE2026")
+
+        let empty = SharedCompetitionSettings(isEnabled: true, inviteCode: "   ")
+        #expect(!empty.isEnabled)
+        #expect(!empty.canSync)
+    }
+
+    @Test
     func testCompetitionRanksWithinWindowAndComputesGap() throws {
         let competitionEngine = CompetitionEngine(calendar: calendar)
         let currentUser = try CompetitorProfile(

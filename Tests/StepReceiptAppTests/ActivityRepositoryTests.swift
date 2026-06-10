@@ -44,6 +44,7 @@ struct ActivityRepositoryTests {
         let repository = ActivityRepository(
             healthKit: health,
             cloudKit: cloud,
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -82,6 +83,7 @@ struct ActivityRepositoryTests {
         let repository = ActivityRepository(
             healthKit: health,
             cloudKit: cloud,
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -122,6 +124,7 @@ struct ActivityRepositoryTests {
                 workouts: [workout]
             ),
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -136,6 +139,7 @@ struct ActivityRepositoryTests {
                 fetchError: .fetchFailed
             ),
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -166,6 +170,7 @@ struct ActivityRepositoryTests {
                 workouts: []
             ),
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -180,6 +185,7 @@ struct ActivityRepositoryTests {
                 workouts: []
             ),
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -211,6 +217,7 @@ struct ActivityRepositoryTests {
         let repository = ActivityRepository(
             healthKit: health,
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -233,6 +240,7 @@ struct ActivityRepositoryTests {
         let restoredRepository = ActivityRepository(
             healthKit: health,
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -254,6 +262,7 @@ struct ActivityRepositoryTests {
         let repository = ActivityRepository(
             healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
             cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
             calendar: calendar,
             userDefaults: defaults
         )
@@ -288,6 +297,107 @@ struct ActivityRepositoryTests {
 
         #expect(repository.localCompetitionCheckIns.count == 1)
         #expect(repository.localCompetitionCheckIns.first?.steps == 21_000)
+    }
+
+    @Test
+    func testSharedCompetitionSyncMergesWifeAggregateRows() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let wife = CompetitorProfile(
+            id: try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000202")),
+            displayName: "Tiffany",
+            initials: "T",
+            accentHex: "#3364C3"
+        )
+        let wifeEntry = CompetitionEntry(
+            competitor: wife,
+            dayKey: ActivityFormatting.dayKey(for: day, calendar: calendar),
+            steps: 11_500,
+            distanceMeters: 8_200,
+            activeEnergyKilocalories: 440,
+            workoutMinutes: 40,
+            updatedAt: day.addingTimeInterval(20 * 3_600)
+        )
+        let competitionSync = FakeSharedCompetitionSync(remoteEntries: [wifeEntry])
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 8, steps: 3_000, distance: 2_100, energy: 130),
+                    bucket(day, hour: 18, steps: 6_000, distance: 4_400, energy: 240)
+                ],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 9_000, distance: 6_500, energy: 370)
+                ],
+                workouts: []
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: competitionSync,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        await repository.updateSharedCompetition(isEnabled: true, inviteCode: " family-beta ")
+
+        #expect(repository.sharedCompetitionSettings.inviteCode == "FAMILYBETA")
+        #expect(repository.sharedCompetitionEntries.contains { $0.competitor.displayName == "Tiffany" })
+        #expect(repository.competitionReceipt?.rows.map(\.competitor.displayName).contains("Tiffany") == true)
+        #expect(repository.competitionReceipt?.rows.filter { $0.isCurrentUser }.count == 1)
+        #expect(repository.competitionReceipt?.currentUserRank == 2)
+        let didSync: Bool
+        if case .synced = repository.sharedCompetitionSyncState {
+            didSync = true
+        } else {
+            didSync = false
+        }
+        #expect(didSync)
+
+        let publishedEntries = await competitionSync.publishedEntries()
+        #expect(publishedEntries.contains { $0.competitor.displayName == "You" && $0.steps == 9_000 })
+        let inviteCodes = await competitionSync.inviteCodes()
+        #expect(inviteCodes == ["FAMILYBETA"])
+
+        let encoded = try JSONEncoder().encode(publishedEntries)
+        let text = String(data: encoded, encoding: .utf8) ?? ""
+        #expect(text.contains("steps"))
+        #expect(!text.contains("sourceIdentifier"))
+        #expect(!text.contains("sourceName"))
+        #expect(!text.contains("workouts"))
+        #expect(!text.contains("buckets"))
+    }
+
+    @Test
+    func testSharedCompetitionSyncFailureKeepsLocalCompetitionUsable() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 9, steps: 4_000, distance: 2_800, energy: 160)
+                ],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 4_000, distance: 2_800, energy: 160)
+                ],
+                workouts: []
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(syncError: CloudSyncError.unavailable("Competition sync offline")),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        await repository.updateSharedCompetition(isEnabled: true, inviteCode: "WIFE")
+
+        #expect(repository.todaySummary?.steps == 4_000)
+        #expect(repository.competitionReceipt?.rows.count == 1)
+        #expect(repository.competitionReceipt?.rows.first?.isCurrentUser == true)
+        #expect(repository.sharedCompetitionEntries.isEmpty)
+        #expect(repository.sharedCompetitionSyncState == .unavailable("Competition sync offline"))
     }
 
     private func defaultsSuiteName() -> String {
@@ -381,5 +491,34 @@ private actor FakeCloudKitSummarySync: CloudKitSummarySyncing {
 
     func syncedRecords() -> [SyncedSummaryRecord] {
         batches.flatMap { $0 }
+    }
+}
+
+private actor FakeSharedCompetitionSync: SharedCompetitionSyncing {
+    private let remoteEntries: [CompetitionEntry]
+    private let syncError: Error?
+    private var publishedBatches: [[CompetitionEntry]] = []
+    private var codes: [String] = []
+
+    init(remoteEntries: [CompetitionEntry] = [], syncError: Error? = nil) {
+        self.remoteEntries = remoteEntries
+        self.syncError = syncError
+    }
+
+    func sync(entries: [CompetitionEntry], inviteCode: String) async throws -> [CompetitionEntry] {
+        publishedBatches.append(entries)
+        codes.append(inviteCode)
+        if let syncError {
+            throw syncError
+        }
+        return entries + remoteEntries
+    }
+
+    func publishedEntries() -> [CompetitionEntry] {
+        publishedBatches.flatMap { $0 }
+    }
+
+    func inviteCodes() -> [String] {
+        codes
     }
 }

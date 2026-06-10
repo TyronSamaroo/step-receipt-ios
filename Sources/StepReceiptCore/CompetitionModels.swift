@@ -123,6 +123,28 @@ public struct LocalCompetitionCheckIn: Codable, Equatable, Identifiable, Sendabl
     }
 }
 
+public struct SharedCompetitionSettings: Codable, Equatable, Sendable {
+    public var isEnabled: Bool
+    public var inviteCode: String
+
+    public init(isEnabled: Bool = false, inviteCode: String = "") {
+        let normalizedCode = Self.normalizedInviteCode(inviteCode)
+        self.inviteCode = normalizedCode
+        self.isEnabled = isEnabled && !normalizedCode.isEmpty
+    }
+
+    public var canSync: Bool {
+        isEnabled && !inviteCode.isEmpty
+    }
+
+    public static func normalizedInviteCode(_ value: String) -> String {
+        String(value
+            .uppercased()
+            .filter { $0.isLetter || $0.isNumber }
+            .prefix(16))
+    }
+}
+
 public struct LeaderboardRow: Codable, Equatable, Identifiable, Sendable {
     public var id: UUID { competitor.id }
 

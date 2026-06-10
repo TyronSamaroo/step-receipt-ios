@@ -24,20 +24,23 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
    - HealthKit
    - iCloud with CloudKit
 4. Create or confirm the CloudKit container `iCloud.com.tyronsamaroo.stepreceipt`.
-5. Copy the Apple Developer Team ID into `project.yml`:
+5. In CloudKit Dashboard, confirm the app can create these record types in the development environment:
+   - `DailyActivitySummary` in the private database.
+   - `CompetitionDailyEntry` in the public database, with `groupHash` queryable for the household-code lookup.
+6. Copy the Apple Developer Team ID into `project.yml`:
 
    ```yaml
    DEVELOPMENT_TEAM: "<TEAM_ID>"
    ```
 
-6. Regenerate the project and review the signing diff:
+7. Regenerate the project and review the signing diff:
 
    ```bash
    xcodegen generate
    git diff -- project.yml StepReceipt.xcodeproj/project.pbxproj
    ```
 
-7. Commit the team setup separately from feature work.
+8. Commit the team setup separately from feature work.
 
 Do not invent a team ID. Leave `DEVELOPMENT_TEAM` blank until Xcode or the Apple Developer portal shows the real value.
 
@@ -62,9 +65,10 @@ Use Tyron's iPhone as the first proof device before TestFlight.
    - Workout detail and share sheet
    - Insight receipt
    - Settings goals/customization
-   - Competition tab with local check-ins
+   - Competition tab with local check-ins and household-code sync controls
    - CloudKit status when iCloud is available, disabled, and offline
-7. Repeat with partial permissions denied so the app still shows useful available data.
+7. Create a household code on Tyron's iPhone, sync, and confirm the leaderboard still shows Tyron's aggregate row if CloudKit is offline.
+8. Repeat with partial permissions denied so the app still shows useful available data.
 
 ## Local Validation Before Archive
 
@@ -105,7 +109,7 @@ Use conservative privacy answers:
 - Purpose: app functionality.
 - Tracking: no tracking.
 - Health data: StepReceipt reads HealthKit with consent.
-- Cloud sync: only aggregate daily summaries, goals, and preferences sync to the user's private CloudKit database.
+- Cloud sync: aggregate daily summaries, goals, preferences, and opt-in household competition totals.
 - Raw HealthKit samples, hourly buckets, workout source IDs, and individual workout details are not uploaded.
 
 ## Archive And Upload
@@ -136,6 +140,8 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
    - App opens to onboarding.
    - Health permission prompt appears.
    - Denied or partial Health access still leaves the app usable.
+   - The same household code shows both Tyron and Tiffany on the competition leaderboard after each phone syncs.
+   - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionDailyEntry` records.
 
 Tiffany's phone does not need to be connected to this Mac for the TestFlight path.
 
@@ -145,7 +151,9 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 - [ ] `DEVELOPMENT_TEAM` set and committed.
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
+- [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionDailyEntry`.
 - [ ] Tyron's iPhone runs the app from Xcode with real Health data.
+- [ ] Household-code competition sync shows Tyron and Tiffany aggregate leaderboard rows.
 - [ ] Local validation suite passes before archive.
 - [ ] Release archive validates and uploads.
 - [ ] App Store Connect build finishes processing.

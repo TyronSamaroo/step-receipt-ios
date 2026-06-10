@@ -7,6 +7,7 @@ extension Color {
     static let stepAccent = Color(red: 0.110, green: 0.520, blue: 0.440)
     static let stepEnergy = Color(red: 0.910, green: 0.390, blue: 0.210)
     static let stepDistance = Color(red: 0.200, green: 0.390, blue: 0.760)
+    static let stepWarning = Color(red: 0.760, green: 0.290, blue: 0.180)
     static let stepSurface = Color.white
 }
 

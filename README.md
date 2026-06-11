@@ -30,7 +30,7 @@ Raw HealthKit samples stay on the device. CloudKit sync is limited to aggregate 
 - `CloudKitCompetitionSync` publishes and fetches an opt-in household competition board keyed by a hashed invite code.
 - `StepReceiptCore` is shared by the app and tests so analytics can be validated without launching iOS.
 
-See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix and [TestFlight Runbook](Docs/TestFlightRunbook.md) for the iPhone, App Store Connect, and wife-install path.
+See [Production Readiness](Docs/ProductionReadiness.md) for the current proof matrix, [TestFlight Runbook](Docs/TestFlightRunbook.md) for the iPhone and wife-install path, and [App Store Connect Submission Notes](Docs/AppStoreConnectSubmission.md) for beta notes and privacy answers.
 
 ## Privacy
 

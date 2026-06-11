@@ -114,6 +114,8 @@ xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -showdestinations
 
 Create the App Store Connect app after the paid developer team and bundle ID are ready.
 
+Use [App Store Connect Submission Notes](AppStoreConnectSubmission.md) for beta review notes, TestFlight description, privacy answers, export-compliance posture, and the Family Beta tester flow.
+
 | Field | Value |
 | --- | --- |
 | Platform | iOS |

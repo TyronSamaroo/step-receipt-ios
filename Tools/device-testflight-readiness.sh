@@ -122,18 +122,31 @@ else
   warn "could not determine code-signing identity state"
 fi
 
-devices="$(xcrun devicectl list devices 2>/dev/null || true)"
-device_rows="$(printf '%s\n' "$devices" | awk 'NR > 2 && NF > 0 { print }')"
-if printf '%s\n' "$devices" | grep -q "No devices found"; then
+devices_json="$(mktemp /tmp/stepreceipt-devices.XXXXXX)"
+iphone_name=""
+iphone_udid=""
+iphone_developer_mode=""
+iphone_ddi_services=""
+if xcrun devicectl list devices --json-output "$devices_json" >/dev/null 2>&1; then
+  for index in $(seq 0 20); do
+    device_type="$(plutil -extract "result.devices.$index.hardwareProperties.deviceType" raw -o - "$devices_json" 2>/dev/null || true)"
+    if [ "$device_type" = "iPhone" ]; then
+      iphone_name="$(plutil -extract "result.devices.$index.deviceProperties.name" raw -o - "$devices_json" 2>/dev/null || true)"
+      iphone_udid="$(plutil -extract "result.devices.$index.hardwareProperties.udid" raw -o - "$devices_json" 2>/dev/null || true)"
+      iphone_developer_mode="$(plutil -extract "result.devices.$index.deviceProperties.developerModeStatus" raw -o - "$devices_json" 2>/dev/null || true)"
+      iphone_ddi_services="$(plutil -extract "result.devices.$index.deviceProperties.ddiServicesAvailable" raw -o - "$devices_json" 2>/dev/null || true)"
+      break
+    fi
+  done
+fi
+rm -f "$devices_json"
+
+if [ -z "$iphone_udid" ]; then
   fail "no iPhone is connected or paired"
-elif printf '%s\n' "$device_rows" | grep -q "connected (no DDI)"; then
-  fail "iPhone is connected but Developer Mode/DDI is not ready"
-elif printf '%s\n' "$device_rows" | grep -q "connecting"; then
-  fail "iPhone is still connecting"
-elif printf '%s\n' "$device_rows" | grep -q "connected"; then
-  pass "devicectl sees a connected development-ready device"
-elif [ -n "$device_rows" ]; then
-  fail "devicectl sees a device, but it is not connected for development"
+elif [ "$iphone_developer_mode" != "enabled" ] || [ "$iphone_ddi_services" != "true" ]; then
+  fail "${iphone_name:-iPhone} is connected but Developer Mode/DDI is not ready"
+elif [ -n "$iphone_udid" ]; then
+  pass "devicectl sees ${iphone_name:-an iPhone} as development-ready"
 else
   warn "could not determine connected device state"
 fi
@@ -155,7 +168,7 @@ printf '\nLocal validation commands before archive\n'
 printf '  swift run StepReceiptCoreCheck\n'
 printf '  swift test --enable-swift-testing\n'
 printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' test\n"
-printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -configuration Debug -destination 'platform=iOS,id=<DEVICE_UDID>' -allowProvisioningUpdates build\n"
+printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -configuration Debug -destination 'platform=iOS,id=<DEVICE_UDID>' -allowProvisioningUpdates -allowProvisioningDeviceRegistration build\n"
 printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -configuration Release -destination 'generic/platform=iOS' build CODE_SIGNING_ALLOWED=NO\n"
 
 printf '\nSummary\n'

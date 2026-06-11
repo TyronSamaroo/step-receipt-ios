@@ -20,10 +20,21 @@ BUILD_LOG="$(mktemp /tmp/stepreceipt-local-build.XXXXXX)"
 trap 'rm -f "$DEVICES_JSON" "$BUILD_LOG"' EXIT
 
 xcrun devicectl list devices --json-output "$DEVICES_JSON" >/dev/null
-DEVICE_NAME="$(plutil -extract result.devices.0.name raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-DEVICE_UDID="$(plutil -extract result.devices.0.hardwareProperties.udid raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-DEVELOPER_MODE="$(plutil -extract result.devices.0.deviceProperties.developerModeStatus raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-DDI_SERVICES="$(plutil -extract result.devices.0.deviceProperties.ddiServicesAvailable raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+DEVICE_NAME=""
+DEVICE_UDID=""
+DEVELOPER_MODE=""
+DDI_SERVICES=""
+
+for index in $(seq 0 20); do
+  DEVICE_TYPE="$(plutil -extract "result.devices.$index.hardwareProperties.deviceType" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+  if [ "$DEVICE_TYPE" = "iPhone" ]; then
+    DEVICE_NAME="$(plutil -extract "result.devices.$index.deviceProperties.name" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    DEVICE_UDID="$(plutil -extract "result.devices.$index.hardwareProperties.udid" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    DEVELOPER_MODE="$(plutil -extract "result.devices.$index.deviceProperties.developerModeStatus" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    DDI_SERVICES="$(plutil -extract "result.devices.$index.deviceProperties.ddiServicesAvailable" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    break
+  fi
+done
 
 if [ -z "$DEVICE_UDID" ]; then
   printf '[FAIL] No iPhone is connected or paired.\n' >&2
@@ -48,6 +59,7 @@ xcodebuild \
   -configuration Debug \
   -destination "platform=iOS,id=$DEVICE_UDID" \
   -allowProvisioningUpdates \
+  -allowProvisioningDeviceRegistration \
   DEVELOPMENT_TEAM="$TEAM_ID" \
   CODE_SIGN_STYLE=Automatic \
   PRODUCT_BUNDLE_IDENTIFIER=com.tyronsamaroo.stepreceipt.local \

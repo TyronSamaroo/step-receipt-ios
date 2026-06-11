@@ -78,6 +78,12 @@ The simulator path is useful for UI work. Use **Preview Sample Data** on the onb
 
 For the physical-device and wife TestFlight flow, follow [Docs/TestFlightRunbook.md](Docs/TestFlightRunbook.md).
 
+For a production-bundle proof on a connected development-ready iPhone:
+
+```bash
+Tools/install-production-iphone.sh
+```
+
 ### Temporary Personal-Team iPhone Proof
 
 If the paid Apple Developer Program team becomes unavailable in Xcode, a free Xcode personal team can still run a local HealthKit-only proof on Tyron's connected iPhone:

@@ -72,6 +72,7 @@ Use Tyron's iPhone as the first proof device before TestFlight.
 2. Trust the Mac on the iPhone and enable Developer Mode if iOS prompts for it.
 3. Select the physical iPhone as the run destination in Xcode.
 4. Build and run `StepReceipt`.
+   - CLI path: `Tools/install-production-iphone.sh`
 5. Grant Health permissions for:
    - Steps
    - Walking/running distance

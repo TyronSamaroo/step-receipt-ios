@@ -4,19 +4,25 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
-TEAM_ID="${DEVELOPMENT_TEAM:-}"
-if [ -z "$TEAM_ID" ]; then
-  TEAM_ID="$(defaults read com.apple.dt.Xcode IDEProvisioningTeamByIdentifier 2>/dev/null \
-    | awk -F'= ' '/teamID/ { gsub(/[; "]/, "", $2); print $2; exit }' || true)"
-fi
+project_value() {
+  awk -F': ' -v key="$1" '$1 ~ key { gsub(/"/, "", $2); print $2; exit }' project.yml
+}
+
+TEAM_ID="${DEVELOPMENT_TEAM:-$(project_value DEVELOPMENT_TEAM)}"
+BUNDLE_ID="$(project_value PRODUCT_BUNDLE_IDENTIFIER)"
 
 if [ -z "$TEAM_ID" ]; then
-  printf '[FAIL] No DEVELOPMENT_TEAM found. Sign into Xcode or run with DEVELOPMENT_TEAM=<TEAM_ID>.\n' >&2
+  printf '[FAIL] No DEVELOPMENT_TEAM found. Set project.yml or run with DEVELOPMENT_TEAM=<TEAM_ID>.\n' >&2
+  exit 1
+fi
+
+if [ "$BUNDLE_ID" != "com.tyronsamaroo.stepreceipt" ]; then
+  printf '[FAIL] Unexpected bundle id: %s\n' "$BUNDLE_ID" >&2
   exit 1
 fi
 
 DEVICES_JSON="$(mktemp /tmp/stepreceipt-devices.XXXXXX)"
-BUILD_LOG="$(mktemp /tmp/stepreceipt-local-build.XXXXXX)"
+BUILD_LOG="$(mktemp /tmp/stepreceipt-production-build.XXXXXX)"
 trap 'rm -f "$DEVICES_JSON" "$BUILD_LOG"' EXIT
 
 xcrun devicectl list devices --json-output "$DEVICES_JSON" >/dev/null
@@ -38,8 +44,9 @@ if [ "$DEVELOPER_MODE" != "enabled" ] || [ "$DDI_SERVICES" != "true" ]; then
   exit 1
 fi
 
-printf 'Building StepReceipt local iPhone proof\n'
+printf 'Building StepReceipt production iPhone proof\n'
 printf 'Team: %s\n' "$TEAM_ID"
+printf 'Bundle: %s\n' "$BUNDLE_ID"
 printf 'Device: %s (%s)\n' "${DEVICE_NAME:-connected iPhone}" "$DEVICE_UDID"
 
 xcodebuild \
@@ -50,9 +57,6 @@ xcodebuild \
   -allowProvisioningUpdates \
   DEVELOPMENT_TEAM="$TEAM_ID" \
   CODE_SIGN_STYLE=Automatic \
-  PRODUCT_BUNDLE_IDENTIFIER=com.tyronsamaroo.stepreceipt.local \
-  CODE_SIGN_ENTITLEMENTS=StepReceiptApp/StepReceipt.LocalPersonal.entitlements \
-  SWIFT_ACTIVE_COMPILATION_CONDITIONS='$(inherited) DEBUG LOCAL_NO_CLOUDKIT' \
   build | tee "$BUILD_LOG"
 
 APP_PATH="$(awk -F'Touch ' '/Touch .*StepReceipt\\.app/ { print $2 }' "$BUILD_LOG" | tail -n 1)"
@@ -68,7 +72,7 @@ fi
 printf 'Installing %s\n' "$APP_PATH"
 xcrun devicectl device install app --device "$DEVICE_UDID" "$APP_PATH"
 
-printf 'Launching com.tyronsamaroo.stepreceipt.local\n'
-xcrun devicectl device process launch --device "$DEVICE_UDID" --terminate-existing com.tyronsamaroo.stepreceipt.local || true
+printf 'Launching %s\n' "$BUNDLE_ID"
+xcrun devicectl device process launch --device "$DEVICE_UDID" --terminate-existing "$BUNDLE_ID" || true
 
-printf '[PASS] Local personal-team build installed. This build has HealthKit only; production CloudKit/TestFlight remains unchanged.\n'
+printf '[PASS] Production bundle installed on the iPhone. Continue with HealthKit and CloudKit acceptance checks.\n'

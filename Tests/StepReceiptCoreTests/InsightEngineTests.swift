@@ -240,8 +240,31 @@ struct InsightEngineTests {
         #expect(preferences.displayName == "You")
         #expect(preferences.distanceUnit == .kilometers)
         #expect(preferences.visibleDashboardMetrics == DashboardMetric.allCases)
+        #expect(preferences.appTheme == .system)
         #expect(ActivityFormatting.formattedDistance(from: 1_609.344, unit: .miles) == "1.00 mi")
         #expect(ActivityFormatting.formattedDistance(from: 1_000, unit: .kilometers) == "1.00 km")
+        #expect(ActivityFormatting.formattedDuration(5_197) == "1h 26m 37s")
+    }
+
+    @Test
+    func testWorkoutDisplayTitleUsesEnvironmentWithoutBreakingCustomTitles() {
+        let indoorWalk = WorkoutActivity(
+            sourceIdentifier: "walk",
+            type: .walking,
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 1_800),
+            environment: .indoor
+        )
+        let customStrength = WorkoutActivity(
+            sourceIdentifier: "strength",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 1_800)
+        )
+
+        #expect(indoorWalk.displayTitle == "Indoor Walk")
+        #expect(customStrength.displayTitle == "Traditional Strength Training")
     }
 
     @Test

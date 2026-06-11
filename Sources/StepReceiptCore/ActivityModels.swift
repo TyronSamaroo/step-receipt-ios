@@ -74,8 +74,12 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     public let durationMinutes: Double
     public let distanceMeters: Double?
     public let activeEnergyKilocalories: Double?
+    public let totalEnergyKilocalories: Double?
     public let steps: Int?
     public let sourceName: String
+    public let environment: WorkoutEnvironment?
+    public let weatherTemperatureCelsius: Double?
+    public let weatherHumidityPercent: Double?
 
     public init(
         id: UUID = UUID(),
@@ -87,8 +91,12 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         durationMinutes: Double? = nil,
         distanceMeters: Double? = nil,
         activeEnergyKilocalories: Double? = nil,
+        totalEnergyKilocalories: Double? = nil,
         steps: Int? = nil,
-        sourceName: String = "Health"
+        sourceName: String = "Health",
+        environment: WorkoutEnvironment? = nil,
+        weatherTemperatureCelsius: Double? = nil,
+        weatherHumidityPercent: Double? = nil
     ) {
         self.id = id
         self.sourceIdentifier = sourceIdentifier
@@ -99,8 +107,38 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         self.durationMinutes = max(0, durationMinutes ?? endDate.timeIntervalSince(startDate) / 60)
         self.distanceMeters = distanceMeters.map { max(0, $0) }
         self.activeEnergyKilocalories = activeEnergyKilocalories.map { max(0, $0) }
+        self.totalEnergyKilocalories = totalEnergyKilocalories.map { max(0, $0) }
         self.steps = steps.map { max(0, $0) }
         self.sourceName = sourceName
+        self.environment = environment
+        self.weatherTemperatureCelsius = weatherTemperatureCelsius
+        self.weatherHumidityPercent = weatherHumidityPercent.map { max(0, $0) }
+    }
+
+    public var displayTitle: String {
+        if title != type.displayName {
+            return title
+        }
+
+        return switch (type, environment) {
+        case (.walking, .indoor): "Indoor Walk"
+        case (.walking, .outdoor): "Outdoor Walk"
+        default: title
+        }
+    }
+}
+
+public enum WorkoutEnvironment: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case indoor
+    case outdoor
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .indoor: "Indoor"
+        case .outdoor: "Outdoor"
+        }
     }
 }
 
@@ -130,6 +168,22 @@ public enum DistanceUnit: String, Codable, CaseIterable, Equatable, Identifiable
         switch self {
         case .miles: "Miles"
         case .kilometers: "Kilometers"
+        }
+    }
+}
+
+public enum AppTheme: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case system
+    case light
+    case dark
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .system: "System"
+        case .light: "Light"
+        case .dark: "Dark"
         }
     }
 }
@@ -198,20 +252,48 @@ public struct UserPreferences: Codable, Equatable, Sendable {
     public var displayName: String
     public var distanceUnit: DistanceUnit
     public var visibleDashboardMetrics: [DashboardMetric]
+    public var appTheme: AppTheme
 
     public init(
         displayName: String = "You",
         distanceUnit: DistanceUnit = .miles,
-        visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases
+        visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases,
+        appTheme: AppTheme = .system
     ) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         self.displayName = trimmedName.isEmpty ? "You" : trimmedName
         self.distanceUnit = distanceUnit
         self.visibleDashboardMetrics = visibleDashboardMetrics.isEmpty ? DashboardMetric.allCases : visibleDashboardMetrics
+        self.appTheme = appTheme
     }
 
     public func shows(_ metric: DashboardMetric) -> Bool {
         visibleDashboardMetrics.contains(metric)
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case displayName
+        case distanceUnit
+        case visibleDashboardMetrics
+        case appTheme
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            displayName: try container.decodeIfPresent(String.self, forKey: .displayName) ?? "You",
+            distanceUnit: try container.decodeIfPresent(DistanceUnit.self, forKey: .distanceUnit) ?? .miles,
+            visibleDashboardMetrics: try container.decodeIfPresent([DashboardMetric].self, forKey: .visibleDashboardMetrics) ?? DashboardMetric.allCases,
+            appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .system
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encode(distanceUnit, forKey: .distanceUnit)
+        try container.encode(visibleDashboardMetrics, forKey: .visibleDashboardMetrics)
+        try container.encode(appTheme, forKey: .appTheme)
     }
 }
 

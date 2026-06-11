@@ -622,15 +622,32 @@ final class ActivityRepository: ObservableObject {
 
             if dayOffset.isMultiple(of: 3) {
                 let workoutStart = calendar.date(byAdding: .hour, value: 18, to: day) ?? day
+                let sampleKind = dayOffset % 4
+                let sampleWorkout: (ActivityKind, String, Double?, Double, Int?, WorkoutEnvironment?) = switch sampleKind {
+                case 0:
+                    (.walking, "Outdoor Walk", 3_200, 185, 4_300, .outdoor)
+                case 1:
+                    (.strengthTraining, "Traditional Strength Training", nil, 265, nil, .indoor)
+                case 2:
+                    (.stairClimbing, "Stair Stepper", nil, 310, 2_100, .indoor)
+                default:
+                    (.running, "Running", 4_800, 420, 5_800, .outdoor)
+                }
                 sampleWorkouts.append(
                     WorkoutActivity(
                         sourceIdentifier: "sample-\(dayOffset)",
-                        type: dayOffset.isMultiple(of: 2) ? .running : .strengthTraining,
+                        type: sampleWorkout.0,
+                        title: sampleWorkout.1,
                         startDate: workoutStart,
-                        endDate: workoutStart.addingTimeInterval(42 * 60),
-                        distanceMeters: dayOffset.isMultiple(of: 2) ? 4_800 : nil,
-                        activeEnergyKilocalories: dayOffset.isMultiple(of: 2) ? 420 : 240,
-                        sourceName: "Sample"
+                        endDate: workoutStart.addingTimeInterval((sampleKind == 1 ? 72 : 42) * 60),
+                        distanceMeters: sampleWorkout.2,
+                        activeEnergyKilocalories: sampleWorkout.3,
+                        totalEnergyKilocalories: sampleWorkout.3 + 95,
+                        steps: sampleWorkout.4,
+                        sourceName: "Sample",
+                        environment: sampleWorkout.5,
+                        weatherTemperatureCelsius: sampleWorkout.5 == .outdoor ? 21 : nil,
+                        weatherHumidityPercent: sampleWorkout.5 == .outdoor ? 62 : nil
                     )
                 )
             }
@@ -663,12 +680,14 @@ final class ActivityRepository: ObservableObject {
     func updatePreferences(
         displayName: String? = nil,
         distanceUnit: DistanceUnit? = nil,
-        visibleDashboardMetrics: [DashboardMetric]? = nil
+        visibleDashboardMetrics: [DashboardMetric]? = nil,
+        appTheme: AppTheme? = nil
     ) {
         preferences = UserPreferences(
             displayName: displayName ?? preferences.displayName,
             distanceUnit: distanceUnit ?? preferences.distanceUnit,
-            visibleDashboardMetrics: visibleDashboardMetrics ?? preferences.visibleDashboardMetrics
+            visibleDashboardMetrics: visibleDashboardMetrics ?? preferences.visibleDashboardMetrics,
+            appTheme: appTheme ?? preferences.appTheme
         )
     }
 

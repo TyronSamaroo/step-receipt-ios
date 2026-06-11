@@ -219,17 +219,28 @@ final class HealthKitClient: @unchecked Sendable {
         let activeEnergyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
         let activeEnergyKilocalories = activeEnergyType
             .flatMap { workout.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .kilocalorie()) }
+        let environment = mapWorkoutEnvironment(workout.metadata)
+        let weatherTemperature = (workout.metadata?[HKMetadataKeyWeatherTemperature] as? HKQuantity)?
+            .doubleValue(for: .degreeCelsius())
+        let rawWeatherHumidity = (workout.metadata?[HKMetadataKeyWeatherHumidity] as? HKQuantity)?
+            .doubleValue(for: .percent())
+        let weatherHumidity = rawWeatherHumidity.map { $0 <= 1 ? $0 * 100 : $0 }
 
         return WorkoutActivity(
             id: workout.uuid,
             sourceIdentifier: workout.uuid.uuidString,
             type: mapActivityType(workout.workoutActivityType),
+            title: displayTitle(for: workout.workoutActivityType, environment: environment),
             startDate: workout.startDate,
             endDate: workout.endDate,
             durationMinutes: workout.duration / 60,
             distanceMeters: workout.totalDistance?.doubleValue(for: .meter()),
             activeEnergyKilocalories: activeEnergyKilocalories,
-            sourceName: workout.sourceRevision.source.name
+            totalEnergyKilocalories: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie()),
+            sourceName: workout.sourceRevision.source.name,
+            environment: environment,
+            weatherTemperatureCelsius: weatherTemperature,
+            weatherHumidityPercent: weatherHumidity
         )
     }
 
@@ -242,10 +253,38 @@ final class HealthKitClient: @unchecked Sendable {
         case .hiking: .hiking
         case .swimming: .swimming
         case .elliptical: .elliptical
-        case .stairClimbing, .stairs: .stairClimbing
+        case .stairClimbing, .stairs, .stepTraining: .stairClimbing
         case .rowing: .rowing
         case .yoga: .yoga
         default: .other
+        }
+    }
+
+    private static func mapWorkoutEnvironment(_ metadata: [String: Any]?) -> WorkoutEnvironment? {
+        guard let isIndoor = metadata?[HKMetadataKeyIndoorWorkout] as? Bool else { return nil }
+        return isIndoor ? .indoor : .outdoor
+    }
+
+    private static func displayTitle(for type: HKWorkoutActivityType, environment: WorkoutEnvironment?) -> String {
+        switch type {
+        case .walking:
+            switch environment {
+            case .indoor: "Indoor Walk"
+            case .outdoor: "Outdoor Walk"
+            case nil: "Walking"
+            }
+        case .traditionalStrengthTraining:
+            "Traditional Strength Training"
+        case .functionalStrengthTraining:
+            "Functional Strength Training"
+        case .stairClimbing:
+            "Stair Climber"
+        case .stairs:
+            "Stairs"
+        case .stepTraining:
+            "Stair Stepper"
+        default:
+            mapActivityType(type).displayName
         }
     }
 }

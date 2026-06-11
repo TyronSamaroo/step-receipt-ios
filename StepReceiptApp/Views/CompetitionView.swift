@@ -7,6 +7,7 @@ struct CompetitionView: View {
     @State private var profileNameDraft = ""
     @State private var inviteCodeDraft = ""
     @State private var inviteShare: CompetitionInviteShare?
+    @State private var clipboardJoinError: String?
 
     var body: some View {
         NavigationStack {
@@ -175,6 +176,24 @@ struct CompetitionView: View {
                 .buttonStyle(.bordered)
             }
 
+            Button {
+                Task {
+                    await joinFromClipboard()
+                }
+            } label: {
+                Label("Join from Clipboard", systemImage: "person.badge.plus")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(.stepDistance)
+
+            if let clipboardJoinError {
+                Text(clipboardJoinError)
+                    .font(.caption)
+                    .foregroundStyle(Color.stepWarning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
             HStack(spacing: 8) {
                 Button {
                     Task {
@@ -214,10 +233,28 @@ struct CompetitionView: View {
     }
 
     private func pasteInviteCode() {
-        guard let value = UIPasteboard.general.string else { return }
-        if let normalized = SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first {
-            inviteCodeDraft = normalized
+        guard let normalized = normalizedInviteCodeFromClipboard() else {
+            clipboardJoinError = "No StepReceipt code found on the clipboard."
+            return
         }
+        clipboardJoinError = nil
+        inviteCodeDraft = normalized
+    }
+
+    private func joinFromClipboard() async {
+        guard let normalized = normalizedInviteCodeFromClipboard() else {
+            clipboardJoinError = "No StepReceipt code found on the clipboard."
+            return
+        }
+        clipboardJoinError = nil
+        inviteCodeDraft = normalized
+        saveBoardProfileName()
+        await repository.updateSharedCompetition(isEnabled: true, inviteCode: normalized)
+    }
+
+    private func normalizedInviteCodeFromClipboard() -> String? {
+        guard let value = UIPasteboard.general.string else { return nil }
+        return SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first
     }
 
     private var sharedStatusText: String {

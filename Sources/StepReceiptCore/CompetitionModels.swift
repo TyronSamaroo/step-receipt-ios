@@ -171,7 +171,7 @@ public struct SharedCompetitionSettings: Codable, Equatable, Sendable {
         let preferredTokens = tokens.filter { token in
             token.uppercased().hasPrefix("SR") || token.contains(where: { $0.isNumber })
         }
-        let fallbackTokens = tokens.count == 1 ? tokens : Array(tokens.reversed())
+        let fallbackTokens = tokens.count == 1 ? tokens : []
         let rawCandidate = value.contains(where: \.isWhitespace) ? "" : normalizedInviteCode(value)
         return ([rawCandidate] + preferredTokens + fallbackTokens).map(normalizedInviteCode).filter { !$0.isEmpty }
     }

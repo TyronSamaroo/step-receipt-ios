@@ -150,7 +150,7 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
    - Health permission prompt appears.
    - Denied or partial Health access still leaves the app usable.
    - Competition board name is set to `Tiffany` before syncing.
-   - Tiffany can paste the household code from Tyron's invite message.
+   - Tiffany can use `Join from Clipboard` after copying Tyron's invite message.
    - The same household code shows both Tyron and Tiffany on the competition leaderboard after each phone syncs.
    - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionBoard.entriesJSON`.
 

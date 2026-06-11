@@ -269,6 +269,7 @@ struct InsightEngineTests {
         #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "code is sr-wife-2026").first == "SRWIFE2026")
         #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "SR-WIFE-2026").first == "SRWIFE2026")
         #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "SRWIFE2026").first == "SRWIFE2026")
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "copy something else").isEmpty)
     }
 
     @Test

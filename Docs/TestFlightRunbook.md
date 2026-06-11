@@ -12,7 +12,7 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
 | Privacy manifest | `StepReceiptApp/PrivacyInfo.xcprivacy` declares `NSPrivacyAccessedAPICategoryUserDefaults` reason `CA92.1` |
 | Health entitlement | Enabled in `StepReceiptApp/StepReceipt.entitlements` |
 | CloudKit container | `iCloud.com.tyronsamaroo.stepreceipt` in entitlements |
-| Development Team | Pending; `DEVELOPMENT_TEAM` is intentionally blank until the real Apple team ID is known |
+| Development Team | Configured as `U63TLL4JY4` in `project.yml` |
 | Device proof | Pending; no iPhone proof is complete until the app runs on a trusted physical iPhone |
 | GitHub push | Pending; do not push until repository visibility is confirmed |
 
@@ -22,11 +22,11 @@ Run the local readiness gate whenever signing, device, or repository state chang
 Tools/device-testflight-readiness.sh
 ```
 
-It should fail until `DEVELOPMENT_TEAM` is set, a valid signing identity exists, and Tyron's iPhone is connected or paired.
+It should fail until Tyron's iPhone is connected or paired. The Apple Developer team and local signing identities are already configured on this Mac.
 
-## Temporary Personal-Team iPhone Proof
+## Temporary Personal-Team iPhone Proof Fallback
 
-Tyron's current Xcode account may show only `Tyron Samaroo (Personal Team)`. That team can be useful for a same-day local HealthKit proof, but it cannot ship TestFlight and it cannot sign the production iCloud/CloudKit entitlement set.
+If the paid team becomes unavailable in Xcode, a free Xcode personal team can still run a same-day local HealthKit proof. That fallback cannot ship TestFlight and cannot sign the production iCloud/CloudKit entitlement set.
 
 For a temporary local install only, connect Tyron's iPhone and run:
 
@@ -38,8 +38,8 @@ The script builds bundle id `com.tyronsamaroo.stepreceipt.local` with `StepRecei
 
 ## Apple Account And Signing
 
-1. Open Xcode and sign in under **Xcode > Settings > Accounts**.
-2. Confirm whether the account has a paid Apple Developer Program team. TestFlight requires App Store Connect access from an enrolled developer account.
+1. Open Xcode and confirm the paid `Tyron Samaroo` team appears under **Xcode > Settings > Accounts**.
+2. Confirm Xcode still shows team ID `U63TLL4JY4`.
 3. In the Apple Developer portal, create or confirm the App ID `com.tyronsamaroo.stepreceipt` with these capabilities:
    - HealthKit
    - iCloud with CloudKit
@@ -47,22 +47,22 @@ The script builds bundle id `com.tyronsamaroo.stepreceipt.local` with `StepRecei
 5. In CloudKit Dashboard, confirm the app can create these record types in the development environment:
    - `DailyActivitySummary` in the private database.
    - `CompetitionBoard` in the public database. Each board is fetched by deterministic record ID from the hashed household code, so no public query index is required for the wife beta.
-6. Copy the Apple Developer Team ID into `project.yml`:
+6. If the team ID ever changes, copy the Apple Developer Team ID into `project.yml`:
 
    ```yaml
    DEVELOPMENT_TEAM: "<TEAM_ID>"
    ```
 
-7. Regenerate the project and review the signing diff:
+7. Regenerate the project and review the signing diff after any signing-setting change:
 
    ```bash
    xcodegen generate
    git diff -- project.yml StepReceipt.xcodeproj/project.pbxproj
    ```
 
-8. Commit the team setup separately from feature work.
+8. Commit signing setup separately from feature work.
 
-Do not invent a team ID. Leave `DEVELOPMENT_TEAM` blank until Xcode or the Apple Developer portal shows the real value.
+Do not invent a team ID. Use the value shown by Xcode or the Apple Developer portal.
 
 ## Physical iPhone Proof
 
@@ -152,11 +152,12 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
 ## Wife TestFlight Flow
 
 1. In App Store Connect, open TestFlight for `StepReceipt`.
-2. Create an external tester group named `Family Beta`.
-3. Add Tiffany by her Apple ID email address.
-4. Select the processed build and submit it for Apple's first external beta review.
-5. After approval, send the TestFlight invite.
-6. Verify on Tiffany's iPhone:
+2. Create an internal testing group first if App Store Connect has none yet.
+3. Create an external tester group named `Family Beta`.
+4. Add Tiffany by her Apple ID email address.
+5. Select the processed build and add it to `Family Beta`; Apple's first external beta review starts when the build is added to the group.
+6. After approval, send the TestFlight invite.
+7. Verify on Tiffany's iPhone:
    - TestFlight install succeeds.
    - App opens to onboarding.
    - Health permission prompt appears.
@@ -170,8 +171,8 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 
 ## Acceptance Checklist
 
-- [ ] Apple Developer paid team confirmed.
-- [ ] `DEVELOPMENT_TEAM` set and committed.
+- [x] Apple Developer paid team confirmed.
+- [x] `DEVELOPMENT_TEAM` set and committed.
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
 - [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionBoard`.

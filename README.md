@@ -72,7 +72,7 @@ open StepReceipt.xcodeproj
 
 `StepReceipt.xcodeproj` is committed for convenience and can be regenerated from `project.yml`. If XcodeGen changes the project file, review the generated diff before committing it.
 
-In Xcode, set a real Development Team, confirm HealthKit and iCloud/CloudKit capabilities, then run on a physical iPhone for real Apple Health data.
+In Xcode, confirm the configured `U63TLL4JY4` Development Team, HealthKit capability, and iCloud/CloudKit capability, then run on a physical iPhone for real Apple Health data.
 
 The simulator path is useful for UI work. Use **Preview Sample Data** on the onboarding screen to exercise the app without HealthKit data.
 
@@ -80,7 +80,7 @@ For the physical-device and wife TestFlight flow, follow [Docs/TestFlightRunbook
 
 ### Temporary Personal-Team iPhone Proof
 
-If the paid Apple Developer Program team is not active yet, a free Xcode personal team can still run a local HealthKit-only proof on Tyron's connected iPhone:
+If the paid Apple Developer Program team becomes unavailable in Xcode, a free Xcode personal team can still run a local HealthKit-only proof on Tyron's connected iPhone:
 
 ```bash
 Tools/install-local-personal-iphone.sh
@@ -113,9 +113,9 @@ xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'plat
 
 The latest local validation used `platform=iOS Simulator,name=iPhone 17,OS=26.5`.
 
-Real HealthKit and CloudKit behavior still need physical-device validation with the final Apple Developer team.
+Real HealthKit and CloudKit behavior still need physical-device validation with the configured Apple Developer team.
 
-`Tools/device-testflight-readiness.sh` intentionally fails until `DEVELOPMENT_TEAM` is set, a valid signing identity exists, and an iPhone is connected or paired.
+`Tools/device-testflight-readiness.sh` intentionally fails until a valid signing identity exists and an iPhone is connected or paired. On this Mac, the current remaining blocker is the connected or paired iPhone.
 
 GitHub Actions runs the same core, repository, typecheck, plist, asset, app build, test-bundle build, and Xcode unit-test checks on `macos-26` with Xcode 26.5. The simulator UI smoke test is available as a manual workflow dispatch option because UI automation can be slower and noisier in hosted CI.
 
@@ -146,7 +146,7 @@ CloudKit competition records use one public `CompetitionBoard` record per hashed
 
 ## Production Checklist
 
-- Set `DEVELOPMENT_TEAM` in `project.yml` or Xcode before device/App Store builds.
+- Keep `DEVELOPMENT_TEAM` set to the selected Apple Developer team before device/App Store builds.
 - Confirm the CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected Apple Developer team.
 - Confirm `StepReceiptApp/PrivacyInfo.xcprivacy` is included in the app target before archiving.
 - Run on a physical iPhone to verify HealthKit permission prompts, partial Health permissions, and real step/workout reads.

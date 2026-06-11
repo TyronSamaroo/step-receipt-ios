@@ -19,7 +19,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
 | Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition board snapshots only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
-| TestFlight runbook | Ready for signing handoff | `Docs/TestFlightRunbook.md` captures the Apple team, iPhone proof, archive, and Family Beta path |
+| TestFlight runbook | Ready for device handoff | `Docs/TestFlightRunbook.md` captures the configured Apple team, iPhone proof, archive, and Family Beta path |
 | Device/TestFlight readiness gate | Implemented locally | `Tools/device-testflight-readiness.sh` verifies local toolchain, plist shape, entitlements, signing identity, connected device, and repo state |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
@@ -28,9 +28,9 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Run on a physical iPhone with real Apple Health data.
 - Confirm HealthKit prompts for steps, walking/running distance, active energy, flights climbed, and workouts.
 - Test partial Health permissions and denied Health access.
-- Set a real Apple Developer Team and confirm signing works on device.
+- Confirm the configured Apple Developer Team signs successfully on device.
 - Confirm `iCloud.com.tyronsamaroo.stepreceipt` exists for that team.
-- Set `DEVELOPMENT_TEAM` in `project.yml`, regenerate `StepReceipt.xcodeproj`, and commit the signing setup once the real team ID is known.
+- Keep `DEVELOPMENT_TEAM` aligned between `project.yml`, the generated Xcode project, and the selected Apple Developer team.
 - Verify CloudKit behavior when iCloud is available, disabled, offline, and later restored.
 - Confirm CloudKit records contain only private aggregate daily summaries and opt-in household competition totals.
 - Add real CloudKit account/device coverage after the container is configured.

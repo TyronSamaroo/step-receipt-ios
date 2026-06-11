@@ -83,6 +83,11 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Workout Receipt"].exists)
         XCTAssertTrue(app.staticTexts["Pace"].exists)
         XCTAssertTrue(app.staticTexts["Weather"].exists)
+        XCTAssertTrue(app.staticTexts["Heart Rate"].exists)
+        XCTAssertTrue(app.staticTexts["Average"].exists)
+        XCTAssertTrue(app.staticTexts["Max"].exists)
+        XCTAssertTrue(app.staticTexts["Zone 1"].exists)
+        XCTAssertTrue(app.staticTexts["Zone 5"].exists)
     }
 
     @MainActor

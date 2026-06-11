@@ -78,6 +78,16 @@ The simulator path is useful for UI work. Use **Preview Sample Data** on the onb
 
 For the physical-device and wife TestFlight flow, follow [Docs/TestFlightRunbook.md](Docs/TestFlightRunbook.md).
 
+### Temporary Personal-Team iPhone Proof
+
+If the paid Apple Developer Program team is not active yet, a free Xcode personal team can still run a local HealthKit-only proof on Tyron's connected iPhone:
+
+```bash
+Tools/install-local-personal-iphone.sh
+```
+
+This script uses bundle id `com.tyronsamaroo.stepreceipt.local`, `StepReceiptApp/StepReceipt.LocalPersonal.entitlements`, and the `LOCAL_NO_CLOUDKIT` build flag. It does not modify the production CloudKit/TestFlight entitlement file. Household CloudKit sync and wife TestFlight delivery still require the paid Apple Developer Program team.
+
 ## Fork Setup
 
 Before shipping a fork or using a different Apple Developer account:

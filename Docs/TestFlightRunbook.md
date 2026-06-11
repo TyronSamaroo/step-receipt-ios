@@ -24,6 +24,18 @@ Tools/device-testflight-readiness.sh
 
 It should fail until `DEVELOPMENT_TEAM` is set, a valid signing identity exists, and Tyron's iPhone is connected or paired.
 
+## Temporary Personal-Team iPhone Proof
+
+Tyron's current Xcode account may show only `Tyron Samaroo (Personal Team)`. That team can be useful for a same-day local HealthKit proof, but it cannot ship TestFlight and it cannot sign the production iCloud/CloudKit entitlement set.
+
+For a temporary local install only, connect Tyron's iPhone and run:
+
+```bash
+Tools/install-local-personal-iphone.sh
+```
+
+The script builds bundle id `com.tyronsamaroo.stepreceipt.local` with `StepReceiptApp/StepReceipt.LocalPersonal.entitlements` and `LOCAL_NO_CLOUDKIT`. That keeps raw HealthKit proof available while making CloudKit visibly disabled inside the app. Do not use this build for Tiffany, App Store Connect, or CloudKit validation.
+
 ## Apple Account And Signing
 
 1. Open Xcode and sign in under **Xcode > Settings > Accounts**.

@@ -22,6 +22,7 @@
 		7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCCA4BE75DE26E667433C90 /* InsightsView.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
+		8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
 		9D0DA8357E5F916B3D0894EB /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
 		A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
@@ -38,6 +39,7 @@
 		F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */; };
 		F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D4678D07205B15BE59624E /* WorkoutDetailView.swift */; };
+		F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
 		F955F827A2DF72BF9E9B5A6D /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
 		FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */; };
 		FF42BF3650A3A03217058F4B /* ActivityHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */; };
@@ -77,12 +79,14 @@
 		BFC828839F225D766AD0E781 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngine.swift; sourceTree = "<group>"; };
 		C419C531AB76EA4334533C31 /* CompetitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionView.swift; sourceTree = "<group>"; };
 		C91B022F49B7155BF630F06F /* ActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModels.swift; sourceTree = "<group>"; };
+		CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.LocalPersonal.entitlements; sourceTree = "<group>"; };
 		D59919A8F9748A60F3DF35DD /* StepReceipt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StepReceipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7AA520E58D9123739472025 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryTests.swift; sourceTree = "<group>"; };
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
+		F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisabledCloudSync.swift; sourceTree = "<group>"; };
 		FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionOnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -102,6 +106,7 @@
 				63A6EA53FBB377B2AB87EA82 /* Info.plist */,
 				4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */,
 				99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */,
+				CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */,
 				1D76CF2A8C2C1E62869B1397 /* App */,
 				0A4786819E11CC5F26CBD1FD /* Design */,
 				BCA932C06580B65016C7D3F4 /* Services */,
@@ -190,6 +195,7 @@
 				7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */,
 				8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */,
 				959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */,
+				F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */,
 				69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */,
 			);
 			path = Services;
@@ -338,6 +344,7 @@
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
+				F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */,
 				30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */,
 				E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */,
 				F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */,
@@ -358,6 +365,7 @@
 				1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */,
 				4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */,
 				EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */,
+				8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */,
 				0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */,
 				A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */,
 				7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */,

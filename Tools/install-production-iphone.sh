@@ -26,24 +26,71 @@ BUILD_LOG="$(mktemp /tmp/stepreceipt-production-build.XXXXXX)"
 trap 'rm -f "$DEVICES_JSON" "$BUILD_LOG"' EXIT
 
 xcrun devicectl list devices --json-output "$DEVICES_JSON" >/dev/null
+TARGET_DEVICE_ID="${STEP_RECEIPT_DEVICE_ID:-}"
+TARGET_DEVICE_NAME="${STEP_RECEIPT_DEVICE_NAME:-}"
 DEVICE_NAME=""
 DEVICE_UDID=""
+DEVICE_IDENTIFIER=""
 DEVELOPER_MODE=""
 DDI_SERVICES=""
+FALLBACK_NAME=""
+FALLBACK_UDID=""
+FALLBACK_IDENTIFIER=""
+FALLBACK_DEVELOPER_MODE=""
+FALLBACK_DDI_SERVICES=""
 
 for index in $(seq 0 20); do
   DEVICE_TYPE="$(plutil -extract "result.devices.$index.hardwareProperties.deviceType" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
   if [ "$DEVICE_TYPE" = "iPhone" ]; then
-    DEVICE_NAME="$(plutil -extract "result.devices.$index.deviceProperties.name" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-    DEVICE_UDID="$(plutil -extract "result.devices.$index.hardwareProperties.udid" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-    DEVELOPER_MODE="$(plutil -extract "result.devices.$index.deviceProperties.developerModeStatus" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
-    DDI_SERVICES="$(plutil -extract "result.devices.$index.deviceProperties.ddiServicesAvailable" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    CANDIDATE_NAME="$(plutil -extract "result.devices.$index.deviceProperties.name" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    CANDIDATE_UDID="$(plutil -extract "result.devices.$index.hardwareProperties.udid" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    CANDIDATE_IDENTIFIER="$(plutil -extract "result.devices.$index.identifier" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    CANDIDATE_DEVELOPER_MODE="$(plutil -extract "result.devices.$index.deviceProperties.developerModeStatus" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+    CANDIDATE_DDI_SERVICES="$(plutil -extract "result.devices.$index.deviceProperties.ddiServicesAvailable" raw -o - "$DEVICES_JSON" 2>/dev/null || true)"
+
+    if [ -z "$FALLBACK_UDID" ]; then
+      FALLBACK_NAME="$CANDIDATE_NAME"
+      FALLBACK_UDID="$CANDIDATE_UDID"
+      FALLBACK_IDENTIFIER="$CANDIDATE_IDENTIFIER"
+      FALLBACK_DEVELOPER_MODE="$CANDIDATE_DEVELOPER_MODE"
+      FALLBACK_DDI_SERVICES="$CANDIDATE_DDI_SERVICES"
+    fi
+
+    if [ -n "$TARGET_DEVICE_ID" ]; then
+      if [ "$CANDIDATE_UDID" != "$TARGET_DEVICE_ID" ] && [ "$CANDIDATE_IDENTIFIER" != "$TARGET_DEVICE_ID" ]; then
+        continue
+      fi
+    elif [ -n "$TARGET_DEVICE_NAME" ]; then
+      if [[ "$CANDIDATE_NAME" != *"$TARGET_DEVICE_NAME"* ]]; then
+        continue
+      fi
+    elif [ "$CANDIDATE_DEVELOPER_MODE" != "enabled" ] || [ "$CANDIDATE_DDI_SERVICES" != "true" ]; then
+      continue
+    fi
+
+    DEVICE_NAME="$CANDIDATE_NAME"
+    DEVICE_UDID="$CANDIDATE_UDID"
+    DEVICE_IDENTIFIER="$CANDIDATE_IDENTIFIER"
+    DEVELOPER_MODE="$CANDIDATE_DEVELOPER_MODE"
+    DDI_SERVICES="$CANDIDATE_DDI_SERVICES"
     break
   fi
 done
 
+if [ -z "$DEVICE_UDID" ] && [ -z "$TARGET_DEVICE_ID" ] && [ -z "$TARGET_DEVICE_NAME" ]; then
+  DEVICE_NAME="$FALLBACK_NAME"
+  DEVICE_UDID="$FALLBACK_UDID"
+  DEVICE_IDENTIFIER="$FALLBACK_IDENTIFIER"
+  DEVELOPER_MODE="$FALLBACK_DEVELOPER_MODE"
+  DDI_SERVICES="$FALLBACK_DDI_SERVICES"
+fi
+
 if [ -z "$DEVICE_UDID" ]; then
-  printf '[FAIL] No iPhone is connected or paired.\n' >&2
+  if [ -n "$TARGET_DEVICE_ID" ] || [ -n "$TARGET_DEVICE_NAME" ]; then
+    printf '[FAIL] No matching iPhone found for target id "%s" or name "%s".\n' "$TARGET_DEVICE_ID" "$TARGET_DEVICE_NAME" >&2
+  else
+    printf '[FAIL] No iPhone is connected or paired.\n' >&2
+  fi
   printf 'Connect the iPhone, tap Trust on the phone, enable Developer Mode if prompted, then rerun this script.\n' >&2
   exit 1
 fi
@@ -58,7 +105,7 @@ fi
 printf 'Building StepReceipt production iPhone proof\n'
 printf 'Team: %s\n' "$TEAM_ID"
 printf 'Bundle: %s\n' "$BUNDLE_ID"
-printf 'Device: %s (%s)\n' "${DEVICE_NAME:-connected iPhone}" "$DEVICE_UDID"
+printf 'Device: %s (%s, %s)\n' "${DEVICE_NAME:-connected iPhone}" "$DEVICE_UDID" "$DEVICE_IDENTIFIER"
 
 xcodebuild \
   -project StepReceipt.xcodeproj \

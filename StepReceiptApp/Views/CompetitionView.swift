@@ -104,6 +104,11 @@ struct CompetitionView: View {
                     .foregroundStyle(sharedStatusColor)
             }
 
+            Text(sharedStatusDetail)
+                .font(.caption)
+                .foregroundStyle(sharedStatusDetailColor)
+                .fixedSize(horizontal: false, vertical: true)
+
             TextField("Code", text: $inviteCodeDraft)
                 .textInputAutocapitalization(.characters)
                 .autocorrectionDisabled()
@@ -160,6 +165,14 @@ struct CompetitionView: View {
                 }
                 .buttonStyle(.bordered)
                 .disabled(!repository.sharedCompetitionSettings.canSync)
+
+                Button {
+                    pasteInviteCode()
+                } label: {
+                    Label("Paste", systemImage: "doc.on.clipboard")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
             }
 
             HStack(spacing: 8) {
@@ -200,6 +213,13 @@ struct CompetitionView: View {
         profileNameDraft = repository.preferences.displayName
     }
 
+    private func pasteInviteCode() {
+        guard let value = UIPasteboard.general.string else { return }
+        if let normalized = SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first {
+            inviteCodeDraft = normalized
+        }
+    }
+
     private var sharedStatusText: String {
         switch repository.sharedCompetitionSyncState {
         case .off:
@@ -215,6 +235,21 @@ struct CompetitionView: View {
         }
     }
 
+    private var sharedStatusDetail: String {
+        switch repository.sharedCompetitionSyncState {
+        case .off:
+            "Generate or paste a code, set your board name, then sync."
+        case .idle:
+            "Ready to sync daily totals."
+        case .syncing:
+            "Syncing daily totals only."
+        case .synced(let date):
+            "Last synced \(date.formatted(date: .omitted, time: .shortened))."
+        case .unavailable(let reason):
+            reason
+        }
+    }
+
     private var sharedStatusColor: Color {
         switch repository.sharedCompetitionSyncState {
         case .synced:
@@ -225,6 +260,15 @@ struct CompetitionView: View {
             .stepMuted
         case .unavailable:
             .stepWarning
+        }
+    }
+
+    private var sharedStatusDetailColor: Color {
+        switch repository.sharedCompetitionSyncState {
+        case .unavailable:
+            .stepWarning
+        default:
+            .stepMuted
         }
     }
 
@@ -295,7 +339,7 @@ struct CompetitionInviteShare: Identifiable {
     let code: String
 
     var message: String {
-        "StepReceipt household code: \(code)"
+        "StepReceipt household code: \(code)\nOpen StepReceipt > Compete, paste this code, set your board name, then tap Sync."
     }
 }
 

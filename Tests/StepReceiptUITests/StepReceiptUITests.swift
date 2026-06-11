@@ -27,6 +27,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Generate"].exists)
         XCTAssertTrue(app.buttons["Sync"].exists)
         XCTAssertTrue(app.buttons["Copy"].exists)
+        XCTAssertTrue(app.buttons["Paste"].exists)
         XCTAssertTrue(app.staticTexts["Leaderboard"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Add Check-In"].waitForExistence(timeout: 3))
         app.buttons["Add Check-In"].tap()

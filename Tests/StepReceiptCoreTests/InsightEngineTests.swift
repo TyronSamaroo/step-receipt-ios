@@ -258,6 +258,20 @@ struct InsightEngineTests {
     }
 
     @Test
+    func testSharedCompetitionSettingsFindInviteCodeCandidates() {
+        let inviteMessage = """
+        StepReceipt household code: SRWIFE2026
+        Open StepReceipt > Compete, paste this code, set your board name, then tap Sync.
+        """
+
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: inviteMessage).first == "SRWIFE2026")
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "household code family beta").first == "FAMILYBETA")
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "code is sr-wife-2026").first == "SRWIFE2026")
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "SR-WIFE-2026").first == "SRWIFE2026")
+        #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: "SRWIFE2026").first == "SRWIFE2026")
+    }
+
+    @Test
     func testCompetitionRanksWithinWindowAndComputesGap() throws {
         let competitionEngine = CompetitionEngine(calendar: calendar)
         let currentUser = try CompetitorProfile(

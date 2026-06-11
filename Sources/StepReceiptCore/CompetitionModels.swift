@@ -126,6 +126,11 @@ public struct LocalCompetitionCheckIn: Codable, Equatable, Identifiable, Sendabl
 public struct SharedCompetitionSettings: Codable, Equatable, Sendable {
     public var isEnabled: Bool
     public var inviteCode: String
+    private static let ignoredInviteTokenWords: Set<String> = [
+        "A", "AND", "BOARD", "CODE", "COMPETE", "HOUSEHOLD", "IN", "INVITE", "IS", "MESSAGE",
+        "NAME", "OPEN", "PASTE", "SET", "STEPRECEIPT", "SYNC", "TAP", "THE", "THEN", "THIS",
+        "TO", "USE", "YOUR"
+    ]
 
     public init(isEnabled: Bool = false, inviteCode: String = "") {
         let normalizedCode = Self.normalizedInviteCode(inviteCode)
@@ -142,6 +147,40 @@ public struct SharedCompetitionSettings: Codable, Equatable, Sendable {
             .uppercased()
             .filter { $0.isLetter || $0.isNumber }
             .prefix(16))
+    }
+
+    public static func normalizedInviteCodeCandidates(from value: String) -> [String] {
+        let labeledPatterns = ["household code:", "code:", "household code", "code"]
+        for pattern in labeledPatterns {
+            if let range = value.range(of: pattern, options: [.caseInsensitive]) {
+                let labeledSource = String(value[range.upperBound...])
+                let firstLine = labeledSource
+                    .split(whereSeparator: \.isNewline)
+                    .first
+                    .map(String.init) ?? labeledSource
+                let normalizedLine = normalizedInviteCode(inviteCodeTokens(in: firstLine).joined())
+                let tokens = inviteCodeTokens(in: labeledSource).map(normalizedInviteCode)
+                let candidates = ([normalizedLine] + tokens).filter { !$0.isEmpty }
+                if !candidates.isEmpty {
+                    return candidates
+                }
+            }
+        }
+
+        let tokens = inviteCodeTokens(in: value)
+        let preferredTokens = tokens.filter { token in
+            token.uppercased().hasPrefix("SR") || token.contains(where: { $0.isNumber })
+        }
+        let fallbackTokens = tokens.count == 1 ? tokens : Array(tokens.reversed())
+        let rawCandidate = value.contains(where: \.isWhitespace) ? "" : normalizedInviteCode(value)
+        return ([rawCandidate] + preferredTokens + fallbackTokens).map(normalizedInviteCode).filter { !$0.isEmpty }
+    }
+
+    private static func inviteCodeTokens(in source: String) -> [String] {
+        source
+            .split { !$0.isLetter && !$0.isNumber }
+            .map(String.init)
+            .filter { !ignoredInviteTokenWords.contains($0.uppercased()) }
     }
 }
 

@@ -64,7 +64,7 @@ jobs:
 
       - name: Validate plist and asset JSON
         run: |
-          plutil -lint StepReceiptApp/Info.plist StepReceiptApp/StepReceipt.entitlements
+          plutil -lint StepReceiptApp/Info.plist StepReceiptApp/StepReceipt.entitlements StepReceiptApp/PrivacyInfo.xcprivacy
           python3 - <<'PY'
           import json
           import pathlib

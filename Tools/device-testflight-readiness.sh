@@ -109,17 +109,31 @@ rm -f /tmp/stepreceipt-xcode-version.txt
 identities="$(security find-identity -v -p codesigning 2>/dev/null || true)"
 if printf '%s\n' "$identities" | grep -q "0 valid identities found"; then
   fail "no valid code-signing identity is installed"
+elif printf '%s\n' "$identities" | grep -q "Apple Development:"; then
+  pass "Apple Development code-signing identity is installed"
+  if printf '%s\n' "$identities" | grep -q "Apple Distribution:"; then
+    pass "Apple Distribution code-signing identity is installed"
+  else
+    warn "no Apple Distribution identity is installed yet; Xcode may create one during archive/upload"
+  fi
 elif printf '%s\n' "$identities" | grep -q "valid identities found"; then
-  pass "at least one code-signing identity is installed"
+  warn "code-signing identities exist, but no Apple Development identity was found"
 else
   warn "could not determine code-signing identity state"
 fi
 
 devices="$(xcrun devicectl list devices 2>/dev/null || true)"
+device_rows="$(printf '%s\n' "$devices" | awk 'NR > 2 && NF > 0 { print }')"
 if printf '%s\n' "$devices" | grep -q "No devices found"; then
   fail "no iPhone is connected or paired"
-elif [ -n "$devices" ]; then
-  pass "devicectl sees at least one device"
+elif printf '%s\n' "$device_rows" | grep -q "connected (no DDI)"; then
+  fail "iPhone is connected but Developer Mode/DDI is not ready"
+elif printf '%s\n' "$device_rows" | grep -q "connecting"; then
+  fail "iPhone is still connecting"
+elif printf '%s\n' "$device_rows" | grep -q "connected"; then
+  pass "devicectl sees a connected development-ready device"
+elif [ -n "$device_rows" ]; then
+  fail "devicectl sees a device, but it is not connected for development"
 else
   warn "could not determine connected device state"
 fi
@@ -141,6 +155,7 @@ printf '\nLocal validation commands before archive\n'
 printf '  swift run StepReceiptCoreCheck\n'
 printf '  swift test --enable-swift-testing\n'
 printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' test\n"
+printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -configuration Debug -destination 'platform=iOS,id=<DEVICE_UDID>' -allowProvisioningUpdates build\n"
 printf "  xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -configuration Release -destination 'generic/platform=iOS' build CODE_SIGNING_ALLOWED=NO\n"
 
 printf '\nSummary\n'

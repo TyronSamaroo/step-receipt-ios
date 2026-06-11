@@ -197,6 +197,7 @@ struct DaySummaryRow: View {
 struct DaySummaryDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
     let summary: DailyActivitySummary
+    @State private var shareImage: ShareImage?
 
     var body: some View {
         ScrollView {
@@ -209,6 +210,8 @@ struct DaySummaryDetailView: View {
                         .foregroundStyle(Color.stepMuted)
                 }
                 .metricCard()
+
+                DayShareCard(summary: summary, distanceUnit: repository.preferences.distanceUnit)
 
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                     MetricTile(title: "Distance", value: ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit), icon: StepReceiptSymbol.distance)
@@ -242,6 +245,24 @@ struct DaySummaryDetailView: View {
         .background(Color.stepBackground)
         .navigationTitle("Day")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    shareImage = ShareImageRenderer.render {
+                        DayShareCard(summary: summary, distanceUnit: repository.preferences.distanceUnit)
+                            .frame(width: 390)
+                            .padding(18)
+                            .background(Color.stepBackground)
+                    }
+                } label: {
+                    Image(systemName: StepReceiptSymbol.share)
+                }
+                .accessibilityLabel("Share day")
+            }
+        }
+        .sheet(item: $shareImage) { shareImage in
+            ShareSheet(items: [shareImage.image])
+        }
         .task {
             await repository.selectDate(summary.dateStart)
         }

@@ -13,6 +13,7 @@ final class StepReceiptUITests: XCTestCase {
         }
 
         XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
         XCTAssertTrue(stepsLeftText.waitForExistence(timeout: 3))
 
@@ -78,6 +79,7 @@ final class StepReceiptUITests: XCTestCase {
         outdoorWalkRow.tap()
 
         XCTAssertTrue(app.navigationBars["Outdoor Walk"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Share workout"].exists)
         XCTAssertTrue(app.staticTexts["Workout Snapshot"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Additional Info"].exists)
         XCTAssertTrue(app.staticTexts["Workout Receipt"].exists)

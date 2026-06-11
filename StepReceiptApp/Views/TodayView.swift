@@ -3,6 +3,7 @@ import SwiftUI
 
 struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
+    @State private var shareImage: ShareImage?
 
     var body: some View {
         NavigationStack {
@@ -31,6 +32,22 @@ struct TodayView: View {
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
+                        guard let summary = repository.todaySummary else { return }
+                        shareImage = ShareImageRenderer.render {
+                            DayShareCard(summary: summary, distanceUnit: repository.preferences.distanceUnit)
+                                .frame(width: 390)
+                                .padding(18)
+                                .background(Color.stepBackground)
+                        }
+                    } label: {
+                        Image(systemName: StepReceiptSymbol.share)
+                    }
+                    .accessibilityLabel("Share day")
+                    .disabled(repository.todaySummary == nil)
+                }
+
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
                         Task { await repository.refresh() }
                     } label: {
                         Image(systemName: StepReceiptSymbol.refresh)
@@ -38,6 +55,9 @@ struct TodayView: View {
                     .accessibilityLabel("Refresh")
                 }
             }
+        }
+        .sheet(item: $shareImage) { shareImage in
+            ShareSheet(items: [shareImage.image])
         }
     }
 

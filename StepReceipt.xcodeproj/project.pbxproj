@@ -33,6 +33,7 @@
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
 		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
+		E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
@@ -82,6 +83,7 @@
 		CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.LocalPersonal.entitlements; sourceTree = "<group>"; };
 		D59919A8F9748A60F3DF35DD /* StepReceipt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StepReceipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		D7AA520E58D9123739472025 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
+		DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityShareCards.swift; sourceTree = "<group>"; };
 		DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryTests.swift; sourceTree = "<group>"; };
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
@@ -137,6 +139,7 @@
 			isa = PBXGroup;
 			children = (
 				7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */,
+				DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */,
 				C419C531AB76EA4334533C31 /* CompetitionView.swift */,
 				7BCCA4BE75DE26E667433C90 /* InsightsView.swift */,
 				FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */,
@@ -359,6 +362,7 @@
 				FF42BF3650A3A03217058F4B /* ActivityHistoryView.swift in Sources */,
 				C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */,
 				17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */,
+				E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */,
 				FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,

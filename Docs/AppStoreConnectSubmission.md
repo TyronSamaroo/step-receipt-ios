@@ -12,7 +12,7 @@ Use this file when creating the App Store Connect app, uploading the first build
 | SKU | `stepreceipt-ios-001` |
 | Primary category | Health & Fitness |
 | Version | `0.1.0` |
-| Build | `1` |
+| Build | `2` |
 
 ## Beta App Review Notes
 
@@ -62,7 +62,7 @@ CloudKit details:
 
 ## Export Compliance
 
-StepReceipt does not implement custom encryption. Use the standard App Store Connect export-compliance flow for apps that rely only on Apple platform security, TLS, and iCloud/CloudKit transport.
+StepReceipt does not implement custom encryption. Build `2` declares `ITSAppUsesNonExemptEncryption = false` because the app does not implement non-exempt encryption and relies on Apple platform security, TLS, HealthKit, and CloudKit transport.
 
 ## TestFlight Groups
 

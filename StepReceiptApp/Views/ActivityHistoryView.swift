@@ -268,18 +268,21 @@ struct FilterChip: View {
 
 struct WorkoutRow: View {
     let workout: WorkoutActivity
+    private var style: WorkoutVisualStyle {
+        WorkoutVisualStyle(kind: workout.type)
+    }
 
     var body: some View {
         HStack(spacing: 14) {
             Image(systemName: iconName)
                 .font(.title3)
-                .foregroundStyle(Color.stepAccent)
+                .foregroundStyle(style.accent)
                 .frame(width: 34, height: 34)
-                .background(Color.stepAccent.opacity(0.12))
+                .background(style.accent.opacity(0.14))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 4) {
-                Text(workout.title)
+                Text(workout.displayTitle)
                     .font(.headline)
                     .lineLimit(1)
                 Text(workout.startDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
@@ -300,6 +303,11 @@ struct WorkoutRow: View {
                         .font(.caption)
                         .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
+                } else if let environment = workout.environment {
+                    Text(environment.displayName)
+                        .font(.caption)
+                        .foregroundStyle(Color.stepMuted)
+                        .lineLimit(1)
                 }
             }
             .fixedSize(horizontal: true, vertical: false)
@@ -310,6 +318,6 @@ struct WorkoutRow: View {
     }
 
     private var iconName: String {
-        StepReceiptSymbol.workoutIcon(for: workout.type)
+        style.icon
     }
 }

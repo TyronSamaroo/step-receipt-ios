@@ -47,7 +47,7 @@ struct WorkoutDetailView: View {
     }
 
     private var metricGrid: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
             WorkoutMetricTile(
                 title: "Duration",
                 value: ActivityFormatting.formattedDuration(workout.durationMinutes * 60),
@@ -233,9 +233,13 @@ struct WorkoutDetailView: View {
     }
 
     private var weatherText: String? {
-        let temperature = workout.weatherTemperatureCelsius.map { "\(Int($0.rounded())) C" }
+        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" }
         let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" }
         return [temperature, humidity].compactMap { $0 }.joined(separator: "  ").nilIfEmpty
+    }
+
+    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
+        celsius * 9 / 5 + 32
     }
 
     private func formattedPace(_ seconds: Double) -> String {
@@ -497,10 +501,20 @@ struct WorkoutHero: View {
         if let environment = workout.environment {
             heroChip(environment.displayName, systemImage: environment == .indoor ? "house" : "sun.max")
         }
-        if workout.weatherTemperatureCelsius != nil || workout.weatherHumidityPercent != nil {
-            heroChip("Weather", systemImage: "cloud.sun")
+        if let weatherChipText {
+            heroChip(weatherChipText, systemImage: "cloud.sun")
         }
         heroChip(workout.sourceName, systemImage: StepReceiptSymbol.healthCard)
+    }
+
+    private var weatherChipText: String? {
+        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" }
+        let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" }
+        return [temperature, humidity].compactMap { $0 }.joined(separator: "  ").nilIfEmpty
+    }
+
+    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
+        celsius * 9 / 5 + 32
     }
 
     private func heroChip(_ title: String, systemImage: String) -> some View {
@@ -522,31 +536,35 @@ struct WorkoutMetricTile: View {
     let color: Color
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Image(systemName: icon)
-                .font(.title3.weight(.semibold))
-                .foregroundStyle(color)
-                .frame(width: 34, height: 34)
-                .background(color.opacity(0.14))
-                .clipShape(Circle())
+        VStack(alignment: .leading, spacing: 7) {
+            HStack(spacing: 6) {
+                Image(systemName: icon)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(color)
+                    .frame(width: 20, height: 20)
+                    .background(color.opacity(0.14))
+                    .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 4) {
-                Text(value)
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.stepInk)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.58)
                 Text(title)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.stepMuted)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.72)
             }
+
+            Text(value)
+                .font(.system(size: 20, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.55)
+                .monospacedDigit()
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(10)
+        .frame(minHeight: 72, alignment: .topLeading)
         .background(Color.stepSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .shadow(color: .black.opacity(0.05), radius: 12, x: 0, y: 7)
+        .shadow(color: .black.opacity(0.04), radius: 8, x: 0, y: 4)
     }
 }
 

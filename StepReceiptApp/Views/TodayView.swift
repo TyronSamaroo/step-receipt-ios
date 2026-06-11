@@ -12,6 +12,7 @@ struct TodayView: View {
                         screenTitle
                         dateControls
                         todayHeader(summary)
+                        weatherStrip(summary)
                         hourlyChart(summary)
                         metricGrid(summary)
                         workoutSection(summary)
@@ -113,6 +114,38 @@ struct TodayView: View {
                 .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepInk)
         }
         .metricCard()
+    }
+
+    @ViewBuilder
+    private func weatherStrip(_ summary: DailyActivitySummary) -> some View {
+        if let weather = weatherSummary(for: summary) {
+            HStack(spacing: 12) {
+                Label("Weather", systemImage: "cloud.sun")
+                    .foregroundStyle(Color.stepDistance)
+                Spacer(minLength: 0)
+                Label(weather.temperature, systemImage: "thermometer.sun")
+                    .foregroundStyle(Color.stepEnergy)
+                Label(weather.humidity, systemImage: "water.waves")
+                    .foregroundStyle(Color.stepDistance)
+                    .labelStyle(.titleAndIcon)
+            }
+            .overlay(alignment: .bottomLeading) {
+                Text(weather.source)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted.opacity(0.86))
+                    .lineLimit(1)
+                    .offset(y: 18)
+            }
+            .font(.subheadline.weight(.bold))
+            .padding(.horizontal, 14)
+            .padding(.top, 10)
+            .padding(.bottom, 20)
+            .background(Color.stepSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 6)
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("Weather \(weather.temperature), humidity \(weather.humidity)")
+        }
     }
 
     private func hourlyChart(_ summary: DailyActivitySummary) -> some View {
@@ -262,6 +295,22 @@ struct TodayView: View {
 
         let remainingSteps = max(0, summary.goals.stepsPerDay - summary.steps)
         return "\(remainingSteps.formatted()) steps left."
+    }
+
+    private func weatherSummary(for summary: DailyActivitySummary) -> (temperature: String, humidity: String, source: String)? {
+        guard let workout = summary.workouts.first(where: {
+            $0.weatherTemperatureCelsius != nil || $0.weatherHumidityPercent != nil
+        }) else {
+            return nil
+        }
+
+        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" } ?? "-- F"
+        let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" } ?? "--%"
+        return (temperature, humidity, workout.displayTitle)
+    }
+
+    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
+        celsius * 9 / 5 + 32
     }
 
     private var canMoveForward: Bool {

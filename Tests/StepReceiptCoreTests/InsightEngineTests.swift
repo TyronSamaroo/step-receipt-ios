@@ -268,6 +268,26 @@ struct InsightEngineTests {
     }
 
     @Test
+    func testWorkoutHeartRateSamplesComputeAverageAndMax() {
+        let start = Date(timeIntervalSince1970: 0)
+        let workout = WorkoutActivity(
+            sourceIdentifier: "hr",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: start,
+            endDate: start.addingTimeInterval(1_800),
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(60), beatsPerMinute: 92),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(120), beatsPerMinute: 118),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(180), beatsPerMinute: 104)
+            ]
+        )
+
+        #expect(abs((workout.averageHeartRateBPM ?? 0) - 104.666) < 0.01)
+        #expect(workout.maxHeartRateBPM == 118)
+    }
+
+    @Test
     func testSharedCompetitionSettingsNormalizeInviteCodes() {
         let enabled = SharedCompetitionSettings(isEnabled: true, inviteCode: " sr-wife-2026!!! ")
 

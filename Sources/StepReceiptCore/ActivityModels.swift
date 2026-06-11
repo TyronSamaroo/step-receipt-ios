@@ -64,6 +64,20 @@ public struct HealthMetricBucket: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+public struct WorkoutHeartRateSample: Codable, Equatable, Identifiable, Sendable {
+    public var id: String {
+        "\(Int(timestamp.timeIntervalSince1970))-\(Int(beatsPerMinute.rounded()))"
+    }
+
+    public let timestamp: Date
+    public let beatsPerMinute: Double
+
+    public init(timestamp: Date, beatsPerMinute: Double) {
+        self.timestamp = timestamp
+        self.beatsPerMinute = max(0, beatsPerMinute)
+    }
+}
+
 public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let sourceIdentifier: String
@@ -80,6 +94,7 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     public let environment: WorkoutEnvironment?
     public let weatherTemperatureCelsius: Double?
     public let weatherHumidityPercent: Double?
+    public let heartRateSamples: [WorkoutHeartRateSample]
 
     public init(
         id: UUID = UUID(),
@@ -96,7 +111,8 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         sourceName: String = "Health",
         environment: WorkoutEnvironment? = nil,
         weatherTemperatureCelsius: Double? = nil,
-        weatherHumidityPercent: Double? = nil
+        weatherHumidityPercent: Double? = nil,
+        heartRateSamples: [WorkoutHeartRateSample] = []
     ) {
         self.id = id
         self.sourceIdentifier = sourceIdentifier
@@ -113,6 +129,9 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         self.environment = environment
         self.weatherTemperatureCelsius = weatherTemperatureCelsius
         self.weatherHumidityPercent = weatherHumidityPercent.map { max(0, $0) }
+        self.heartRateSamples = heartRateSamples
+            .filter { $0.beatsPerMinute > 0 }
+            .sorted { $0.timestamp < $1.timestamp }
     }
 
     public var displayTitle: String {
@@ -125,6 +144,101 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         case (.walking, .outdoor): "Outdoor Walk"
         default: title
         }
+    }
+
+    public var averageHeartRateBPM: Double? {
+        guard !heartRateSamples.isEmpty else { return nil }
+        let total = heartRateSamples.reduce(0) { $0 + $1.beatsPerMinute }
+        return total / Double(heartRateSamples.count)
+    }
+
+    public var maxHeartRateBPM: Double? {
+        heartRateSamples.map(\.beatsPerMinute).max()
+    }
+
+    public func replacingDerivedHealthData(
+        steps: Int? = nil,
+        heartRateSamples: [WorkoutHeartRateSample]? = nil
+    ) -> WorkoutActivity {
+        WorkoutActivity(
+            id: id,
+            sourceIdentifier: sourceIdentifier,
+            type: type,
+            title: title,
+            startDate: startDate,
+            endDate: endDate,
+            durationMinutes: durationMinutes,
+            distanceMeters: distanceMeters,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            totalEnergyKilocalories: totalEnergyKilocalories,
+            steps: steps ?? self.steps,
+            sourceName: sourceName,
+            environment: environment,
+            weatherTemperatureCelsius: weatherTemperatureCelsius,
+            weatherHumidityPercent: weatherHumidityPercent,
+            heartRateSamples: heartRateSamples ?? self.heartRateSamples
+        )
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case sourceIdentifier
+        case type
+        case title
+        case startDate
+        case endDate
+        case durationMinutes
+        case distanceMeters
+        case activeEnergyKilocalories
+        case totalEnergyKilocalories
+        case steps
+        case sourceName
+        case environment
+        case weatherTemperatureCelsius
+        case weatherHumidityPercent
+        case heartRateSamples
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        try self.init(
+            id: container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID(),
+            sourceIdentifier: container.decode(String.self, forKey: .sourceIdentifier),
+            type: container.decode(ActivityKind.self, forKey: .type),
+            title: container.decodeIfPresent(String.self, forKey: .title),
+            startDate: container.decode(Date.self, forKey: .startDate),
+            endDate: container.decode(Date.self, forKey: .endDate),
+            durationMinutes: container.decodeIfPresent(Double.self, forKey: .durationMinutes),
+            distanceMeters: container.decodeIfPresent(Double.self, forKey: .distanceMeters),
+            activeEnergyKilocalories: container.decodeIfPresent(Double.self, forKey: .activeEnergyKilocalories),
+            totalEnergyKilocalories: container.decodeIfPresent(Double.self, forKey: .totalEnergyKilocalories),
+            steps: container.decodeIfPresent(Int.self, forKey: .steps),
+            sourceName: container.decodeIfPresent(String.self, forKey: .sourceName) ?? "Health",
+            environment: container.decodeIfPresent(WorkoutEnvironment.self, forKey: .environment),
+            weatherTemperatureCelsius: container.decodeIfPresent(Double.self, forKey: .weatherTemperatureCelsius),
+            weatherHumidityPercent: container.decodeIfPresent(Double.self, forKey: .weatherHumidityPercent),
+            heartRateSamples: container.decodeIfPresent([WorkoutHeartRateSample].self, forKey: .heartRateSamples) ?? []
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(sourceIdentifier, forKey: .sourceIdentifier)
+        try container.encode(type, forKey: .type)
+        try container.encode(title, forKey: .title)
+        try container.encode(startDate, forKey: .startDate)
+        try container.encode(endDate, forKey: .endDate)
+        try container.encode(durationMinutes, forKey: .durationMinutes)
+        try container.encodeIfPresent(distanceMeters, forKey: .distanceMeters)
+        try container.encodeIfPresent(activeEnergyKilocalories, forKey: .activeEnergyKilocalories)
+        try container.encodeIfPresent(totalEnergyKilocalories, forKey: .totalEnergyKilocalories)
+        try container.encodeIfPresent(steps, forKey: .steps)
+        try container.encode(sourceName, forKey: .sourceName)
+        try container.encodeIfPresent(environment, forKey: .environment)
+        try container.encodeIfPresent(weatherTemperatureCelsius, forKey: .weatherTemperatureCelsius)
+        try container.encodeIfPresent(weatherHumidityPercent, forKey: .weatherHumidityPercent)
+        try container.encode(heartRateSamples, forKey: .heartRateSamples)
     }
 }
 

@@ -633,13 +633,14 @@ final class ActivityRepository: ObservableObject {
                 default:
                     (.running, "Running", 4_800, 420, 5_800, .outdoor)
                 }
+                let workoutEnd = workoutStart.addingTimeInterval((sampleKind == 1 ? 72 : 42) * 60)
                 sampleWorkouts.append(
                     WorkoutActivity(
                         sourceIdentifier: "sample-\(dayOffset)",
                         type: sampleWorkout.0,
                         title: sampleWorkout.1,
                         startDate: workoutStart,
-                        endDate: workoutStart.addingTimeInterval((sampleKind == 1 ? 72 : 42) * 60),
+                        endDate: workoutEnd,
                         distanceMeters: sampleWorkout.2,
                         activeEnergyKilocalories: sampleWorkout.3,
                         totalEnergyKilocalories: sampleWorkout.3 + 95,
@@ -647,7 +648,12 @@ final class ActivityRepository: ObservableObject {
                         sourceName: "Sample",
                         environment: sampleWorkout.5,
                         weatherTemperatureCelsius: sampleWorkout.5 == .outdoor ? 21 : nil,
-                        weatherHumidityPercent: sampleWorkout.5 == .outdoor ? 62 : nil
+                        weatherHumidityPercent: sampleWorkout.5 == .outdoor ? 62 : nil,
+                        heartRateSamples: sampleHeartRateSamples(
+                            startDate: workoutStart,
+                            endDate: workoutEnd,
+                            kind: sampleWorkout.0
+                        )
                     )
                 )
             }
@@ -670,6 +676,44 @@ final class ActivityRepository: ObservableObject {
         receipt = engine.receipt(for: history, goals: goals)
         activityDataSource = .sample
         refreshCompetition()
+    }
+
+    private func sampleHeartRateSamples(
+        startDate: Date,
+        endDate: Date,
+        kind: ActivityKind
+    ) -> [WorkoutHeartRateSample] {
+        let duration = endDate.timeIntervalSince(startDate)
+        guard duration > 0 else { return [] }
+
+        let count = max(24, min(180, Int(duration / 20)))
+        let profile: (base: Double, ramp: Double, wave: Double) = switch kind {
+        case .walking:
+            (92, 22, 7)
+        case .running:
+            (122, 42, 11)
+        case .stairClimbing:
+            (108, 36, 10)
+        case .strengthTraining:
+            (86, 24, 9)
+        default:
+            (92, 24, 8)
+        }
+
+        return (0..<count).map { index in
+            let progress = count == 1 ? 0 : Double(index) / Double(count - 1)
+            let seconds = duration * progress
+            let rollingWave = sin(progress * .pi * 5) * profile.wave
+            let shortWave = sin(progress * .pi * 31) * (profile.wave * 0.38)
+            let latePush = progress > 0.72 ? (progress - 0.72) * 18 : 0
+            let recoveryDip = kind == .strengthTraining && progress < 0.25 ? -8 * (0.25 - progress) : 0
+            let bpm = profile.base + (profile.ramp * progress) + rollingWave + shortWave + latePush + recoveryDip
+
+            return WorkoutHeartRateSample(
+                timestamp: startDate.addingTimeInterval(seconds),
+                beatsPerMinute: bpm
+            )
+        }
     }
 
     private func saveGoals() {

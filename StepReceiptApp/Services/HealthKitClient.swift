@@ -54,7 +54,7 @@ final class HealthKitClient: @unchecked Sendable {
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [.strictStartDate])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
 
-        return try await withCheckedThrowingContinuation { continuation in
+        let healthWorkouts: [HKWorkout] = try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: HKObjectType.workoutType(),
                 predicate: predicate,
@@ -66,11 +66,28 @@ final class HealthKitClient: @unchecked Sendable {
                     return
                 }
 
-                let workouts = (samples as? [HKWorkout] ?? []).map(Self.mapWorkout)
-                continuation.resume(returning: workouts)
+                continuation.resume(returning: samples as? [HKWorkout] ?? [])
             }
             store.execute(query)
         }
+
+        var workouts: [WorkoutActivity] = []
+        workouts.reserveCapacity(healthWorkouts.count)
+
+        for workout in healthWorkouts {
+            let activity = Self.mapWorkout(workout)
+            async let heartRateSamples = safelyFetchHeartRateSamples(for: workout)
+            async let workoutSteps = safelyFetchWorkoutSteps(for: workout)
+
+            workouts.append(
+                activity.replacingDerivedHealthData(
+                    steps: await workoutSteps ?? activity.steps,
+                    heartRateSamples: await heartRateSamples
+                )
+            )
+        }
+
+        return workouts
     }
 
     private func fetchMetricBuckets(
@@ -193,7 +210,8 @@ final class HealthKitClient: @unchecked Sendable {
             HKQuantityTypeIdentifier.stepCount,
             .distanceWalkingRunning,
             .activeEnergyBurned,
-            .flightsClimbed
+            .flightsClimbed,
+            .heartRate
         ] {
             if let type = HKQuantityType.quantityType(forIdentifier: identifier) {
                 types.append(type)
@@ -213,6 +231,98 @@ final class HealthKitClient: @unchecked Sendable {
             return 60 * Double(minute)
         }
         return 3_600
+    }
+
+    private func safelyFetchHeartRateSamples(for workout: HKWorkout) async -> [WorkoutHeartRateSample] {
+        do {
+            return try await fetchHeartRateSamples(for: workout)
+        } catch {
+            return []
+        }
+    }
+
+    private func safelyFetchWorkoutSteps(for workout: HKWorkout) async -> Int? {
+        do {
+            return try await fetchWorkoutSteps(for: workout)
+        } catch {
+            return nil
+        }
+    }
+
+    private func fetchHeartRateSamples(for workout: HKWorkout) async throws -> [WorkoutHeartRateSample] {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .heartRate), isAvailable else {
+            return []
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate, options: [.strictStartDate])
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+        let unit = HKUnit.count().unitDivided(by: .minute())
+
+        let samples: [WorkoutHeartRateSample] = try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: quantityType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                let heartRates = (samples as? [HKQuantitySample] ?? []).map { sample in
+                    WorkoutHeartRateSample(
+                        timestamp: sample.startDate,
+                        beatsPerMinute: sample.quantity.doubleValue(for: unit)
+                    )
+                }
+                continuation.resume(returning: heartRates)
+            }
+            store.execute(query)
+        }
+
+        return downsampleHeartRateSamples(samples)
+    }
+
+    private func fetchWorkoutSteps(for workout: HKWorkout) async throws -> Int? {
+        guard let quantityType = HKQuantityType.quantityType(forIdentifier: .stepCount), isAvailable else {
+            return nil
+        }
+
+        let predicate = HKQuery.predicateForSamples(withStart: workout.startDate, end: workout.endDate, options: [.strictStartDate])
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKStatisticsQuery(
+                quantityType: quantityType,
+                quantitySamplePredicate: predicate,
+                options: .cumulativeSum
+            ) { _, statistics, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                let steps = statistics?.sumQuantity()?.doubleValue(for: .count())
+                continuation.resume(returning: steps.map { Int($0.rounded()) })
+            }
+            store.execute(query)
+        }
+    }
+
+    private func downsampleHeartRateSamples(
+        _ samples: [WorkoutHeartRateSample],
+        maxCount: Int = 360
+    ) -> [WorkoutHeartRateSample] {
+        guard samples.count > maxCount, maxCount > 0 else { return samples }
+
+        let bucketSize = Double(samples.count) / Double(maxCount)
+        return (0..<maxCount).compactMap { bucketIndex in
+            let startIndex = Int((Double(bucketIndex) * bucketSize).rounded(.down))
+            let endIndex = min(samples.count, Int((Double(bucketIndex + 1) * bucketSize).rounded(.down)))
+            let chunk = samples[startIndex..<max(startIndex + 1, endIndex)]
+            guard let timestamp = chunk.first?.timestamp else { return nil }
+            let average = chunk.reduce(0) { $0 + $1.beatsPerMinute } / Double(chunk.count)
+            return WorkoutHeartRateSample(timestamp: timestamp, beatsPerMinute: average)
+        }
     }
 
     private static func mapWorkout(_ workout: HKWorkout) -> WorkoutActivity {

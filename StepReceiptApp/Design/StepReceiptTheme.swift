@@ -3,6 +3,42 @@ import SwiftUI
 import UIKit
 #endif
 
+#if canImport(UIKit)
+private func stepUIColor(
+    light: (Double, Double, Double),
+    dark: (Double, Double, Double),
+    alpha: Double = 1
+) -> UIColor {
+    UIColor { traits in
+        let values = traits.userInterfaceStyle == .dark ? dark : light
+        return UIColor(red: values.0, green: values.1, blue: values.2, alpha: alpha)
+    }
+}
+
+private let stepBackgroundUIColor = stepUIColor(light: (0.965, 0.972, 0.956), dark: (0.055, 0.061, 0.058))
+private let stepInkUIColor = stepUIColor(light: (0.075, 0.090, 0.086), dark: (0.940, 0.965, 0.950))
+private let stepMutedUIColor = stepUIColor(light: (0.255, 0.300, 0.282), dark: (0.670, 0.720, 0.695))
+private let stepAxisUIColor = stepUIColor(light: (0.170, 0.210, 0.195), dark: (0.760, 0.815, 0.790))
+private let stepAxisGridUIColor = stepUIColor(light: (0.075, 0.090, 0.086), dark: (0.940, 0.965, 0.950), alpha: 0.18)
+private let stepAccentUIColor = stepUIColor(light: (0.075, 0.445, 0.375), dark: (0.240, 0.820, 0.690))
+private let stepEnergyUIColor = stepUIColor(light: (0.910, 0.390, 0.210), dark: (1.000, 0.520, 0.260))
+private let stepDistanceUIColor = stepUIColor(light: (0.200, 0.390, 0.760), dark: (0.430, 0.640, 1.000))
+private let stepWarningUIColor = stepUIColor(light: (0.760, 0.290, 0.180), dark: (1.000, 0.470, 0.370))
+private let stepSurfaceUIColor = stepUIColor(light: (1.000, 1.000, 1.000), dark: (0.105, 0.112, 0.108))
+
+extension Color {
+    static let stepBackground = Color(uiColor: stepBackgroundUIColor)
+    static let stepInk = Color(uiColor: stepInkUIColor)
+    static let stepMuted = Color(uiColor: stepMutedUIColor)
+    static let stepAxis = Color(uiColor: stepAxisUIColor)
+    static let stepAxisGrid = Color(uiColor: stepAxisGridUIColor)
+    static let stepAccent = Color(uiColor: stepAccentUIColor)
+    static let stepEnergy = Color(uiColor: stepEnergyUIColor)
+    static let stepDistance = Color(uiColor: stepDistanceUIColor)
+    static let stepWarning = Color(uiColor: stepWarningUIColor)
+    static let stepSurface = Color(uiColor: stepSurfaceUIColor)
+}
+#else
 extension Color {
     static let stepBackground = Color(red: 0.965, green: 0.972, blue: 0.956)
     static let stepInk = Color(red: 0.075, green: 0.090, blue: 0.086)
@@ -15,48 +51,43 @@ extension Color {
     static let stepWarning = Color(red: 0.760, green: 0.290, blue: 0.180)
     static let stepSurface = Color.white
 }
+#endif
 
 #if canImport(UIKit)
 enum StepReceiptChrome {
     @MainActor
     static func configure() {
-        let background = UIColor(red: 0.965, green: 0.972, blue: 0.956, alpha: 1)
-        let surface = UIColor.white
-        let ink = UIColor(red: 0.075, green: 0.090, blue: 0.086, alpha: 1)
-        let muted = UIColor(red: 0.255, green: 0.300, blue: 0.282, alpha: 1)
-        let accent = UIColor(red: 0.075, green: 0.445, blue: 0.375, alpha: 1)
-
         let navigation = UINavigationBarAppearance()
         navigation.configureWithOpaqueBackground()
-        navigation.backgroundColor = background
-        navigation.titleTextAttributes = [.foregroundColor: ink]
-        navigation.largeTitleTextAttributes = [.foregroundColor: ink]
+        navigation.backgroundColor = stepBackgroundUIColor
+        navigation.titleTextAttributes = [.foregroundColor: stepInkUIColor]
+        navigation.largeTitleTextAttributes = [.foregroundColor: stepInkUIColor]
         UINavigationBar.appearance().standardAppearance = navigation
         UINavigationBar.appearance().compactAppearance = navigation
         UINavigationBar.appearance().scrollEdgeAppearance = navigation
 
         let tabBar = UITabBarAppearance()
         tabBar.configureWithOpaqueBackground()
-        tabBar.backgroundColor = surface
+        tabBar.backgroundColor = stepSurfaceUIColor
         tabBar.shadowColor = UIColor.black.withAlphaComponent(0.12)
 
-        let normalAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: muted]
-        let selectedAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: accent]
+        let normalAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: stepMutedUIColor]
+        let selectedAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: stepAccentUIColor]
         for itemAppearance in [
             tabBar.stackedLayoutAppearance,
             tabBar.inlineLayoutAppearance,
             tabBar.compactInlineLayoutAppearance
         ] {
-            itemAppearance.normal.iconColor = muted
+            itemAppearance.normal.iconColor = stepMutedUIColor
             itemAppearance.normal.titleTextAttributes = normalAttributes
-            itemAppearance.selected.iconColor = accent
+            itemAppearance.selected.iconColor = stepAccentUIColor
             itemAppearance.selected.titleTextAttributes = selectedAttributes
         }
 
         UITabBar.appearance().standardAppearance = tabBar
         UITabBar.appearance().scrollEdgeAppearance = tabBar
-        UITabBar.appearance().tintColor = accent
-        UITabBar.appearance().unselectedItemTintColor = muted
+        UITabBar.appearance().tintColor = stepAccentUIColor
+        UITabBar.appearance().unselectedItemTintColor = stepMutedUIColor
     }
 }
 #endif

@@ -31,11 +31,22 @@ struct AppRootView: View {
                 }
         }
         .tint(.stepAccent)
+        .preferredColorScheme(repository.preferences.appTheme.colorScheme)
         .overlay {
             if repository.authorizationState == .notDetermined {
                 PermissionOnboardingView()
                     .transition(.opacity)
             }
+        }
+    }
+}
+
+private extension AppTheme {
+    var colorScheme: ColorScheme? {
+        switch self {
+        case .system: nil
+        case .light: .light
+        case .dark: .dark
         }
     }
 }

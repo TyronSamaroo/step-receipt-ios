@@ -7,6 +7,7 @@ struct SettingsView: View {
     @State private var activeEnergyGoal = ""
     @State private var displayName = "You"
     @State private var selectedDistanceUnit: DistanceUnit = .miles
+    @State private var selectedAppTheme: AppTheme = .system
     @State private var visibleDashboardMetrics = Set(DashboardMetric.allCases)
 
     var body: some View {
@@ -27,6 +28,18 @@ struct SettingsView: View {
                             displayName: displayName,
                             distanceUnit: selectedDistanceUnit
                         )
+                    }
+                }
+
+                Section("Appearance") {
+                    Picker("Theme", selection: $selectedAppTheme) {
+                        ForEach(AppTheme.allCases) { theme in
+                            Text(theme.displayName).tag(theme)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .onChange(of: selectedAppTheme) { _, newTheme in
+                        repository.updatePreferences(appTheme: newTheme)
                     }
                 }
 
@@ -106,6 +119,7 @@ struct SettingsView: View {
                 activeEnergyGoal = repository.goals.activeEnergyKilocaloriesPerDay.map(String.init) ?? ""
                 displayName = repository.preferences.displayName
                 selectedDistanceUnit = repository.preferences.distanceUnit
+                selectedAppTheme = repository.preferences.appTheme
                 visibleDashboardMetrics = Set(repository.preferences.visibleDashboardMetrics)
             }
         }

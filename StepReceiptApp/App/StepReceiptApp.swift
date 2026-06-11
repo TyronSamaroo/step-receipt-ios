@@ -15,7 +15,6 @@ struct StepReceiptApp: App {
         WindowGroup {
             AppRootView()
                 .environmentObject(repository)
-                .preferredColorScheme(.light)
                 .task {
                     await repository.bootstrap()
             }

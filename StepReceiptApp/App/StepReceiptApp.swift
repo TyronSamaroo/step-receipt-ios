@@ -5,10 +5,17 @@ import SwiftUI
 struct StepReceiptApp: App {
     @StateObject private var repository = Self.makeRepository()
 
+    init() {
+        #if canImport(UIKit)
+        StepReceiptChrome.configure()
+        #endif
+    }
+
     var body: some Scene {
         WindowGroup {
             AppRootView()
                 .environmentObject(repository)
+                .preferredColorScheme(.light)
                 .task {
                     await repository.bootstrap()
             }

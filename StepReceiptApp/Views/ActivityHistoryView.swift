@@ -37,6 +37,7 @@ struct ActivityHistoryView: View {
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle("Activity")
+            .navigationBarTitleDisplayMode(.inline)
         }
     }
 

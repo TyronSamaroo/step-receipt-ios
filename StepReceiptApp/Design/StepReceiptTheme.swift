@@ -1,15 +1,65 @@
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 extension Color {
     static let stepBackground = Color(red: 0.965, green: 0.972, blue: 0.956)
     static let stepInk = Color(red: 0.075, green: 0.090, blue: 0.086)
-    static let stepMuted = Color(red: 0.420, green: 0.455, blue: 0.440)
-    static let stepAccent = Color(red: 0.110, green: 0.520, blue: 0.440)
+    static let stepMuted = Color(red: 0.255, green: 0.300, blue: 0.282)
+    static let stepAxis = Color(red: 0.170, green: 0.210, blue: 0.195)
+    static let stepAxisGrid = Color(red: 0.075, green: 0.090, blue: 0.086).opacity(0.18)
+    static let stepAccent = Color(red: 0.075, green: 0.445, blue: 0.375)
     static let stepEnergy = Color(red: 0.910, green: 0.390, blue: 0.210)
     static let stepDistance = Color(red: 0.200, green: 0.390, blue: 0.760)
     static let stepWarning = Color(red: 0.760, green: 0.290, blue: 0.180)
     static let stepSurface = Color.white
 }
+
+#if canImport(UIKit)
+enum StepReceiptChrome {
+    @MainActor
+    static func configure() {
+        let background = UIColor(red: 0.965, green: 0.972, blue: 0.956, alpha: 1)
+        let surface = UIColor.white
+        let ink = UIColor(red: 0.075, green: 0.090, blue: 0.086, alpha: 1)
+        let muted = UIColor(red: 0.255, green: 0.300, blue: 0.282, alpha: 1)
+        let accent = UIColor(red: 0.075, green: 0.445, blue: 0.375, alpha: 1)
+
+        let navigation = UINavigationBarAppearance()
+        navigation.configureWithOpaqueBackground()
+        navigation.backgroundColor = background
+        navigation.titleTextAttributes = [.foregroundColor: ink]
+        navigation.largeTitleTextAttributes = [.foregroundColor: ink]
+        UINavigationBar.appearance().standardAppearance = navigation
+        UINavigationBar.appearance().compactAppearance = navigation
+        UINavigationBar.appearance().scrollEdgeAppearance = navigation
+
+        let tabBar = UITabBarAppearance()
+        tabBar.configureWithOpaqueBackground()
+        tabBar.backgroundColor = surface
+        tabBar.shadowColor = UIColor.black.withAlphaComponent(0.12)
+
+        let normalAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: muted]
+        let selectedAttributes: [NSAttributedString.Key: Any] = [.foregroundColor: accent]
+        for itemAppearance in [
+            tabBar.stackedLayoutAppearance,
+            tabBar.inlineLayoutAppearance,
+            tabBar.compactInlineLayoutAppearance
+        ] {
+            itemAppearance.normal.iconColor = muted
+            itemAppearance.normal.titleTextAttributes = normalAttributes
+            itemAppearance.selected.iconColor = accent
+            itemAppearance.selected.titleTextAttributes = selectedAttributes
+        }
+
+        UITabBar.appearance().standardAppearance = tabBar
+        UITabBar.appearance().scrollEdgeAppearance = tabBar
+        UITabBar.appearance().tintColor = accent
+        UITabBar.appearance().unselectedItemTintColor = muted
+    }
+}
+#endif
 
 struct MetricCardStyle: ViewModifier {
     func body(content: Content) -> some View {

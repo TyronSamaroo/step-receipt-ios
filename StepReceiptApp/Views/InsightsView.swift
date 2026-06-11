@@ -38,6 +38,7 @@ struct InsightsView: View {
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle("Insights")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

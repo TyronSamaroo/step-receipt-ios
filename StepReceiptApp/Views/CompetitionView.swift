@@ -35,6 +35,7 @@ struct CompetitionView: View {
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle("Compete")
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

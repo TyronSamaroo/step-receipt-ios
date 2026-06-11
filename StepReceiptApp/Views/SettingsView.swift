@@ -99,6 +99,7 @@ struct SettingsView: View {
                 }
             }
             .navigationTitle("Settings")
+            .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 stepsGoal = Double(repository.goals.stepsPerDay)
                 workoutGoal = Double(repository.goals.workoutMinutesPerWeek)

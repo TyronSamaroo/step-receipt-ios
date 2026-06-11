@@ -9,6 +9,7 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let summary = repository.todaySummary {
+                        screenTitle
                         dateControls
                         todayHeader(summary)
                         hourlyChart(summary)
@@ -25,6 +26,7 @@ struct TodayView: View {
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle(selectedNavigationTitle)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {
@@ -36,6 +38,18 @@ struct TodayView: View {
                 }
             }
         }
+    }
+
+    private var screenTitle: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(selectedNavigationTitle)
+                .font(.system(size: 34, weight: .bold, design: .rounded))
+                .foregroundStyle(Color.stepInk)
+            Text(repository.selectedDate, format: .dateTime.weekday(.wide).month(.wide).day())
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+        }
+        .accessibilityElement(children: .combine)
     }
 
     private var dateControls: some View {
@@ -61,6 +75,8 @@ struct TodayView: View {
                 displayedComponents: .date
             )
             .labelsHidden()
+            .tint(Color.stepAccent)
+            .foregroundStyle(Color.stepInk)
             .frame(maxWidth: .infinity)
 
             Button {
@@ -119,8 +135,31 @@ struct TodayView: View {
                     .foregroundStyle(Color.stepAccent.gradient)
                 }
                 .frame(height: 170)
+                .chartXAxis {
+                    AxisMarks(values: .stride(by: .hour, count: 4)) { value in
+                        AxisGridLine()
+                            .foregroundStyle(Color.stepAxisGrid)
+                        AxisTick()
+                            .foregroundStyle(Color.stepAxis)
+                        AxisValueLabel {
+                            if let date = value.as(Date.self) {
+                                Text(shortHourLabel(for: date))
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.stepAxis)
+                            }
+                        }
+                    }
+                }
                 .chartYAxis {
-                    AxisMarks(position: .leading)
+                    AxisMarks(position: .leading) {
+                        AxisGridLine()
+                            .foregroundStyle(Color.stepAxisGrid)
+                        AxisTick()
+                            .foregroundStyle(Color.stepAxis)
+                        AxisValueLabel()
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.stepAxis)
+                    }
                 }
             }
         }
@@ -235,6 +274,14 @@ struct TodayView: View {
 
     private var selectedNavigationTitle: String {
         Calendar.current.isDateInToday(repository.selectedDate) ? "Today" : "Day"
+    }
+
+    private func shortHourLabel(for date: Date) -> String {
+        let hour = Calendar.current.component(.hour, from: date)
+        if hour == 0 { return "12a" }
+        if hour < 12 { return "\(hour)a" }
+        if hour == 12 { return "12p" }
+        return "\(hour - 12)p"
     }
 }
 

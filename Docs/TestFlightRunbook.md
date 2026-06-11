@@ -13,7 +13,7 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
 | Health entitlement | Enabled in `StepReceiptApp/StepReceipt.entitlements` |
 | CloudKit container | `iCloud.com.tyronsamaroo.stepreceipt` in entitlements |
 | Development Team | Configured as `U63TLL4JY4` in `project.yml` |
-| Device proof | Tiffany iPhone16 Pro has production bundle `0.1.0 (2)` installed and launched; Tyron's iPhone must be reconnected to refresh to build `2` if needed |
+| Device proof | Tyron's iPhone TT and Tiffany iPhone16 Pro have production bundle `0.1.0 (2)` installed and launched |
 | GitHub push | Pending; do not push until repository visibility is confirmed |
 
 Run the local readiness gate whenever signing, device, or repository state changes:
@@ -159,7 +159,7 @@ Current App Store Connect state as of 2026-06-11:
 - Build `0.1.0 (2)` has been submitted for external TestFlight beta review and shows `Waiting for Review`.
 - Tiffany was added as an individual external tester at her Apple ID email.
 - App Store Connect showed `No Builds Available` for Tiffany until beta review approval, which is expected for the first external build.
-- The direct Xcode install path is already complete on Tiffany iPhone16 Pro with bundle `com.tyronsamaroo.stepreceipt`, version `0.1.0`, build `2`.
+- The direct Xcode install path is complete on both Tyron's iPhone TT and Tiffany iPhone16 Pro with bundle `com.tyronsamaroo.stepreceipt`, version `0.1.0`, build `2`.
 
 1. In App Store Connect, open TestFlight for `StepReceipt`.
 2. Prefer external group `Family Beta` for future testers when App Store Connect exposes the external group flow.
@@ -186,8 +186,8 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
 - [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionBoard`.
+- [x] Tyron's iPhone TT runs production bundle `0.1.0 (2)` from Xcode.
 - [x] Tiffany iPhone16 Pro runs production bundle `0.1.0 (2)` from Xcode.
-- [ ] Tyron's iPhone is reconnected and refreshed to build `2` if local direct install is still needed.
 - [ ] Household-code competition sync shows Tyron and Tiffany aggregate leaderboard rows.
 - [x] Local validation suite passes before archive.
 - [x] Release archive validates and uploads.

@@ -6,7 +6,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Native iPhone app shell | Verified locally and on device | Xcode project builds on iPhone 17 simulator; production bundle `0.1.0 (2)` installed and launched on Tiffany iPhone16 Pro |
+| Native iPhone app shell | Verified locally and on device | Xcode project builds on iPhone 17 simulator; production bundle `0.1.0 (2)` installed and launched on Tyron's iPhone TT and Tiffany iPhone16 Pro |
 | Today timeline | Verified with sample preview | UI smoke test reaches Today and confirms hourly steps |
 | Activity history and filters | Verified with sample preview | UI smoke test reaches Activity and applies a filter |
 | Insights receipt | Verified with unit and UI tests | Core receipt tests plus UI smoke test |
@@ -19,13 +19,13 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
 | Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition board snapshots only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
-| TestFlight runbook | Current for build 2 beta handoff | `Docs/TestFlightRunbook.md` captures the configured Apple team, Tiffany direct install, TestFlight waiting-for-review state, and Family Beta follow-up path |
+| TestFlight runbook | Current for build 2 beta handoff | `Docs/TestFlightRunbook.md` captures the configured Apple team, both direct iPhone installs, TestFlight waiting-for-review state, and Family Beta follow-up path |
 | Device/TestFlight readiness gate | Implemented locally | `Tools/device-testflight-readiness.sh` verifies local toolchain, plist shape, entitlements, signing identity, connected device, and repo state |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
 ## Gates Before Calling It Production
 
-- Run on Tyron's physical iPhone with real Apple Health data and refresh it to build `2` if needed.
+- Complete hands-on HealthKit acceptance on Tyron's physical iPhone with real Apple Health data.
 - Finish Tiffany's TestFlight path after Apple's first external beta review approves build `0.1.0 (2)`.
 - Confirm HealthKit prompts for steps, walking/running distance, active energy, flights climbed, and workouts.
 - Test partial Health permissions and denied Health access.

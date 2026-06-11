@@ -410,6 +410,31 @@ struct ActivityRepositoryTests {
         #expect(CloudKitCompetitionSync.boardRecordName(for: spacedHash) == "competition-board-\(spacedHash)")
     }
 
+    @Test
+    func testStoredSystemThemeMigratesToLightDefault() throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let legacyPreferences = UserPreferences(appTheme: .system)
+        let data = try JSONEncoder().encode(legacyPreferences)
+        defaults.set(data, forKey: "stepReceipt.preferences.v1")
+
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        #expect(repository.preferences.appTheme == AppTheme.light)
+
+        let storedData = try #require(defaults.data(forKey: "stepReceipt.preferences.v1"))
+        let storedPreferences = try JSONDecoder().decode(UserPreferences.self, from: storedData)
+        #expect(storedPreferences.appTheme == .light)
+    }
+
     private func defaultsSuiteName() -> String {
         "StepReceiptTests.\(UUID().uuidString)"
     }

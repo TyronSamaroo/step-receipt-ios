@@ -372,7 +372,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         displayName: String = "You",
         distanceUnit: DistanceUnit = .miles,
         visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases,
-        appTheme: AppTheme = .system
+        appTheme: AppTheme = .light
     ) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         self.displayName = trimmedName.isEmpty ? "You" : trimmedName
@@ -398,7 +398,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
             displayName: try container.decodeIfPresent(String.self, forKey: .displayName) ?? "You",
             distanceUnit: try container.decodeIfPresent(DistanceUnit.self, forKey: .distanceUnit) ?? .miles,
             visibleDashboardMetrics: try container.decodeIfPresent([DashboardMetric].self, forKey: .visibleDashboardMetrics) ?? DashboardMetric.allCases,
-            appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .system
+            appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .light
         )
     }
 

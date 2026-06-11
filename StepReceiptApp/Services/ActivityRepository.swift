@@ -74,6 +74,7 @@ final class ActivityRepository: ObservableObject {
     private let competitorIDKey = "stepReceipt.currentCompetitorID.v1"
     private let goalsKey = "stepReceipt.goals.v1"
     private let preferencesKey = "stepReceipt.preferences.v1"
+    private let preferencesDefaultThemeMigratedKey = "stepReceipt.preferencesDefaultThemeMigrated.v1"
     private let localCompetitorsKey = "stepReceipt.localCompetitors.v1"
     private let localCompetitionCheckInsKey = "stepReceipt.localCompetitionCheckIns.v1"
     private let sharedCompetitionSettingsKey = "stepReceipt.sharedCompetitionSettings.v1"
@@ -96,7 +97,11 @@ final class ActivityRepository: ObservableObject {
         self.engine = InsightEngine(calendar: calendar)
         self.competitionEngine = CompetitionEngine(calendar: calendar)
         self.goals = Self.loadGoals(key: goalsKey, userDefaults: userDefaults)
-        self.preferences = Self.loadPreferences(key: preferencesKey, userDefaults: userDefaults)
+        self.preferences = Self.loadPreferences(
+            key: preferencesKey,
+            defaultThemeMigratedKey: preferencesDefaultThemeMigratedKey,
+            userDefaults: userDefaults
+        )
         self.localCompetitors = Self.loadLocalCompetitors(key: localCompetitorsKey, userDefaults: userDefaults)
         self.localCompetitionCheckIns = Self.loadLocalCompetitionCheckIns(key: localCompetitionCheckInsKey, userDefaults: userDefaults)
         self.sharedCompetitionSettings = Self.loadSharedCompetitionSettings(key: sharedCompetitionSettingsKey, userDefaults: userDefaults)
@@ -527,6 +532,7 @@ final class ActivityRepository: ObservableObject {
             competitorIDKey,
             goalsKey,
             preferencesKey,
+            preferencesDefaultThemeMigratedKey,
             localCompetitorsKey,
             localCompetitionCheckInsKey,
             sharedCompetitionSettingsKey,
@@ -765,14 +771,41 @@ final class ActivityRepository: ObservableObject {
         return goals
     }
 
-    private static func loadPreferences(key: String, userDefaults: UserDefaults) -> UserPreferences {
+    private static func loadPreferences(
+        key: String,
+        defaultThemeMigratedKey: String,
+        userDefaults: UserDefaults
+    ) -> UserPreferences {
         guard
             let data = userDefaults.data(forKey: key),
             let preferences = try? JSONDecoder().decode(UserPreferences.self, from: data)
         else {
+            userDefaults.set(true, forKey: defaultThemeMigratedKey)
             return UserPreferences()
         }
-        return preferences
+
+        guard !userDefaults.bool(forKey: defaultThemeMigratedKey) else {
+            return preferences
+        }
+
+        userDefaults.set(true, forKey: defaultThemeMigratedKey)
+
+        guard preferences.appTheme == .system else {
+            return preferences
+        }
+
+        let migratedPreferences = UserPreferences(
+            displayName: preferences.displayName,
+            distanceUnit: preferences.distanceUnit,
+            visibleDashboardMetrics: preferences.visibleDashboardMetrics,
+            appTheme: .light
+        )
+
+        if let data = try? JSONEncoder().encode(migratedPreferences) {
+            userDefaults.set(data, forKey: key)
+        }
+
+        return migratedPreferences
     }
 
     private static func loadLocalCompetitors(key: String, userDefaults: UserDefaults) -> [CompetitorProfile] {

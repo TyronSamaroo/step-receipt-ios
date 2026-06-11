@@ -8,12 +8,12 @@ This is the handoff path for proving StepReceipt on Tyron's iPhone first, then i
 | --- | --- |
 | App name | `StepReceipt` |
 | Bundle ID | `com.tyronsamaroo.stepreceipt` |
-| Version / build | `0.1.0` / `1` |
+| Version / build | `0.1.0` / `2` |
 | Privacy manifest | `StepReceiptApp/PrivacyInfo.xcprivacy` declares `NSPrivacyAccessedAPICategoryUserDefaults` reason `CA92.1` |
 | Health entitlement | Enabled in `StepReceiptApp/StepReceipt.entitlements` |
 | CloudKit container | `iCloud.com.tyronsamaroo.stepreceipt` in entitlements |
 | Development Team | Configured as `U63TLL4JY4` in `project.yml` |
-| Device proof | Pending; no iPhone proof is complete until the app runs on a trusted physical iPhone |
+| Device proof | Tiffany iPhone16 Pro has production bundle `0.1.0 (2)` installed and launched; Tyron's iPhone must be reconnected to refresh to build `2` if needed |
 | GitHub push | Pending; do not push until repository visibility is confirmed |
 
 Run the local readiness gate whenever signing, device, or repository state changes:
@@ -22,7 +22,7 @@ Run the local readiness gate whenever signing, device, or repository state chang
 Tools/device-testflight-readiness.sh
 ```
 
-It should fail until Tyron's iPhone is connected or paired. The Apple Developer team and local signing identities are already configured on this Mac.
+It should pass when at least one development-ready iPhone is connected or paired. The Apple Developer team and local signing identities are already configured on this Mac.
 
 ## Temporary Personal-Team iPhone Proof Fallback
 
@@ -126,7 +126,7 @@ Use [App Store Connect Submission Notes](AppStoreConnectSubmission.md) for beta 
 | Category | Health & Fitness |
 | Version | `0.1.0` |
 
-Before upload, confirm App Store Connect has not already processed build `1` for version `0.1.0`. If build `1` is already used, increment `CURRENT_PROJECT_VERSION` in `project.yml`, regenerate `StepReceipt.xcodeproj`, and commit that build-number bump before archiving.
+Build `1` was uploaded first and left with missing compliance. Build `2` declares `ITSAppUsesNonExemptEncryption = false` and is the active TestFlight candidate. If build `2` is replaced, increment `CURRENT_PROJECT_VERSION` in `project.yml`, regenerate `StepReceipt.xcodeproj`, and commit that build-number bump before archiving.
 
 Use conservative privacy answers:
 
@@ -154,12 +154,19 @@ codesign -d --entitlements :- <archive-path>/Products/Applications/StepReceipt.a
 
 ## Wife TestFlight Flow
 
+Current App Store Connect state as of 2026-06-11:
+
+- Build `0.1.0 (2)` has been submitted for external TestFlight beta review and shows `Waiting for Review`.
+- Tiffany was added as an individual external tester at her Apple ID email.
+- App Store Connect showed `No Builds Available` for Tiffany until beta review approval, which is expected for the first external build.
+- The direct Xcode install path is already complete on Tiffany iPhone16 Pro with bundle `com.tyronsamaroo.stepreceipt`, version `0.1.0`, build `2`.
+
 1. In App Store Connect, open TestFlight for `StepReceipt`.
-2. Create an internal testing group first if App Store Connect has none yet.
-3. Create an external tester group named `Family Beta`.
-4. Add Tiffany by her Apple ID email address.
-5. Select the processed build and add it to `Family Beta`; Apple's first external beta review starts when the build is added to the group.
-6. After approval, send the TestFlight invite.
+2. Prefer external group `Family Beta` for future testers when App Store Connect exposes the external group flow.
+3. For the first wife beta, Tiffany is already attached directly to build `0.1.0 (2)` as an individual external tester.
+4. After Apple's first beta review approval, confirm the invite was sent automatically or resend it from the tester row.
+5. If moving to a group later, create `Family Beta`, add Tiffany, and attach the approved build to that group.
+6. After approval, send or verify the TestFlight invite.
 7. Verify on Tiffany's iPhone:
    - TestFlight install succeeds.
    - App opens to onboarding.
@@ -179,13 +186,15 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
 - [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionBoard`.
-- [ ] Tyron's iPhone runs the app from Xcode with real Health data.
+- [x] Tiffany iPhone16 Pro runs production bundle `0.1.0 (2)` from Xcode.
+- [ ] Tyron's iPhone is reconnected and refreshed to build `2` if local direct install is still needed.
 - [ ] Household-code competition sync shows Tyron and Tiffany aggregate leaderboard rows.
-- [ ] Local validation suite passes before archive.
-- [ ] Release archive validates and uploads.
-- [ ] App Store Connect build finishes processing.
-- [ ] App Privacy and beta notes are complete.
-- [ ] `Family Beta` external group is created.
+- [x] Local validation suite passes before archive.
+- [x] Release archive validates and uploads.
+- [x] App Store Connect build `0.1.0 (2)` finishes processing.
+- [x] App Privacy and beta notes are complete enough for beta review.
+- [ ] App Store Connect beta review approves build `0.1.0 (2)`.
+- [ ] `Family Beta` external group is created if needed beyond the direct individual tester path.
 - [ ] Tiffany receives the TestFlight invite, installs, and reaches onboarding.
 
 ## Apple References

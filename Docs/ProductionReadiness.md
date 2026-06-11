@@ -6,7 +6,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 
 | Area | Status | Evidence |
 | --- | --- | --- |
-| Native iPhone app shell | Verified locally | Xcode project builds on iPhone 17 simulator |
+| Native iPhone app shell | Verified locally and on device | Xcode project builds on iPhone 17 simulator; production bundle `0.1.0 (2)` installed and launched on Tiffany iPhone16 Pro |
 | Today timeline | Verified with sample preview | UI smoke test reaches Today and confirms hourly steps |
 | Activity history and filters | Verified with sample preview | UI smoke test reaches Activity and applies a filter |
 | Insights receipt | Verified with unit and UI tests | Core receipt tests plus UI smoke test |
@@ -19,13 +19,14 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 | CloudKit private sync | Implemented, account validation pending | `CloudKitSummarySync` writes aggregate daily summaries only; fake tests cover unavailable sync |
 | Household competition sync | Implemented with fakes, account validation pending | `CloudKitCompetitionSync` sends aggregate competition board snapshots only; tests cover wife row merge and sync failure fallback |
 | Privacy manifest | Implemented locally | `StepReceiptApp/PrivacyInfo.xcprivacy` declares the UserDefaults required-reason API reason |
-| TestFlight runbook | Ready for device handoff | `Docs/TestFlightRunbook.md` captures the configured Apple team, iPhone proof, archive, and Family Beta path |
+| TestFlight runbook | Current for build 2 beta handoff | `Docs/TestFlightRunbook.md` captures the configured Apple team, Tiffany direct install, TestFlight waiting-for-review state, and Family Beta follow-up path |
 | Device/TestFlight readiness gate | Implemented locally | `Tools/device-testflight-readiness.sh` verifies local toolchain, plist shape, entitlements, signing identity, connected device, and repo state |
 | Public GitHub readiness | Ready locally | Clean Git history, README, sample screenshots, CI workflow |
 
 ## Gates Before Calling It Production
 
-- Run on a physical iPhone with real Apple Health data.
+- Run on Tyron's physical iPhone with real Apple Health data and refresh it to build `2` if needed.
+- Finish Tiffany's TestFlight path after Apple's first external beta review approves build `0.1.0 (2)`.
 - Confirm HealthKit prompts for steps, walking/running distance, active energy, flights climbed, and workouts.
 - Test partial Health permissions and denied Health access.
 - Confirm the configured Apple Developer Team signs successfully on device.
@@ -36,7 +37,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Add real CloudKit account/device coverage after the container is configured.
 - Validate household-code competition sync with Tyron and Tiffany Apple IDs before treating wife competition as complete.
 - Deploy/verify the CloudKit development schema for public `CompetitionBoard` records before TestFlight acceptance.
-- Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including the `Family Beta` external tester group.
+- Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including invite delivery and the optional `Family Beta` external tester group.
 - Decide repository license before presenting the public repo as open source.
 - Decide when to graduate local/manual competition into real friend sharing.
 

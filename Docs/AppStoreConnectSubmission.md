@@ -66,11 +66,19 @@ StepReceipt does not implement custom encryption. Build `2` declares `ITSAppUses
 
 ## TestFlight Groups
 
-1. Create an internal testing group first if App Store Connect requires one.
-2. Create external group `Family Beta`.
-3. Add Tiffany by Apple ID email address.
-4. Add the processed build to `Family Beta`. The first external build is submitted to beta review when it is added to the group.
-5. After approval, send the invite and verify Tiffany can install, open onboarding, grant or deny Health permissions, set board name `Tiffany`, join from Tyron's copied household code, and see both aggregate rows after sync.
+Current submitted state as of 2026-06-11:
+
+- Build `0.1.0 (2)` is submitted for external TestFlight beta review and shows `Waiting for Review`.
+- Tiffany was added directly as an individual external tester by Apple ID email.
+- The invite is not usable until Apple's first external beta review approves the build.
+- Tiffany also has the production bundle installed directly through Xcode on her connected iPhone for same-day testing.
+
+Forward path after approval:
+
+1. Confirm Tiffany receives or can be resent the TestFlight invite.
+2. Create external group `Family Beta` if App Store Connect exposes the group flow and more testers are needed.
+3. Move or add Tiffany to `Family Beta` for future builds.
+4. Verify Tiffany can install, open onboarding, grant or deny Health permissions, set board name `Tiffany`, join from Tyron's copied household code, and see both aggregate rows after sync.
 
 ## Apple References
 

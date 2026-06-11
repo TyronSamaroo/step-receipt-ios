@@ -32,6 +32,9 @@ struct CompetitionView: View {
                 }
                 .padding(16)
             }
+            .refreshable {
+                await syncSharedBoardIfNeeded()
+            }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
             .navigationTitle("Compete")
@@ -62,6 +65,9 @@ struct CompetitionView: View {
             }
             .onChange(of: repository.sharedCompetitionSettings.inviteCode) { _, newValue in
                 inviteCodeDraft = newValue
+            }
+            .task {
+                await syncSharedBoardIfNeeded()
             }
         }
     }
@@ -258,8 +264,13 @@ struct CompetitionView: View {
         return SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first
     }
 
+    private func syncSharedBoardIfNeeded() async {
+        guard repository.sharedCompetitionSettings.canSync else { return }
+        await repository.syncSharedCompetition()
+    }
+
     private var sharedStatusText: String {
-        switch repository.sharedCompetitionSyncState {
+        return switch repository.sharedCompetitionSyncState {
         case .off:
             "Off"
         case .idle:
@@ -268,13 +279,17 @@ struct CompetitionView: View {
             "Syncing"
         case .synced:
             "Synced"
-        case .unavailable:
-            "Offline"
+        case .unavailable(let reason):
+            reason.localizedCaseInsensitiveContains("health") ? "Needs Health" : "Sync Issue"
         }
     }
 
     private var sharedStatusDetail: String {
-        switch repository.sharedCompetitionSyncState {
+        if repository.sharedCompetitionSettings.canSync && !repository.canPublishSharedCompetitionEntries {
+            return "Board code is saved. Connect Apple Health to publish this phone's daily row."
+        }
+
+        return switch repository.sharedCompetitionSyncState {
         case .off:
             "Generate or paste a code, set your board name, then sync."
         case .idle:

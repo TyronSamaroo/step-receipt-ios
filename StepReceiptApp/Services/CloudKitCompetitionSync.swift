@@ -17,11 +17,10 @@ protocol SharedCompetitionSyncing: Sendable {
 final class CloudKitCompetitionSync: @unchecked Sendable {
     private static let schemaVersion = 1
     private static let maxEntriesPerBoard = 400
+    private static let entryRecordType = "CompetitionEntry"
 
     private let container: CKContainer
     private let database: CKDatabase
-    private let encoder = JSONEncoder()
-    private let decoder = JSONDecoder()
 
     init(containerIdentifier: String = "iCloud.com.tyronsamaroo.stepreceipt") {
         container = CKContainer(identifier: containerIdentifier)
@@ -36,38 +35,17 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
 
         let groupHash = Self.groupHash(for: normalizedCode)
         let localEntries = mergedEntries(entries)
+        let remoteRecords = try await fetchEntryRecords(groupHash: groupHash)
+        let remoteEntries = mergedEntries(remoteRecords.compactMap(entry(from:)))
 
-        var serverRecordForRetry: CKRecord?
-        for _ in 0..<3 {
-            let fetchedRecord: CKRecord?
-            if let retryRecord = serverRecordForRetry {
-                fetchedRecord = retryRecord
-            } else {
-                fetchedRecord = try await fetchBoardRecord(groupHash: groupHash)
-            }
-            guard let record = fetchedRecord ?? (localEntries.isEmpty ? nil : newBoardRecord(groupHash: groupHash)) else {
-                return []
-            }
-
-            serverRecordForRetry = nil
-            let remoteEntries = try decodedEntries(from: record)
-            let merged = mergedEntries(remoteEntries + localEntries)
-            guard !merged.isEmpty else { return [] }
-
-            do {
-                try update(record: record, groupHash: groupHash, entries: merged)
-                let savedRecord = try await database.save(record)
-                return try decodedEntries(from: savedRecord)
-            } catch {
-                if let serverRecord = serverChangedRecord(from: error) {
-                    serverRecordForRetry = serverRecord
-                    continue
-                }
-                throw error
-            }
+        for entry in localEntries {
+            let recordName = Self.entryRecordName(groupHash: groupHash, entryID: entry.id)
+            let currentRecord = remoteRecords.first { $0.recordID.recordName == recordName }
+            try await saveLocalEntry(entry, groupHash: groupHash, existingRecord: currentRecord)
         }
 
-        throw CloudSyncError.unavailable("Competition board could not be saved.")
+        let savedEntries = mergedEntries(remoteEntries + localEntries)
+        return savedEntries
     }
 
     private func requireAvailableAccount() async throws {
@@ -94,58 +72,128 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         }
     }
 
-    private func fetchBoardRecord(groupHash: String) async throws -> CKRecord? {
-        do {
-            return try await database.record(for: CKRecord.ID(recordName: Self.boardRecordName(for: groupHash)))
-        } catch {
-            if isMissingRecord(error) {
-                return nil
-            }
-            throw error
+    private func fetchEntryRecords(groupHash: String) async throws -> [CKRecord] {
+        let query = CKQuery(recordType: Self.entryRecordType, predicate: NSPredicate(format: "groupHash == %@", groupHash))
+        var records: [CKRecord] = []
+
+        let firstPage = try await database.records(
+            matching: query,
+            desiredKeys: nil,
+            resultsLimit: Self.maxEntriesPerBoard
+        )
+        records.append(contentsOf: successfulRecords(from: firstPage.matchResults))
+
+        var cursor = firstPage.queryCursor
+        while let currentCursor = cursor, records.count < Self.maxEntriesPerBoard {
+            let page = try await database.records(
+                continuingMatchFrom: currentCursor,
+                desiredKeys: nil,
+                resultsLimit: Self.maxEntriesPerBoard - records.count
+            )
+            records.append(contentsOf: successfulRecords(from: page.matchResults))
+            cursor = page.queryCursor
+        }
+
+        return records
+    }
+
+    private func successfulRecords(from matches: [(CKRecord.ID, Result<CKRecord, Error>)]) -> [CKRecord] {
+        matches.compactMap { _, result in
+            guard case .success(let record) = result else { return nil }
+            return record
         }
     }
 
-    private func newBoardRecord(groupHash: String) -> CKRecord {
-        CKRecord(recordType: "CompetitionBoard", recordID: CKRecord.ID(recordName: Self.boardRecordName(for: groupHash)))
+    private func saveLocalEntry(
+        _ entry: CompetitionEntry,
+        groupHash: String,
+        existingRecord: CKRecord?
+    ) async throws {
+        let recordName = Self.entryRecordName(groupHash: groupHash, entryID: entry.id)
+        var record = existingRecord ?? CKRecord(
+            recordType: Self.entryRecordType,
+            recordID: CKRecord.ID(recordName: recordName)
+        )
+
+        for _ in 0..<3 {
+            update(record: record, groupHash: groupHash, entry: entry)
+
+            do {
+                _ = try await database.save(record)
+                return
+            } catch {
+                if let serverRecord = serverChangedRecord(from: error) {
+                    record = serverRecord
+                    continue
+                }
+                if isMissingRecord(error) {
+                    record = CKRecord(recordType: Self.entryRecordType, recordID: CKRecord.ID(recordName: recordName))
+                    continue
+                }
+                throw error
+            }
+        }
+
+        throw CloudSyncError.unavailable("Competition entry could not be saved.")
     }
 
-    private func update(record: CKRecord, groupHash: String, entries: [CompetitionEntry]) throws {
-        let snapshot = CompetitionBoardSnapshot(
-            schemaVersion: Self.schemaVersion,
-            entries: entries.map(CompetitionEntrySnapshot.init),
-            updatedAt: Date()
-        )
+    private func update(record: CKRecord, groupHash: String, entry: CompetitionEntry) {
         record["groupHash"] = groupHash
         record["schemaVersion"] = Self.schemaVersion
-        record["entryCount"] = entries.count
-        record["updatedAt"] = snapshot.updatedAt
-        record["entriesJSON"] = try encoder.encode(snapshot) as NSData
+        record["competitorID"] = entry.competitor.id.uuidString
+        record["displayName"] = entry.competitor.displayName
+        record["initials"] = entry.competitor.initials
+        record["accentHex"] = entry.competitor.accentHex
+        record["dayKey"] = entry.dayKey
+        record["steps"] = entry.steps
+        record["distanceMeters"] = entry.distanceMeters
+        record["activeEnergyKilocalories"] = entry.activeEnergyKilocalories
+        record["workoutMinutes"] = entry.workoutMinutes
+        record["updatedAt"] = entry.updatedAt
     }
 
-    private func decodedEntries(from record: CKRecord) throws -> [CompetitionEntry] {
-        guard let value = record["entriesJSON"] else {
-            return []
+    private func entry(from record: CKRecord) -> CompetitionEntry? {
+        guard
+            let competitorIDString = record["competitorID"] as? String,
+            let competitorID = UUID(uuidString: competitorIDString),
+            let displayName = record["displayName"] as? String,
+            let accentHex = record["accentHex"] as? String,
+            let dayKey = record["dayKey"] as? String,
+            let updatedAt = record["updatedAt"] as? Date
+        else {
+            return nil
         }
 
-        let data: Data?
-        if let value = value as? Data {
-            data = value
-        } else if let value = value as? NSData {
-            data = Data(referencing: value)
-        } else {
-            data = nil
-        }
+        let initials = record["initials"] as? String
+        let competitor = CompetitorProfile(
+            id: competitorID,
+            displayName: displayName,
+            initials: initials,
+            accentHex: accentHex
+        )
 
-        guard let data else {
-            throw CloudSyncError.unavailable("Competition board data could not be read.")
-        }
+        return CompetitionEntry(
+            competitor: competitor,
+            dayKey: dayKey,
+            steps: intValue(record["steps"]),
+            distanceMeters: doubleValue(record["distanceMeters"]),
+            activeEnergyKilocalories: doubleValue(record["activeEnergyKilocalories"]),
+            workoutMinutes: doubleValue(record["workoutMinutes"]),
+            updatedAt: updatedAt
+        )
+    }
 
-        do {
-            let snapshot = try decoder.decode(CompetitionBoardSnapshot.self, from: data)
-            return mergedEntries(snapshot.entries.compactMap(\.entry))
-        } catch {
-            throw CloudSyncError.unavailable("Competition board data could not be decoded.")
-        }
+    private func intValue(_ value: Any?) -> Int {
+        if let value = value as? Int { return value }
+        if let value = value as? Int64 { return Int(value) }
+        if let value = value as? NSNumber { return value.intValue }
+        return 0
+    }
+
+    private func doubleValue(_ value: Any?) -> Double {
+        if let value = value as? Double { return value }
+        if let value = value as? NSNumber { return value.doubleValue }
+        return 0
     }
 
     private func mergedEntries(_ entries: [CompetitionEntry]) -> [CompetitionEntry] {
@@ -186,57 +234,12 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
     static func boardRecordName(for groupHash: String) -> String {
         "competition-board-\(groupHash)"
     }
+
+    static func entryRecordName(groupHash: String, entryID: String) -> String {
+        let digest = SHA256.hash(data: Data("\(groupHash)|\(entryID)".utf8))
+        let hash = digest.map { String(format: "%02x", $0) }.joined()
+        return "competition-entry-\(hash)"
+    }
 }
 
 extension CloudKitCompetitionSync: SharedCompetitionSyncing {}
-
-private struct CompetitionBoardSnapshot: Codable {
-    let schemaVersion: Int
-    let entries: [CompetitionEntrySnapshot]
-    let updatedAt: Date
-}
-
-private struct CompetitionEntrySnapshot: Codable {
-    let competitorID: UUID
-    let displayName: String
-    let initials: String?
-    let accentHex: String
-    let dayKey: String
-    let steps: Int
-    let distanceMeters: Double
-    let activeEnergyKilocalories: Double
-    let workoutMinutes: Double
-    let updatedAt: Date
-
-    init(entry: CompetitionEntry) {
-        competitorID = entry.competitor.id
-        displayName = entry.competitor.displayName
-        initials = entry.competitor.initials
-        accentHex = entry.competitor.accentHex
-        dayKey = entry.dayKey
-        steps = entry.steps
-        distanceMeters = entry.distanceMeters
-        activeEnergyKilocalories = entry.activeEnergyKilocalories
-        workoutMinutes = entry.workoutMinutes
-        updatedAt = entry.updatedAt
-    }
-
-    var entry: CompetitionEntry? {
-        guard !displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return nil }
-        let competitor = CompetitorProfile(
-            id: competitorID,
-            displayName: displayName,
-            initials: initials,
-            accentHex: accentHex
-        )
-        return CompetitionEntry(
-            competitor: competitor,
-            dayKey: dayKey,
-            steps: steps,
-            distanceMeters: distanceMeters,
-            activeEnergyKilocalories: activeEnergyKilocalories,
-            workoutMinutes: workoutMinutes,
-            updatedAt: updatedAt
-        )
-    }
-}

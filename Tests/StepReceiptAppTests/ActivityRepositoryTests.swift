@@ -401,13 +401,45 @@ struct ActivityRepositoryTests {
     }
 
     @Test
-    func testSharedCompetitionBoardRecordNameUsesNormalizedInviteHash() {
+    func testSharedCompetitionDoesNotReportSyncedWhenNoPublishableEntries() async throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let competitionSync = FakeSharedCompetitionSync()
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: competitionSync,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.previewWithSampleData()
+        await repository.updateSharedCompetition(isEnabled: true, inviteCode: "WIFE")
+
+        #expect(!repository.canPublishSharedCompetitionEntries)
+        #expect(repository.sharedCompetitionEntries.isEmpty)
+        #expect(repository.sharedCompetitionSyncState == .unavailable("Connect Apple Health before syncing your row to the household board."))
+        let publishedEntries = await competitionSync.publishedEntries()
+        #expect(publishedEntries.isEmpty)
+    }
+
+    @Test
+    func testSharedCompetitionRecordNamesUseNormalizedInviteHash() {
         let spacedHash = CloudKitCompetitionSync.groupHash(for: " family-beta ")
         let normalizedHash = CloudKitCompetitionSync.groupHash(for: "FAMILYBETA")
 
         #expect(spacedHash == normalizedHash)
         #expect(spacedHash.count == 64)
         #expect(CloudKitCompetitionSync.boardRecordName(for: spacedHash) == "competition-board-\(spacedHash)")
+        #expect(
+            CloudKitCompetitionSync.entryRecordName(groupHash: spacedHash, entryID: "person-day")
+                == CloudKitCompetitionSync.entryRecordName(groupHash: normalizedHash, entryID: "person-day")
+        )
+        #expect(
+            CloudKitCompetitionSync.entryRecordName(groupHash: spacedHash, entryID: "person-day")
+                != CloudKitCompetitionSync.entryRecordName(groupHash: spacedHash, entryID: "other-day")
+        )
     }
 
     @Test

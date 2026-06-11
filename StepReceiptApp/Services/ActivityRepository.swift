@@ -400,14 +400,19 @@ final class ActivityRepository: ObservableObject {
             return
         }
 
+        let localEntries = entriesForSharedCompetitionSync()
         sharedCompetitionSyncState = .syncing
         do {
             let remoteEntries = try await competitionSync.sync(
-                entries: entriesForSharedCompetitionSync(),
+                entries: localEntries,
                 inviteCode: sharedCompetitionSettings.inviteCode
             )
             sharedCompetitionEntries = deduplicatedCompetitionEntries(remoteEntries)
-            sharedCompetitionSyncState = .synced(Date())
+            if localEntries.isEmpty && sharedCompetitionEntries.isEmpty {
+                sharedCompetitionSyncState = .unavailable("Connect Apple Health before syncing your row to the household board.")
+            } else {
+                sharedCompetitionSyncState = .synced(Date())
+            }
         } catch {
             sharedCompetitionSyncState = .unavailable(error.localizedDescription)
             refreshCompetition()
@@ -417,6 +422,10 @@ final class ActivityRepository: ObservableObject {
     func generatedSharedCompetitionInviteCode() -> String {
         let random = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         return SharedCompetitionSettings.normalizedInviteCode("SR\(random.prefix(8))")
+    }
+
+    var canPublishSharedCompetitionEntries: Bool {
+        !entriesForSharedCompetitionSync().isEmpty
     }
 
     private func refreshCompetition() {

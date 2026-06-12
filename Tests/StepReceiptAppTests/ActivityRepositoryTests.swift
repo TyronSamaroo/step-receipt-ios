@@ -467,6 +467,109 @@ struct ActivityRepositoryTests {
         #expect(storedPreferences.appTheme == .light)
     }
 
+    @Test
+    func testWorkoutTagsPersistTrimCapAndClearBySourceIdentifier() throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let start = calendar.startOfDay(for: Date())
+        let workout = WorkoutActivity(
+            sourceIdentifier: "strength-2026-06-12",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: start,
+            endDate: start.addingTimeInterval(72 * 60),
+            activeEnergyKilocalories: 310,
+            sourceName: "Unit Test"
+        )
+        let differentSourceWorkout = WorkoutActivity(
+            sourceIdentifier: "strength-2026-06-12-copy",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: start,
+            endDate: start.addingTimeInterval(72 * 60),
+            activeEnergyKilocalories: 310,
+            sourceName: "Unit Test"
+        )
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.updateWorkoutTag("  Push Day  ", for: workout)
+
+        #expect(repository.workoutTag(for: workout) == "Push Day")
+        #expect(repository.workoutTag(for: differentSourceWorkout) == nil)
+
+        let restoredRepository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        #expect(restoredRepository.workoutTag(for: workout) == "Push Day")
+
+        let longTag = "Very Long Strength Session Name That Should Be Capped"
+        restoredRepository.updateWorkoutTag(longTag, for: workout)
+
+        let cappedTag = try #require(restoredRepository.workoutTag(for: workout))
+        #expect(cappedTag.count == 40)
+        #expect(cappedTag == String(longTag.prefix(40)))
+
+        restoredRepository.updateWorkoutTag("   ", for: workout)
+
+        #expect(restoredRepository.workoutTag(for: workout) == nil)
+    }
+
+    @Test
+    func testWorkoutTagsDoNotLeakIntoSharedCompetitionPayloads() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let competitionSync = FakeSharedCompetitionSync()
+        let workout = WorkoutActivity(
+            sourceIdentifier: "private-strength-workout",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: calendar.date(byAdding: .hour, value: 18, to: day) ?? day,
+            endDate: calendar.date(byAdding: .minute, value: 70, to: calendar.date(byAdding: .hour, value: 18, to: day) ?? day) ?? day,
+            activeEnergyKilocalories: 360,
+            sourceName: "Unit Test"
+        )
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 8, steps: 4_000, distance: 2_900, energy: 160),
+                    bucket(day, hour: 18, steps: 5_500, distance: 4_000, energy: 260)
+                ],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 9_500, distance: 6_900, energy: 420)
+                ],
+                workouts: [workout]
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: competitionSync,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.updateWorkoutTag("Push Day", for: workout)
+        await repository.requestHealthAccess()
+        await repository.updateSharedCompetition(isEnabled: true, inviteCode: "FAMILY")
+
+        let publishedEntries = await competitionSync.publishedEntries()
+        let encoded = try JSONEncoder().encode(publishedEntries)
+        let text = String(data: encoded, encoding: .utf8) ?? ""
+        #expect(!text.contains("Push Day"))
+        #expect(!text.contains("private-strength-workout"))
+    }
+
     private func defaultsSuiteName() -> String {
         "StepReceiptTests.\(UUID().uuidString)"
     }

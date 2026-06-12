@@ -3,6 +3,13 @@ import SwiftUI
 struct WorkoutShareCard: View {
     let workout: WorkoutActivity
     let distanceUnit: DistanceUnit
+    let tag: String?
+
+    init(workout: WorkoutActivity, distanceUnit: DistanceUnit, tag: String? = nil) {
+        self.workout = workout
+        self.distanceUnit = distanceUnit
+        self.tag = tag
+    }
 
     private var style: WorkoutVisualStyle {
         WorkoutVisualStyle(kind: workout.type)
@@ -63,11 +70,17 @@ struct WorkoutShareCard: View {
                 Text("Workout Receipt")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(style.accent)
-                Text(workout.displayTitle)
+                Text(tag ?? workout.displayTitle)
                     .font(.title2.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(2)
                     .minimumScaleFactor(0.78)
+                if tag != nil {
+                    Text(workout.displayTitle)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(style.accent)
+                        .lineLimit(1)
+                }
                 Text(workout.startDate, format: .dateTime.weekday(.wide).month(.wide).day().hour().minute())
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
@@ -173,6 +186,13 @@ struct WorkoutShareCard: View {
 struct DayShareCard: View {
     let summary: DailyActivitySummary
     let distanceUnit: DistanceUnit
+    let workoutTags: [String: String]
+
+    init(summary: DailyActivitySummary, distanceUnit: DistanceUnit, workoutTags: [String: String] = [:]) {
+        self.summary = summary
+        self.distanceUnit = distanceUnit
+        self.workoutTags = workoutTags
+    }
 
     private var topWorkouts: [WorkoutActivity] {
         Array(summary.workouts.prefix(4))
@@ -222,7 +242,11 @@ struct DayShareCard: View {
 
                     VStack(spacing: 8) {
                         ForEach(topWorkouts) { workout in
-                            DayShareWorkoutRow(workout: workout, distanceUnit: distanceUnit)
+                            DayShareWorkoutRow(
+                                workout: workout,
+                                distanceUnit: distanceUnit,
+                                tag: workoutTags[workout.sourceIdentifier]
+                            )
                         }
                     }
                 }
@@ -321,6 +345,7 @@ struct ShareMetricTile: View {
 private struct DayShareWorkoutRow: View {
     let workout: WorkoutActivity
     let distanceUnit: DistanceUnit
+    let tag: String?
 
     private var style: WorkoutVisualStyle {
         WorkoutVisualStyle(kind: workout.type)
@@ -336,11 +361,11 @@ private struct DayShareWorkoutRow: View {
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 2) {
-                Text(workout.displayTitle)
+                Text(tag ?? workout.displayTitle)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
-                Text(workout.startDate, format: .dateTime.hour().minute())
+                Text(subtitle)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
             }
@@ -359,6 +384,12 @@ private struct DayShareWorkoutRow: View {
                     .lineLimit(1)
             }
         }
+    }
+
+    private var subtitle: String {
+        let timeText = workout.startDate.formatted(date: .omitted, time: .shortened)
+        guard tag != nil else { return timeText }
+        return "\(workout.displayTitle) · \(timeText)"
     }
 
     private var secondaryText: String {

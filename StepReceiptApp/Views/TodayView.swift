@@ -34,7 +34,11 @@ struct TodayView: View {
                     Button {
                         guard let summary = repository.todaySummary else { return }
                         shareImage = ShareImageRenderer.render {
-                            DayShareCard(summary: summary, distanceUnit: repository.preferences.distanceUnit)
+                            DayShareCard(
+                                summary: summary,
+                                distanceUnit: repository.preferences.distanceUnit,
+                                workoutTags: repository.workoutTags
+                            )
                                 .frame(width: 390)
                                 .padding(18)
                                 .background(Color.stepBackground)
@@ -267,7 +271,7 @@ struct TodayView: View {
                     NavigationLink {
                         WorkoutDetailView(workout: workout)
                     } label: {
-                        WorkoutRow(workout: workout)
+                        WorkoutRow(workout: workout, tag: repository.workoutTag(for: workout))
                     }
                     .buttonStyle(.plain)
                 }

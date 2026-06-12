@@ -5,31 +5,41 @@ struct WorkoutDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
     let workout: WorkoutActivity
     @State private var shareImage: ShareImage?
+    @State private var tagDraft = ""
 
     private var style: WorkoutVisualStyle {
         WorkoutVisualStyle(kind: workout.type)
     }
 
+    private var workoutTag: String? {
+        repository.workoutTag(for: workout)
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                WorkoutHero(workout: workout, style: style)
+                WorkoutHero(workout: workout, style: style, tag: workoutTag)
+                tagPanel
                 metricGrid
                 HeartRatePanel(workout: workout)
                 insightPanel
                 detailPanel
-                WorkoutShareCard(workout: workout, distanceUnit: repository.preferences.distanceUnit)
+                WorkoutShareCard(workout: workout, distanceUnit: repository.preferences.distanceUnit, tag: workoutTag)
             }
             .padding(16)
         }
         .safeAreaPadding(.bottom, 84)
         .background(Color.stepBackground)
-        .navigationTitle(workout.displayTitle)
+        .navigationTitle(workoutTag ?? workout.displayTitle)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     shareImage = ShareImageRenderer.render {
-                        WorkoutShareCard(workout: workout, distanceUnit: repository.preferences.distanceUnit)
+                        WorkoutShareCard(
+                            workout: workout,
+                            distanceUnit: repository.preferences.distanceUnit,
+                            tag: workoutTag
+                        )
                             .frame(width: 390)
                             .padding(18)
                             .background(Color.stepBackground)
@@ -43,6 +53,12 @@ struct WorkoutDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
+        }
+        .onAppear {
+            tagDraft = workoutTag ?? ""
+        }
+        .onChange(of: workoutTag) { _, newValue in
+            tagDraft = newValue ?? ""
         }
     }
 
@@ -115,6 +131,73 @@ struct WorkoutDetailView: View {
                 )
             }
         }
+    }
+
+    private var tagPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(spacing: 10) {
+                Label("Workout Tag", systemImage: "tag")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                Spacer(minLength: 0)
+                if let workoutTag {
+                    Text(workoutTag)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(style.accent)
+                        .lineLimit(1)
+                }
+            }
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(WorkoutTagSuggestion.allCases) { suggestion in
+                        FilterChip(title: suggestion.title, isSelected: workoutTag == suggestion.title) {
+                            tagDraft = suggestion.title
+                            repository.updateWorkoutTag(suggestion.title, for: workout)
+                        }
+                    }
+                }
+                .padding(.vertical, 2)
+            }
+
+            HStack(spacing: 8) {
+                TextField("Custom tag", text: $tagDraft)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 10)
+                    .background(Color.stepBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8, style: .continuous)
+                            .stroke(Color.stepAxisGrid, lineWidth: 1)
+                    )
+
+                Button("Save") {
+                    repository.updateWorkoutTag(tagDraft, for: workout)
+                    tagDraft = workoutTag ?? ""
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(style.accent)
+
+                Button {
+                    tagDraft = ""
+                    repository.updateWorkoutTag(nil, for: workout)
+                } label: {
+                    Image(systemName: "xmark")
+                        .frame(width: 34, height: 34)
+                }
+                .buttonStyle(.bordered)
+                .tint(Color.stepMuted)
+                .accessibilityLabel("Clear workout tag")
+            }
+
+            Text("Use this for Push Day, Pull Day, Leg Day, stair sessions, or any custom training label.")
+                .font(.caption)
+                .foregroundStyle(Color.stepMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .metricCard()
     }
 
     private var insightPanel: some View {
@@ -286,6 +369,30 @@ struct WorkoutDetailView: View {
     }
 }
 
+private enum WorkoutTagSuggestion: String, CaseIterable, Identifiable {
+    case pushDay
+    case pullDay
+    case legDay
+    case upper
+    case cardio
+    case stairSession
+    case recovery
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .pushDay: "Push Day"
+        case .pullDay: "Pull Day"
+        case .legDay: "Leg Day"
+        case .upper: "Upper"
+        case .cardio: "Cardio"
+        case .stairSession: "Stair Session"
+        case .recovery: "Recovery"
+        }
+    }
+}
+
 struct HeartRatePanel: View {
     let workout: WorkoutActivity
 
@@ -444,6 +551,7 @@ struct HeartRatePanel: View {
 struct WorkoutHero: View {
     let workout: WorkoutActivity
     let style: WorkoutVisualStyle
+    let tag: String?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
@@ -456,11 +564,17 @@ struct WorkoutHero: View {
                     .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 6) {
-                    Text(workout.displayTitle)
+                    Text(tag ?? workout.displayTitle)
                         .font(.title2.weight(.bold))
                         .foregroundStyle(Color.stepInk)
                         .lineLimit(2)
                         .minimumScaleFactor(0.82)
+                    if tag != nil {
+                        Text(workout.displayTitle)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(style.accent)
+                            .lineLimit(1)
+                    }
                     Text(workout.startDate, format: .dateTime.weekday(.wide).month(.wide).day().year().hour().minute())
                         .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.stepMuted)

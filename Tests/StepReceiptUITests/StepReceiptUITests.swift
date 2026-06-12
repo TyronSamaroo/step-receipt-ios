@@ -71,8 +71,16 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(workoutsSegment.waitForExistence(timeout: 3))
         workoutsSegment.tap()
 
-        let outdoorWalkRow = app.buttons
-            .matching(NSPredicate(format: "label BEGINSWITH %@", "Outdoor Walk"))
+        for filter in ["All", "Stairs", "Strength", "Outdoor Walk", "Indoor Walk", "Other"] {
+            XCTAssertTrue(app.buttons[filter].waitForExistence(timeout: 3), "Missing workout filter \(filter)")
+        }
+
+        app.buttons["Strength"].tap()
+        let strengthRow = workoutRow(containing: "Traditional Strength Training", in: app).firstMatch
+        XCTAssertTrue(strengthRow.waitForExistence(timeout: 3))
+
+        app.buttons["Outdoor Walk"].tap()
+        let outdoorWalkRow = workoutRow(containing: "Outdoor Walk", in: app)
             .firstMatch
         scrollToElement(outdoorWalkRow, in: app)
         XCTAssertTrue(outdoorWalkRow.waitForExistence(timeout: 3))
@@ -81,6 +89,10 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Outdoor Walk"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share workout"].exists)
         XCTAssertTrue(app.staticTexts["Workout Snapshot"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Workout Tag"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Push Day"].exists)
+        app.buttons["Push Day"].tap()
+        XCTAssertTrue(app.staticTexts["Push Day"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Additional Info"].exists)
         XCTAssertTrue(app.staticTexts["Workout Receipt"].exists)
         XCTAssertTrue(app.staticTexts["Pace"].exists)
@@ -90,6 +102,10 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(app.staticTexts["Zone 1"].exists)
         XCTAssertTrue(app.staticTexts["Zone 5"].exists)
+
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        let taggedRow = workoutRow(containing: "Push Day", in: app).firstMatch
+        XCTAssertTrue(taggedRow.waitForExistence(timeout: 3))
     }
 
     @MainActor
@@ -97,5 +113,11 @@ final class StepReceiptUITests: XCTestCase {
         for _ in 0..<maxSwipes where !element.exists {
             app.swipeUp()
         }
+    }
+
+    private func workoutRow(containing text: String, in app: XCUIApplication) -> XCUIElementQuery {
+        app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "workout-row-", text)
+        )
     }
 }

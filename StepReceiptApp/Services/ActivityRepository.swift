@@ -39,6 +39,11 @@ final class ActivityRepository: ObservableObject {
             refreshCompetition()
         }
     }
+    @Published private(set) var workoutTags: [String: String] {
+        didSet {
+            saveWorkoutTags()
+        }
+    }
     @Published private(set) var sharedCompetitionEntries: [CompetitionEntry] = [] {
         didSet {
             refreshCompetition()
@@ -78,6 +83,7 @@ final class ActivityRepository: ObservableObject {
     private let localCompetitorsKey = "stepReceipt.localCompetitors.v1"
     private let localCompetitionCheckInsKey = "stepReceipt.localCompetitionCheckIns.v1"
     private let sharedCompetitionSettingsKey = "stepReceipt.sharedCompetitionSettings.v1"
+    private let workoutTagsKey = "stepReceipt.workoutTags.v1"
     private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
     private let currentCompetitorID: UUID
     private var activityDataSource: ActivityDataSource = .none
@@ -102,6 +108,7 @@ final class ActivityRepository: ObservableObject {
             defaultThemeMigratedKey: preferencesDefaultThemeMigratedKey,
             userDefaults: userDefaults
         )
+        self.workoutTags = Self.loadWorkoutTags(key: workoutTagsKey, userDefaults: userDefaults)
         self.localCompetitors = Self.loadLocalCompetitors(key: localCompetitorsKey, userDefaults: userDefaults)
         self.localCompetitionCheckIns = Self.loadLocalCompetitionCheckIns(key: localCompetitionCheckInsKey, userDefaults: userDefaults)
         self.sharedCompetitionSettings = Self.loadSharedCompetitionSettings(key: sharedCompetitionSettingsKey, userDefaults: userDefaults)
@@ -213,6 +220,19 @@ final class ActivityRepository: ObservableObject {
 
     func filteredWorkouts(kind: ActivityKind?) -> [WorkoutActivity] {
         engine.filterWorkouts(workouts, kind: kind)
+    }
+
+    func workoutTag(for workout: WorkoutActivity) -> String? {
+        workoutTags[workout.sourceIdentifier]
+    }
+
+    func updateWorkoutTag(_ tag: String?, for workout: WorkoutActivity) {
+        let trimmedTag = tag?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if trimmedTag.isEmpty {
+            workoutTags.removeValue(forKey: workout.sourceIdentifier)
+        } else {
+            workoutTags[workout.sourceIdentifier] = String(trimmedTag.prefix(40))
+        }
     }
 
     func filteredDailySummaries(filter: DailySummaryFilter, sort: DailySummarySort) -> [DailyActivitySummary] {
@@ -545,10 +565,12 @@ final class ActivityRepository: ObservableObject {
             localCompetitorsKey,
             localCompetitionCheckInsKey,
             sharedCompetitionSettingsKey,
+            workoutTagsKey,
             activityCacheKey
         ].forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
+        workoutTags = [:]
         localCompetitors = []
         localCompetitionCheckIns = []
         sharedCompetitionSettings = SharedCompetitionSettings()
@@ -770,6 +792,11 @@ final class ActivityRepository: ObservableObject {
         userDefaults.set(data, forKey: sharedCompetitionSettingsKey)
     }
 
+    private func saveWorkoutTags() {
+        guard let data = try? JSONEncoder().encode(workoutTags) else { return }
+        userDefaults.set(data, forKey: workoutTagsKey)
+    }
+
     private static func loadGoals(key: String, userDefaults: UserDefaults) -> UserGoals {
         guard
             let data = userDefaults.data(forKey: key),
@@ -845,6 +872,16 @@ final class ActivityRepository: ObservableObject {
             return SharedCompetitionSettings()
         }
         return settings
+    }
+
+    private static func loadWorkoutTags(key: String, userDefaults: UserDefaults) -> [String: String] {
+        guard
+            let data = userDefaults.data(forKey: key),
+            let tags = try? JSONDecoder().decode([String: String].self, from: data)
+        else {
+            return [:]
+        }
+        return tags
     }
 
     private static func loadCompetitorID(key: String, userDefaults: UserDefaults) -> UUID {

@@ -411,18 +411,21 @@ public struct UserPreferences: Codable, Equatable, Sendable {
     public var distanceUnit: DistanceUnit
     public var visibleDashboardMetrics: [DashboardMetric]
     public var appTheme: AppTheme
+    public var dailyStepGoalLiveActivityEnabled: Bool
 
     public init(
         displayName: String = "You",
         distanceUnit: DistanceUnit = .miles,
         visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases,
-        appTheme: AppTheme = .light
+        appTheme: AppTheme = .light,
+        dailyStepGoalLiveActivityEnabled: Bool = false
     ) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         self.displayName = trimmedName.isEmpty ? "You" : trimmedName
         self.distanceUnit = distanceUnit
         self.visibleDashboardMetrics = visibleDashboardMetrics.isEmpty ? DashboardMetric.allCases : visibleDashboardMetrics
         self.appTheme = appTheme
+        self.dailyStepGoalLiveActivityEnabled = dailyStepGoalLiveActivityEnabled
     }
 
     public func shows(_ metric: DashboardMetric) -> Bool {
@@ -434,6 +437,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         case distanceUnit
         case visibleDashboardMetrics
         case appTheme
+        case dailyStepGoalLiveActivityEnabled
     }
 
     public init(from decoder: Decoder) throws {
@@ -442,7 +446,8 @@ public struct UserPreferences: Codable, Equatable, Sendable {
             displayName: try container.decodeIfPresent(String.self, forKey: .displayName) ?? "You",
             distanceUnit: try container.decodeIfPresent(DistanceUnit.self, forKey: .distanceUnit) ?? .miles,
             visibleDashboardMetrics: try container.decodeIfPresent([DashboardMetric].self, forKey: .visibleDashboardMetrics) ?? DashboardMetric.allCases,
-            appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .light
+            appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .light,
+            dailyStepGoalLiveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .dailyStepGoalLiveActivityEnabled) ?? false
         )
     }
 
@@ -452,6 +457,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         try container.encode(distanceUnit, forKey: .distanceUnit)
         try container.encode(visibleDashboardMetrics, forKey: .visibleDashboardMetrics)
         try container.encode(appTheme, forKey: .appTheme)
+        try container.encode(dailyStepGoalLiveActivityEnabled, forKey: .dailyStepGoalLiveActivityEnabled)
     }
 }
 

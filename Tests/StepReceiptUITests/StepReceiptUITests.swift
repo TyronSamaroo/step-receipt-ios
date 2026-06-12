@@ -45,6 +45,11 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Display name"].exists)
         XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Dark"].exists)
+        let liveActivitySwitch = app.switches["Lock Screen steps"]
+        if !liveActivitySwitch.waitForExistence(timeout: 1) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(liveActivitySwitch.waitForExistence(timeout: 3))
 
         let privacyCopy = app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS 'opt-in household competition totals'"))

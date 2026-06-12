@@ -241,6 +241,7 @@ struct InsightEngineTests {
         #expect(preferences.distanceUnit == .kilometers)
         #expect(preferences.visibleDashboardMetrics == DashboardMetric.allCases)
         #expect(preferences.appTheme == .light)
+        #expect(preferences.dailyStepGoalLiveActivityEnabled == false)
         #expect(ActivityFormatting.formattedDistance(from: 1_609.344, unit: .miles) == "1.00 mi")
         #expect(ActivityFormatting.formattedDistance(from: 1_000, unit: .kilometers) == "1.00 km")
         #expect(ActivityFormatting.formattedDuration(5_197) == "1h 26m 37s")

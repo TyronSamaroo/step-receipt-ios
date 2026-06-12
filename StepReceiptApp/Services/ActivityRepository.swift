@@ -307,6 +307,16 @@ final class ActivityRepository: ObservableObject {
         liveActivityStatus = await liveActivityService.end(summary: liveActivitySummary)
     }
 
+    func setDailyStepGoalLiveActivityEnabled(_ isEnabled: Bool) async {
+        updatePreferences(dailyStepGoalLiveActivityEnabled: isEnabled)
+
+        if isEnabled {
+            await startDailyStepGoalLiveActivity()
+        } else {
+            await endDailyStepGoalLiveActivity()
+        }
+    }
+
     private func refreshDerivedState() {
         history = history.map { summary in
             engine.aggregateDay(
@@ -379,7 +389,11 @@ final class ActivityRepository: ObservableObject {
             return
         }
 
-        liveActivityStatus = await liveActivityService.updateIfActive(summary: summary)
+        if preferences.dailyStepGoalLiveActivityEnabled {
+            liveActivityStatus = await liveActivityService.start(summary: summary)
+        } else {
+            liveActivityStatus = await liveActivityService.updateIfActive(summary: summary)
+        }
     }
 
     private func syncAggregateSummaries(selectedSummary: DailyActivitySummary?) async {
@@ -678,6 +692,7 @@ final class ActivityRepository: ObservableObject {
         receipt = engine.receipt(for: history, goals: goals)
         refreshCompetition()
         activityDataSource = .cache
+        Task { await updateLiveActivityIfNeeded(with: todaySummary) }
         return true
     }
 
@@ -782,6 +797,7 @@ final class ActivityRepository: ObservableObject {
         receipt = engine.receipt(for: history, goals: goals)
         activityDataSource = .sample
         refreshCompetition()
+        Task { await updateLiveActivityIfNeeded(with: todaySummary) }
     }
 
     private func sampleHeartRateSamples(
@@ -831,13 +847,15 @@ final class ActivityRepository: ObservableObject {
         displayName: String? = nil,
         distanceUnit: DistanceUnit? = nil,
         visibleDashboardMetrics: [DashboardMetric]? = nil,
-        appTheme: AppTheme? = nil
+        appTheme: AppTheme? = nil,
+        dailyStepGoalLiveActivityEnabled: Bool? = nil
     ) {
         preferences = UserPreferences(
             displayName: displayName ?? preferences.displayName,
             distanceUnit: distanceUnit ?? preferences.distanceUnit,
             visibleDashboardMetrics: visibleDashboardMetrics ?? preferences.visibleDashboardMetrics,
-            appTheme: appTheme ?? preferences.appTheme
+            appTheme: appTheme ?? preferences.appTheme,
+            dailyStepGoalLiveActivityEnabled: dailyStepGoalLiveActivityEnabled ?? preferences.dailyStepGoalLiveActivityEnabled
         )
     }
 
@@ -903,7 +921,8 @@ final class ActivityRepository: ObservableObject {
             displayName: preferences.displayName,
             distanceUnit: preferences.distanceUnit,
             visibleDashboardMetrics: preferences.visibleDashboardMetrics,
-            appTheme: .light
+            appTheme: .light,
+            dailyStepGoalLiveActivityEnabled: preferences.dailyStepGoalLiveActivityEnabled
         )
 
         if let data = try? JSONEncoder().encode(migratedPreferences) {

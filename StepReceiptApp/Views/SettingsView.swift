@@ -106,44 +106,21 @@ struct SettingsView: View {
                 }
 
                 Section("Live Activity") {
-                    Label(repository.liveActivityStatus.title, systemImage: "iphone.radiowaves.left.and.right")
-                        .foregroundStyle(Color.stepInk)
+                    Toggle(isOn: Binding(
+                        get: { repository.preferences.dailyStepGoalLiveActivityEnabled },
+                        set: { isEnabled in
+                            Task { await repository.setDailyStepGoalLiveActivityEnabled(isEnabled) }
+                        }
+                    )) {
+                        Label("Lock Screen steps", systemImage: "iphone.radiowaves.left.and.right")
+                    }
+                    .tint(Color.stepAccent)
+
+                    statusRow("Status", repository.liveActivityStatus.title, "circle.fill")
 
                     Text(liveActivityDetail)
                         .font(.footnote)
                         .foregroundStyle(Color.stepMuted)
-
-                    HStack(spacing: 10) {
-                        Button {
-                            Task { await repository.startDailyStepGoalLiveActivity() }
-                        } label: {
-                            Label(repository.liveActivityStatus.isActive ? "Restart" : "Start", systemImage: "play.fill")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(Color.stepAccent)
-                        .disabled(!canStartOrUpdateLiveActivity)
-
-                        Button {
-                            Task { await repository.updateDailyStepGoalLiveActivity() }
-                        } label: {
-                            Image(systemName: StepReceiptSymbol.refresh)
-                                .frame(width: 22, height: 22)
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("Update Live Activity")
-                        .disabled(!repository.liveActivityStatus.isActive || !canStartOrUpdateLiveActivity)
-
-                        Button {
-                            Task { await repository.endDailyStepGoalLiveActivity() }
-                        } label: {
-                            Image(systemName: "stop.fill")
-                                .frame(width: 22, height: 22)
-                        }
-                        .buttonStyle(.bordered)
-                        .accessibilityLabel("End Live Activity")
-                        .disabled(!repository.liveActivityStatus.isActive)
-                    }
                 }
 
                 Section("Privacy") {
@@ -189,11 +166,15 @@ struct SettingsView: View {
     }
 
     private var liveActivityDetail: String {
-        guard canStartOrUpdateLiveActivity else {
-            return "Live Activities follow today's step goal. Open Today or refresh after selecting today before starting one."
+        guard repository.preferences.dailyStepGoalLiveActivityEnabled else {
+            return "Turn this on to keep today's step goal visible on the Lock Screen and Dynamic Island."
         }
 
-        return "\(repository.liveActivityStatus.detail) Updates happen when StrideSlip refreshes or you tap update."
+        guard canStartOrUpdateLiveActivity else {
+            return "StrideSlip will start it after today's step summary loads."
+        }
+
+        return "\(repository.liveActivityStatus.detail) StrideSlip refreshes it when your steps update."
     }
 
     private func statusRow(_ title: String, _ value: String, _ icon: String) -> some View {

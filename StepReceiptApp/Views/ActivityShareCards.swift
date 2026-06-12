@@ -16,7 +16,7 @@ struct WorkoutShareCard: View {
     }
 
     private var metrics: [ShareMetric] {
-        WorkoutShareFormatter.metrics(for: workout, distanceUnit: distanceUnit)
+        WorkoutShareFormatter.metrics(for: workout, distanceUnit: distanceUnit, tag: tag)
     }
 
     private var zones: [HeartRateZoneBreakdown] {
@@ -31,10 +31,6 @@ struct WorkoutShareCard: View {
         VStack(alignment: .leading, spacing: 16) {
             header
             metricGrid
-
-            if workout.averageHeartRateBPM != nil || workout.maxHeartRateBPM != nil {
-                heartRateStrip
-            }
 
             if totalZoneSeconds > 0 {
                 zoneSummary
@@ -411,33 +407,83 @@ private struct DayShareWorkoutRow: View {
 }
 
 private enum WorkoutShareFormatter {
-    static func metrics(for workout: WorkoutActivity, distanceUnit: DistanceUnit) -> [ShareMetric] {
+    static func metrics(for workout: WorkoutActivity, distanceUnit: DistanceUnit, tag: String? = nil) -> [ShareMetric] {
+        let template = WorkoutTemplate.preferred(for: workout, tag: tag)
         var metrics: [ShareMetric] = [
             ShareMetric("Duration", ActivityFormatting.formattedDuration(workout.durationMinutes * 60), StepReceiptSymbol.workout, WorkoutVisualStyle(kind: workout.type).accent)
         ]
 
+        switch template {
+        case .some(.pushDay), .some(.pullDay), .some(.legDay):
+            appendEnergy(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendMaxHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
+            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendBurnRate(to: &metrics, workout: workout)
+            appendTotalEnergy(to: &metrics, workout: workout)
+        case .some(.stairSession):
+            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
+            appendStepsOrDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendBurnRate(to: &metrics, workout: workout)
+            appendPace(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+        case .some(.outdoorWalk):
+            appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendPace(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendSteps(to: &metrics, workout: workout)
+            appendEnergy(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendMaxHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
+            appendWeather(to: &metrics, workout: workout)
+        case .some(.indoorWalk):
+            appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendPace(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendSteps(to: &metrics, workout: workout)
+            appendEnergy(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendMaxHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
+        case .none:
+            appendFallbackMetrics(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+        }
+
+        return Array(deduplicated(metrics).prefix(8))
+    }
+
+    private static func appendFallbackMetrics(to metrics: inout [ShareMetric], workout: WorkoutActivity, distanceUnit: DistanceUnit) {
         switch workout.type {
         case .stairClimbing, .elliptical:
             appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
             appendBurnRate(to: &metrics, workout: workout)
             appendStepsOrDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
         case .strengthTraining, .yoga:
             appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendMaxHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
             appendBurnRate(to: &metrics, workout: workout)
             appendTotalEnergy(to: &metrics, workout: workout)
         case .walking, .running, .hiking:
             appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
             appendPace(to: &metrics, workout: workout, distanceUnit: distanceUnit)
-            appendEnergyAndEffort(to: &metrics, workout: workout)
             appendSteps(to: &metrics, workout: workout)
+            appendEnergy(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendMaxHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
             appendWeather(to: &metrics, workout: workout)
         default:
             appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
             appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendAverageHeartRate(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout)
             appendSteps(to: &metrics, workout: workout)
         }
-
-        return Array(metrics.prefix(8))
     }
 
     static func caption(for workout: WorkoutActivity, distanceUnit: DistanceUnit) -> String {
@@ -455,12 +501,33 @@ private enum WorkoutShareFormatter {
     }
 
     private static func appendEnergyAndEffort(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
-        if let burn = workout.activeEnergyKilocalories {
-            metrics.append(ShareMetric("Active Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy))
-        }
+        appendEnergy(to: &metrics, workout: workout)
 
         let effort = WorkoutEffort(workout: workout)
         metrics.append(ShareMetric("Effort", effort.title, "bolt.heart", effort.color))
+    }
+
+    private static func appendEnergy(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
+        if let burn = workout.activeEnergyKilocalories {
+            metrics.append(ShareMetric("Active Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy))
+        }
+    }
+
+    private static func appendAverageHeartRate(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
+        guard let average = workout.averageHeartRateBPM else { return }
+        metrics.append(ShareMetric("Avg HR", "\(Int(average.rounded())) bpm", "heart.fill", Color(red: 1.0, green: 0.28, blue: 0.30)))
+    }
+
+    private static func appendMaxHeartRate(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
+        guard let maxHeartRate = workout.maxHeartRateBPM else { return }
+        metrics.append(ShareMetric("Max HR", "\(Int(maxHeartRate.rounded())) bpm", "heart.fill", Color(red: 1.0, green: 0.28, blue: 0.30)))
+    }
+
+    private static func appendTopZone(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
+        guard let zone = HeartRateZoneBreakdown.zones(for: workout).max(by: { $0.durationSeconds < $1.durationSeconds }),
+              zone.durationSeconds > 0
+        else { return }
+        metrics.append(ShareMetric("Top Zone", "Z\(zone.level) \(ActivityFormatting.formattedDuration(zone.durationSeconds))", "heart.text.square", zone.color))
     }
 
     private static func appendTotalEnergy(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
@@ -513,6 +580,13 @@ private enum WorkoutShareFormatter {
         let minutes = totalSeconds / 60
         let seconds = totalSeconds % 60
         return String(format: "%d:%02d %@", minutes, seconds, distanceUnit == .miles ? "/mi" : "/km")
+    }
+
+    private static func deduplicated(_ metrics: [ShareMetric]) -> [ShareMetric] {
+        var seen = Set<String>()
+        return metrics.filter { metric in
+            seen.insert(metric.title).inserted
+        }
     }
 }
 

@@ -78,6 +78,37 @@ public struct WorkoutHeartRateSample: Codable, Equatable, Identifiable, Sendable
     }
 }
 
+public struct WorkoutRoutePoint: Codable, Equatable, Identifiable, Sendable {
+    public var id: String {
+        "\(Int(timestamp.timeIntervalSince1970))-\(latitude)-\(longitude)"
+    }
+
+    public let latitude: Double
+    public let longitude: Double
+    public let altitudeMeters: Double?
+    public let timestamp: Date
+
+    public init?(
+        latitude: Double,
+        longitude: Double,
+        altitudeMeters: Double? = nil,
+        timestamp: Date
+    ) {
+        guard latitude.isFinite,
+              longitude.isFinite,
+              (-90...90).contains(latitude),
+              (-180...180).contains(longitude)
+        else {
+            return nil
+        }
+
+        self.latitude = latitude
+        self.longitude = longitude
+        self.altitudeMeters = altitudeMeters?.isFinite == true ? altitudeMeters : nil
+        self.timestamp = timestamp
+    }
+}
+
 public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     public let id: UUID
     public let sourceIdentifier: String
@@ -95,6 +126,7 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     public let weatherTemperatureCelsius: Double?
     public let weatherHumidityPercent: Double?
     public let heartRateSamples: [WorkoutHeartRateSample]
+    public let routePoints: [WorkoutRoutePoint]
 
     public init(
         id: UUID = UUID(),
@@ -112,7 +144,8 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         environment: WorkoutEnvironment? = nil,
         weatherTemperatureCelsius: Double? = nil,
         weatherHumidityPercent: Double? = nil,
-        heartRateSamples: [WorkoutHeartRateSample] = []
+        heartRateSamples: [WorkoutHeartRateSample] = [],
+        routePoints: [WorkoutRoutePoint] = []
     ) {
         self.id = id
         self.sourceIdentifier = sourceIdentifier
@@ -131,6 +164,8 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         self.weatherHumidityPercent = weatherHumidityPercent.map { max(0, $0) }
         self.heartRateSamples = heartRateSamples
             .filter { $0.beatsPerMinute > 0 }
+            .sorted { $0.timestamp < $1.timestamp }
+        self.routePoints = routePoints
             .sorted { $0.timestamp < $1.timestamp }
     }
 
@@ -156,9 +191,14 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         heartRateSamples.map(\.beatsPerMinute).max()
     }
 
+    public var hasRoute: Bool {
+        routePoints.count >= 2
+    }
+
     public func replacingDerivedHealthData(
         steps: Int? = nil,
-        heartRateSamples: [WorkoutHeartRateSample]? = nil
+        heartRateSamples: [WorkoutHeartRateSample]? = nil,
+        routePoints: [WorkoutRoutePoint]? = nil
     ) -> WorkoutActivity {
         WorkoutActivity(
             id: id,
@@ -176,7 +216,8 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
             environment: environment,
             weatherTemperatureCelsius: weatherTemperatureCelsius,
             weatherHumidityPercent: weatherHumidityPercent,
-            heartRateSamples: heartRateSamples ?? self.heartRateSamples
+            heartRateSamples: heartRateSamples ?? self.heartRateSamples,
+            routePoints: routePoints ?? self.routePoints
         )
     }
 
@@ -197,6 +238,7 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         case weatherTemperatureCelsius
         case weatherHumidityPercent
         case heartRateSamples
+        case routePoints
     }
 
     public init(from decoder: Decoder) throws {
@@ -217,7 +259,8 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
             environment: container.decodeIfPresent(WorkoutEnvironment.self, forKey: .environment),
             weatherTemperatureCelsius: container.decodeIfPresent(Double.self, forKey: .weatherTemperatureCelsius),
             weatherHumidityPercent: container.decodeIfPresent(Double.self, forKey: .weatherHumidityPercent),
-            heartRateSamples: container.decodeIfPresent([WorkoutHeartRateSample].self, forKey: .heartRateSamples) ?? []
+            heartRateSamples: container.decodeIfPresent([WorkoutHeartRateSample].self, forKey: .heartRateSamples) ?? [],
+            routePoints: container.decodeIfPresent([WorkoutRoutePoint].self, forKey: .routePoints) ?? []
         )
     }
 
@@ -239,6 +282,7 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         try container.encodeIfPresent(weatherTemperatureCelsius, forKey: .weatherTemperatureCelsius)
         try container.encodeIfPresent(weatherHumidityPercent, forKey: .weatherHumidityPercent)
         try container.encode(heartRateSamples, forKey: .heartRateSamples)
+        try container.encode(routePoints, forKey: .routePoints)
     }
 }
 

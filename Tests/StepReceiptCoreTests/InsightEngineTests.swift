@@ -288,6 +288,88 @@ struct InsightEngineTests {
     }
 
     @Test
+    func testWorkoutRoutePointsAreSanitizedSortedAndLocalToWorkoutModel() throws {
+        let start = Date(timeIntervalSince1970: 0)
+        let late = try #require(WorkoutRoutePoint(
+            latitude: 40.725,
+            longitude: -73.990,
+            altitudeMeters: 12,
+            timestamp: start.addingTimeInterval(120)
+        ))
+        let early = try #require(WorkoutRoutePoint(
+            latitude: 40.721,
+            longitude: -73.995,
+            altitudeMeters: .infinity,
+            timestamp: start.addingTimeInterval(30)
+        ))
+        let invalid = WorkoutRoutePoint(
+            latitude: 140,
+            longitude: -73.995,
+            timestamp: start.addingTimeInterval(60)
+        )
+        let workout = WorkoutActivity(
+            sourceIdentifier: "route",
+            type: .running,
+            startDate: start,
+            endDate: start.addingTimeInterval(1_800),
+            environment: .outdoor,
+            routePoints: [late, early]
+        )
+
+        #expect(invalid == nil)
+        #expect(workout.hasRoute)
+        #expect(workout.routePoints.map(\.timestamp) == [early.timestamp, late.timestamp])
+        #expect(workout.routePoints.first?.altitudeMeters == nil)
+
+        let encoded = try JSONEncoder().encode(workout)
+        let decoded = try JSONDecoder().decode(WorkoutActivity.self, from: encoded)
+        #expect(decoded.routePoints == workout.routePoints)
+    }
+
+    @Test
+    func testSyncedRecordDoesNotIncludeWorkoutRoutePoints() throws {
+        let start = try date("2026-06-10T10:00:00Z")
+        let firstRoutePoint = try #require(WorkoutRoutePoint(
+            latitude: 40.721,
+            longitude: -73.995,
+            timestamp: start
+        ))
+        let secondRoutePoint = try #require(WorkoutRoutePoint(
+            latitude: 40.725,
+            longitude: -73.990,
+            timestamp: start.addingTimeInterval(60)
+        ))
+        let workout = WorkoutActivity(
+            sourceIdentifier: "route-sync",
+            type: .running,
+            startDate: start,
+            endDate: start.addingTimeInterval(1_800),
+            environment: .outdoor,
+            routePoints: [firstRoutePoint, secondRoutePoint]
+        )
+        let summary = DailyActivitySummary(
+            dateStart: calendar.startOfDay(for: start),
+            steps: 3_200,
+            distanceMeters: 2_400,
+            activeEnergyKilocalories: 180,
+            flightsClimbed: 0,
+            workoutMinutes: 30,
+            buckets: [],
+            workouts: [workout],
+            goals: UserGoals()
+        )
+
+        let record = engine.syncedRecord(from: summary, updatedAt: start)
+        let encoded = try JSONEncoder().encode(record)
+        let text = String(data: encoded, encoding: .utf8) ?? ""
+
+        #expect(record.workoutCount == 1)
+        #expect(!text.contains("routePoints"))
+        #expect(!text.contains("latitude"))
+        #expect(!text.contains("longitude"))
+    }
+
+    @Test
     func testSharedCompetitionSettingsNormalizeInviteCodes() {
         let enabled = SharedCompetitionSettings(isEnabled: true, inviteCode: " sr-wife-2026!!! ")
 

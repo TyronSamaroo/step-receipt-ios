@@ -139,6 +139,13 @@ let filtered = engine.filterWorkouts(
     endDate: try date("2026-06-09T23:59:59Z")
 )
 try expect(filtered.count == 1, "workout filter should respect kind and dates")
+try expect(WorkoutTemplate.template(matching: "Push Day") == .pushDay, "workout templates should match local tag text")
+try expect(WorkoutTemplate.template(matching: "Stair Session") == .stairSession, "stair template should match local tag text")
+let strengthTemplateWorkout = try workout("2026-06-10T11:00:00Z", type: .strengthTraining)
+try expect(
+    WorkoutTemplate.suggestions(for: strengthTemplateWorkout) == [.pushDay, .pullDay, .legDay],
+    "strength workouts should suggest push/pull/leg templates"
+)
 
 let boundarySummaries = engine.dailySummaries(
     from: [

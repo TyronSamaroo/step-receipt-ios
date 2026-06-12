@@ -78,11 +78,15 @@ final class HealthKitClient: @unchecked Sendable {
             let activity = Self.mapWorkout(workout)
             async let heartRateSamples = safelyFetchHeartRateSamples(for: workout)
             async let workoutSteps = safelyFetchWorkoutSteps(for: workout)
+            async let routePoints = activity.environment == .outdoor
+                ? safelyFetchRoutePoints(for: workout)
+                : []
 
             workouts.append(
                 activity.replacingDerivedHealthData(
                     steps: await workoutSteps ?? activity.steps,
-                    heartRateSamples: await heartRateSamples
+                    heartRateSamples: await heartRateSamples,
+                    routePoints: await routePoints
                 )
             )
         }
@@ -205,7 +209,10 @@ final class HealthKitClient: @unchecked Sendable {
     }
 
     private func readObjectTypes() -> [HKObjectType] {
-        var types: [HKObjectType] = [HKObjectType.workoutType()]
+        var types: [HKObjectType] = [
+            HKObjectType.workoutType(),
+            HKSeriesType.workoutRoute()
+        ]
         for identifier in [
             HKQuantityTypeIdentifier.stepCount,
             .distanceWalkingRunning,
@@ -246,6 +253,14 @@ final class HealthKitClient: @unchecked Sendable {
             return try await fetchWorkoutSteps(for: workout)
         } catch {
             return nil
+        }
+    }
+
+    private func safelyFetchRoutePoints(for workout: HKWorkout) async -> [WorkoutRoutePoint] {
+        do {
+            return try await fetchRoutePoints(for: workout)
+        } catch {
+            return []
         }
     }
 
@@ -308,6 +323,86 @@ final class HealthKitClient: @unchecked Sendable {
         }
     }
 
+    private func fetchRoutePoints(for workout: HKWorkout) async throws -> [WorkoutRoutePoint] {
+        guard isAvailable else { return [] }
+
+        let routeType = HKSeriesType.workoutRoute()
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)
+
+        let routes: [HKWorkoutRoute] = try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: routeType,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [sort]
+            ) { _, samples, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                continuation.resume(returning: samples as? [HKWorkoutRoute] ?? [])
+            }
+            store.execute(query)
+        }
+
+        guard !routes.isEmpty else { return [] }
+
+        let batches = try await withThrowingTaskGroup(of: [WorkoutRoutePoint].self) { group in
+            for route in routes {
+                group.addTask {
+                    try await Self.routePoints(for: route, store: self.store)
+                }
+            }
+
+            var points: [WorkoutRoutePoint] = []
+            for try await routePoints in group {
+                points.append(contentsOf: routePoints)
+            }
+            return points
+        }
+
+        return downsampleRoutePoints(batches.sorted { $0.timestamp < $1.timestamp })
+    }
+
+    private static func routePoints(for route: HKWorkoutRoute, store: HKHealthStore) async throws -> [WorkoutRoutePoint] {
+        try await withCheckedThrowingContinuation { continuation in
+            var points: [WorkoutRoutePoint] = []
+            var didResume = false
+
+            let query = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
+                if didResume {
+                    return
+                }
+
+                if let error {
+                    didResume = true
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                points.append(
+                    contentsOf: (locations ?? []).compactMap { location in
+                        WorkoutRoutePoint(
+                            latitude: location.coordinate.latitude,
+                            longitude: location.coordinate.longitude,
+                            altitudeMeters: location.verticalAccuracy >= 0 ? location.altitude : nil,
+                            timestamp: location.timestamp
+                        )
+                    }
+                )
+
+                if done {
+                    didResume = true
+                    continuation.resume(returning: points)
+                }
+            }
+
+            store.execute(query)
+        }
+    }
+
     private func downsampleHeartRateSamples(
         _ samples: [WorkoutHeartRateSample],
         maxCount: Int = 360
@@ -322,6 +417,19 @@ final class HealthKitClient: @unchecked Sendable {
             guard let timestamp = chunk.first?.timestamp else { return nil }
             let average = chunk.reduce(0) { $0 + $1.beatsPerMinute } / Double(chunk.count)
             return WorkoutHeartRateSample(timestamp: timestamp, beatsPerMinute: average)
+        }
+    }
+
+    private func downsampleRoutePoints(
+        _ points: [WorkoutRoutePoint],
+        maxCount: Int = 600
+    ) -> [WorkoutRoutePoint] {
+        guard points.count > maxCount, maxCount > 1 else { return points }
+
+        let bucketSize = Double(points.count - 1) / Double(maxCount - 1)
+        return (0..<maxCount).map { index in
+            let sourceIndex = min(points.count - 1, Int((Double(index) * bucketSize).rounded()))
+            return points[sourceIndex]
         }
     }
 

@@ -1,4 +1,5 @@
 import Charts
+import MapKit
 import SwiftUI
 
 struct WorkoutDetailView: View {
@@ -15,13 +16,27 @@ struct WorkoutDetailView: View {
         repository.workoutTag(for: workout)
     }
 
+    private var selectedTemplate: WorkoutTemplate? {
+        WorkoutTemplate.preferred(for: workout, tag: workoutTag)
+    }
+
+    private var templateSuggestions: [WorkoutTemplate] {
+        let primary = WorkoutTemplate.suggestions(for: workout)
+        guard !primary.isEmpty else {
+            return Array(WorkoutTemplate.allCases)
+        }
+        let remaining = WorkoutTemplate.allCases.filter { !primary.contains($0) }
+        return primary + remaining
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 WorkoutHero(workout: workout, style: style, tag: workoutTag)
-                tagPanel
+                templatePanel
                 metricGrid
                 HeartRatePanel(workout: workout)
+                WorkoutRoutePanel(workout: workout, style: style)
                 insightPanel
                 detailPanel
                 WorkoutShareCard(workout: workout, distanceUnit: repository.preferences.distanceUnit, tag: workoutTag)
@@ -133,31 +148,46 @@ struct WorkoutDetailView: View {
         }
     }
 
-    private var tagPanel: some View {
+    private var templatePanel: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack(spacing: 10) {
-                Label("Workout Tag", systemImage: "tag")
+                Label("Workout Template", systemImage: "square.grid.2x2")
                     .font(.headline)
                     .foregroundStyle(Color.stepInk)
                 Spacer(minLength: 0)
-                if let workoutTag {
-                    Text(workoutTag)
+                if let selectedTemplate {
+                    Text(selectedTemplate.displayName)
                         .font(.caption.weight(.bold))
                         .foregroundStyle(style.accent)
+                        .lineLimit(1)
+                } else if let workoutTag {
+                    Text(workoutTag)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
                 }
             }
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 8) {
-                    ForEach(WorkoutTagSuggestion.allCases) { suggestion in
-                        FilterChip(title: suggestion.title, isSelected: workoutTag == suggestion.title) {
-                            tagDraft = suggestion.title
-                            repository.updateWorkoutTag(suggestion.title, for: workout)
+                    ForEach(templateSuggestions) { template in
+                        FilterChip(
+                            title: template.displayName,
+                            isSelected: workoutTag == template.displayName
+                        ) {
+                            tagDraft = template.displayName
+                            repository.updateWorkoutTag(template.displayName, for: workout)
                         }
                     }
                 }
                 .padding(.vertical, 2)
+            }
+
+            if let selectedTemplate {
+                Label(selectedTemplate.shortDescription, systemImage: templateIcon(for: selectedTemplate))
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                    .lineLimit(2)
             }
 
             HStack(spacing: 8) {
@@ -192,7 +222,7 @@ struct WorkoutDetailView: View {
                 .accessibilityLabel("Clear workout tag")
             }
 
-            Text("Use this for Push Day, Pull Day, Leg Day, stair sessions, or any custom training label.")
+            Text("Templates stay on this device as workout tags and are not synced.")
                 .font(.caption)
                 .foregroundStyle(Color.stepMuted)
                 .fixedSize(horizontal: false, vertical: true)
@@ -367,28 +397,17 @@ struct WorkoutDetailView: View {
         }
         .font(.subheadline)
     }
-}
 
-private enum WorkoutTagSuggestion: String, CaseIterable, Identifiable {
-    case pushDay
-    case pullDay
-    case legDay
-    case upper
-    case cardio
-    case stairSession
-    case recovery
-
-    var id: String { rawValue }
-
-    var title: String {
-        switch self {
-        case .pushDay: "Push Day"
-        case .pullDay: "Pull Day"
-        case .legDay: "Leg Day"
-        case .upper: "Upper"
-        case .cardio: "Cardio"
-        case .stairSession: "Stair Session"
-        case .recovery: "Recovery"
+    private func templateIcon(for template: WorkoutTemplate) -> String {
+        switch template {
+        case .pushDay, .pullDay, .legDay:
+            "dumbbell"
+        case .stairSession:
+            StepReceiptSymbol.stairClimbing
+        case .outdoorWalk:
+            "sun.max"
+        case .indoorWalk:
+            "house"
         }
     }
 }
@@ -545,6 +564,92 @@ struct HeartRatePanel: View {
                     .foregroundStyle(Color.stepMuted)
             }
         }
+    }
+}
+
+struct WorkoutRoutePanel: View {
+    let workout: WorkoutActivity
+    let style: WorkoutVisualStyle
+    @State private var cameraPosition: MapCameraPosition
+
+    init(workout: WorkoutActivity, style: WorkoutVisualStyle) {
+        self.workout = workout
+        self.style = style
+        _cameraPosition = State(initialValue: .rect(workout.routeMapRect ?? .world))
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label("Route Map", systemImage: "map")
+                .font(.headline)
+                .foregroundStyle(Color.stepInk)
+
+            if workout.hasRoute {
+                Map(position: $cameraPosition, interactionModes: []) {
+                    MapPolyline(coordinates: workout.routeCoordinates)
+                        .stroke(style.accent, lineWidth: 4)
+                }
+                .frame(height: 180)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(Color.stepAxisGrid, lineWidth: 1)
+                )
+                .accessibilityLabel("Outdoor workout route map")
+
+                Text("\(workout.routePoints.count.formatted()) route points stay on this iPhone and are not included in share cards or sync.")
+                    .font(.caption)
+                    .foregroundStyle(Color.stepMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(unavailableTitle)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.stepInk)
+                    Text(unavailableMessage)
+                        .font(.footnote)
+                        .foregroundStyle(Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.vertical, 8)
+            }
+        }
+        .metricCard()
+        .onChange(of: workout.routePoints) { _, _ in
+            cameraPosition = .rect(workout.routeMapRect ?? .world)
+        }
+    }
+
+    private var unavailableTitle: String {
+        workout.environment == .indoor ? "No outdoor route for this workout." : "Route unavailable."
+    }
+
+    private var unavailableMessage: String {
+        if workout.environment == .indoor {
+            return "Indoor workouts do not include Health route maps."
+        }
+
+        return "Apple Health did not provide route points, or route permission is limited. Route data stays on-device when available."
+    }
+}
+
+private extension WorkoutActivity {
+    var routeCoordinates: [CLLocationCoordinate2D] {
+        routePoints.map { CLLocationCoordinate2D(latitude: $0.latitude, longitude: $0.longitude) }
+    }
+
+    var routeMapRect: MKMapRect? {
+        guard let first = routeCoordinates.first else { return nil }
+        var rect = MKMapRect(origin: MKMapPoint(first), size: MKMapSize(width: 1, height: 1))
+
+        for coordinate in routeCoordinates.dropFirst() {
+            let point = MKMapPoint(coordinate)
+            rect = rect.union(MKMapRect(origin: point, size: MKMapSize(width: 1, height: 1)))
+        }
+
+        let padding = max(rect.width, rect.height) * 0.18
+        return rect.insetBy(dx: -max(padding, 80), dy: -max(padding, 80))
     }
 }
 

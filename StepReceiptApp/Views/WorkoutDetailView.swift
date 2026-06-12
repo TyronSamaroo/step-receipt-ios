@@ -35,6 +35,7 @@ struct WorkoutDetailView: View {
                 WorkoutHero(workout: workout, style: style, tag: workoutTag)
                 templatePanel
                 metricGrid
+                sameTypeContextPanel
                 HeartRatePanel(workout: workout)
                 WorkoutRoutePanel(workout: workout, style: style)
                 insightPanel
@@ -145,6 +146,62 @@ struct WorkoutDetailView: View {
                     color: Color.stepDistance
                 )
             }
+        }
+    }
+
+    @ViewBuilder
+    private var sameTypeContextPanel: some View {
+        if !sameTypeRecentWorkouts.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 10) {
+                    Label("Same Type Context", systemImage: "chart.bar.doc.horizontal")
+                        .font(.headline)
+                        .foregroundStyle(Color.stepInk)
+                    Spacer(minLength: 0)
+                    Text("Last 30 days")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(style.accent)
+                        .lineLimit(1)
+                }
+
+                Text(sameTypeContextSummary)
+                    .font(.subheadline)
+                    .foregroundStyle(Color.stepMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                VStack(spacing: 10) {
+                    insightRow(
+                        "Recent",
+                        "\(sameTypeRecentWorkouts.count.formatted()) in 30 days",
+                        "calendar.badge.clock",
+                        style.accent
+                    )
+
+                    if let sameTypeAverageDuration {
+                        insightRow(
+                            "Avg duration",
+                            ActivityFormatting.formattedMinutes(sameTypeAverageDuration),
+                            "clock",
+                            style.accent
+                        )
+                    }
+
+                    insightRow(
+                        "Avg active",
+                        sameTypeAverageActiveCalories.map(ActivityFormatting.formattedCalories) ?? "No calorie data",
+                        StepReceiptSymbol.activeEnergy,
+                        Color.stepEnergy
+                    )
+
+                    insightRow(
+                        "Compared",
+                        sameTypeComparisonText,
+                        "arrow.left.arrow.right",
+                        sameTypeComparisonColor
+                    )
+                }
+            }
+            .metricCard()
         }
     }
 
@@ -275,6 +332,86 @@ struct WorkoutDetailView: View {
         .metricCard()
     }
 
+    private var sameTypeRecentWorkouts: [WorkoutActivity] {
+        let calendar = Calendar.current
+        let selectedDayStart = calendar.startOfDay(for: workout.startDate)
+        let windowStart = calendar.date(byAdding: .day, value: -29, to: selectedDayStart) ?? selectedDayStart
+        let windowEnd = calendar.date(byAdding: .day, value: 1, to: selectedDayStart) ?? workout.endDate
+
+        return repository.workouts
+            .filter { candidate in
+                candidate.type == workout.type
+                    && candidate.startDate >= windowStart
+                    && candidate.startDate < windowEnd
+            }
+            .sorted { $0.startDate > $1.startDate }
+    }
+
+    private var sameTypePeerWorkouts: [WorkoutActivity] {
+        sameTypeRecentWorkouts.filter { $0.sourceIdentifier != workout.sourceIdentifier }
+    }
+
+    private var sameTypeAverageDuration: Double? {
+        average(sameTypeRecentWorkouts.map(\.durationMinutes))
+    }
+
+    private var sameTypeAverageActiveCalories: Double? {
+        average(sameTypeRecentWorkouts.compactMap(\.activeEnergyKilocalories))
+    }
+
+    private var sameTypePeerAverageDuration: Double? {
+        average(sameTypePeerWorkouts.map(\.durationMinutes))
+    }
+
+    private var sameTypePeerAverageActiveCalories: Double? {
+        average(sameTypePeerWorkouts.compactMap(\.activeEnergyKilocalories))
+    }
+
+    private var sameTypeDurationDelta: Double? {
+        guard let sameTypePeerAverageDuration else { return nil }
+        return workout.durationMinutes - sameTypePeerAverageDuration
+    }
+
+    private var sameTypeActiveCaloriesDelta: Double? {
+        guard let burn = workout.activeEnergyKilocalories,
+              let sameTypePeerAverageActiveCalories else { return nil }
+        return burn - sameTypePeerAverageActiveCalories
+    }
+
+    private var sameTypeContextSummary: String {
+        let workoutName = workout.displayTitle.lowercased()
+        let countText = "\(sameTypeRecentWorkouts.count.formatted()) \(workoutName) \(sameTypeRecentWorkouts.count == 1 ? "workout" : "workouts") in this 30-day window."
+        guard !sameTypePeerWorkouts.isEmpty else {
+            return "\(countText) More same-type workouts will unlock a cleaner comparison."
+        }
+
+        return "\(countText) \(sameTypeComparisonText) versus recent peers."
+    }
+
+    private var sameTypeComparisonText: String {
+        if let sameTypeActiveCaloriesDelta, abs(sameTypeActiveCaloriesDelta) >= 10 {
+            return "\(formattedSignedCalories(sameTypeActiveCaloriesDelta)) active burn"
+        }
+
+        if let sameTypeDurationDelta, abs(sameTypeDurationDelta) >= 1 {
+            return "\(formattedSignedMinutes(sameTypeDurationDelta)) duration"
+        }
+
+        return sameTypePeerWorkouts.isEmpty ? "No peer average yet" : "Near average"
+    }
+
+    private var sameTypeComparisonColor: Color {
+        if let sameTypeActiveCaloriesDelta, abs(sameTypeActiveCaloriesDelta) >= 10 {
+            return sameTypeActiveCaloriesDelta >= 0 ? Color.stepEnergy : Color.stepMuted
+        }
+
+        if let sameTypeDurationDelta, abs(sameTypeDurationDelta) >= 1 {
+            return sameTypeDurationDelta >= 0 ? style.accent : Color.stepMuted
+        }
+
+        return style.accent
+    }
+
     private var primaryInsight: String {
         if let averageHeartRate = workout.averageHeartRateBPM {
             return "\(workout.displayTitle) averaged \(Int(averageHeartRate.rounded())) bpm with \(effortText.lowercased()) effort."
@@ -396,6 +533,29 @@ struct WorkoutDetailView: View {
                 .lineLimit(2)
         }
         .font(.subheadline)
+    }
+
+    private func average(_ values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
+    }
+
+    private func formattedSignedMinutes(_ minutes: Double) -> String {
+        let roundedMinutes = Int(minutes.rounded())
+        if roundedMinutes == 0 {
+            return "0 min"
+        }
+
+        return "\(roundedMinutes > 0 ? "+" : "-")\(abs(roundedMinutes)) min"
+    }
+
+    private func formattedSignedCalories(_ calories: Double) -> String {
+        let roundedCalories = Int(calories.rounded())
+        if roundedCalories == 0 {
+            return "0 kcal"
+        }
+
+        return "\(roundedCalories > 0 ? "+" : "-")\(abs(roundedCalories)) kcal"
     }
 
     private func templateIcon(for template: WorkoutTemplate) -> String {

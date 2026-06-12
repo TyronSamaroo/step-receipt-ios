@@ -13,6 +13,7 @@ struct TodayView: View {
                         screenTitle
                         dateControls
                         todayHeader(summary)
+                        liveActivityCard(summary)
                         weatherStrip(summary)
                         hourlyChart(summary)
                         metricGrid(summary)
@@ -136,6 +137,57 @@ struct TodayView: View {
             Text(goalStatusText(for: summary))
                 .font(.headline)
                 .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepInk)
+        }
+        .metricCard()
+    }
+
+    private func liveActivityCard(_ summary: DailyActivitySummary) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(spacing: 10) {
+                Image(systemName: "iphone.radiowaves.left.and.right")
+                    .foregroundStyle(Color.stepAccent)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(repository.liveActivityStatus.title)
+                        .font(.headline)
+                        .foregroundStyle(Color.stepInk)
+                    Text(liveActivityDetail(summary))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 0)
+            }
+
+            HStack(spacing: 10) {
+                Button {
+                    Task { await repository.startDailyStepGoalLiveActivity() }
+                } label: {
+                    Label(repository.liveActivityStatus.isActive ? "Restart" : "Start", systemImage: "play.fill")
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(Color.stepAccent)
+                .disabled(!Calendar.current.isDateInToday(summary.dateStart))
+
+                Button {
+                    Task { await repository.updateDailyStepGoalLiveActivity() }
+                } label: {
+                    Image(systemName: StepReceiptSymbol.refresh)
+                        .frame(width: 18, height: 18)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("Update Live Activity")
+                .disabled(!repository.liveActivityStatus.isActive || !Calendar.current.isDateInToday(summary.dateStart))
+
+                Button {
+                    Task { await repository.endDailyStepGoalLiveActivity() }
+                } label: {
+                    Image(systemName: "stop.fill")
+                        .frame(width: 18, height: 18)
+                }
+                .buttonStyle(.bordered)
+                .accessibilityLabel("End Live Activity")
+                .disabled(!repository.liveActivityStatus.isActive)
+            }
         }
         .metricCard()
     }
@@ -319,6 +371,14 @@ struct TodayView: View {
 
         let remainingSteps = max(0, summary.goals.stepsPerDay - summary.steps)
         return "\(remainingSteps.formatted()) steps left."
+    }
+
+    private func liveActivityDetail(_ summary: DailyActivitySummary) -> String {
+        guard Calendar.current.isDateInToday(summary.dateStart) else {
+            return "Live Activity follows today's step goal only."
+        }
+
+        return "\(repository.liveActivityStatus.detail) Updates happen when StepReceipt refreshes or you tap update."
     }
 
     private func weatherSummary(for summary: DailyActivitySummary) -> (temperature: String, humidity: String, source: String)? {

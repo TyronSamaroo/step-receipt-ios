@@ -24,6 +24,8 @@
 	<string>StepReceipt reads steps, distance, active energy, flights climbed, and workouts to show your daily activity timeline and personal insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>StepReceipt does not write health data in this version.</string>
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

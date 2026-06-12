@@ -62,6 +62,7 @@ final class ActivityRepository: ObservableObject {
             refreshDerivedState()
         }
     }
+    @Published private(set) var liveActivityStatus: DailyStepGoalLiveActivityStatus = .inactive
     @Published var isLoading = false
     @Published var lastError: String?
 
@@ -70,6 +71,7 @@ final class ActivityRepository: ObservableObject {
     private let healthKit: any HealthKitProviding
     private let cloudKit: any CloudKitSummarySyncing
     private let competitionSync: any SharedCompetitionSyncing
+    private let liveActivityService: DailyStepGoalLiveActivityService
     private let engine: InsightEngine
     private let competitionEngine: CompetitionEngine
     private let calendar: Calendar
@@ -92,12 +94,14 @@ final class ActivityRepository: ObservableObject {
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
         competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
+        liveActivityService: DailyStepGoalLiveActivityService = DailyStepGoalLiveActivityService(),
         calendar: Calendar = .current,
         userDefaults: UserDefaults = .standard
     ) {
         self.healthKit = healthKit
         self.cloudKit = cloudKit
         self.competitionSync = competitionSync
+        self.liveActivityService = liveActivityService
         self.calendar = calendar
         self.userDefaults = userDefaults
         self.engine = InsightEngine(calendar: calendar)
@@ -114,6 +118,7 @@ final class ActivityRepository: ObservableObject {
         self.sharedCompetitionSettings = Self.loadSharedCompetitionSettings(key: sharedCompetitionSettingsKey, userDefaults: userDefaults)
         self.currentCompetitorID = Self.loadCompetitorID(key: competitorIDKey, userDefaults: userDefaults)
         self.sharedCompetitionSyncState = sharedCompetitionSettings.canSync ? .idle : .off
+        self.liveActivityStatus = liveActivityService.status
     }
 
     func bootstrap() async {
@@ -206,6 +211,7 @@ final class ActivityRepository: ObservableObject {
             authorizationState = .authorized
             lastError = nil
             saveDerivedActivityCache(selectedSummary: todaySummary)
+            await updateLiveActivityIfNeeded(with: todaySummary)
 
             await syncAggregateSummaries(selectedSummary: todaySummary)
             await syncSharedCompetition()
@@ -264,6 +270,7 @@ final class ActivityRepository: ObservableObject {
             if activityDataSource == .healthKit || activityDataSource == .cache {
                 saveDerivedActivityCache(selectedSummary: todaySummary)
             }
+            await updateLiveActivityIfNeeded(with: todaySummary)
         } catch {
             lastError = error.localizedDescription
             loadSelectedSummaryFromHistory()
@@ -276,6 +283,28 @@ final class ActivityRepository: ObservableObject {
             workoutMinutesPerWeek: workoutMinutes,
             activeEnergyKilocaloriesPerDay: activeEnergy
         )
+    }
+
+    func startDailyStepGoalLiveActivity() async {
+        guard let summary = liveActivitySummary else {
+            liveActivityStatus = .unavailable("Open or refresh today's view before starting the Live Activity.")
+            return
+        }
+
+        liveActivityStatus = await liveActivityService.start(summary: summary)
+    }
+
+    func updateDailyStepGoalLiveActivity() async {
+        guard let summary = liveActivitySummary else {
+            liveActivityStatus = .unavailable("Live Activity updates only use today's step summary.")
+            return
+        }
+
+        liveActivityStatus = await liveActivityService.update(summary: summary)
+    }
+
+    func endDailyStepGoalLiveActivity() async {
+        liveActivityStatus = await liveActivityService.end(summary: liveActivitySummary)
     }
 
     private func refreshDerivedState() {
@@ -300,6 +329,7 @@ final class ActivityRepository: ObservableObject {
         if activityDataSource == .healthKit || activityDataSource == .cache {
             saveDerivedActivityCache(selectedSummary: todaySummary)
         }
+        Task { await updateLiveActivityIfNeeded(with: todaySummary) }
     }
 
     private func loadSelectedSummaryFromHistory() {
@@ -327,6 +357,29 @@ final class ActivityRepository: ObservableObject {
     private func normalizedActivityDate(_ date: Date, now: Date = Date()) -> Date {
         let range = selectableDateRange(now: now)
         return min(max(calendar.startOfDay(for: date), range.lowerBound), range.upperBound)
+    }
+
+    private var liveActivitySummary: DailyActivitySummary? {
+        guard
+            let todaySummary,
+            calendar.isDateInToday(todaySummary.dateStart)
+        else {
+            return nil
+        }
+
+        return todaySummary
+    }
+
+    private func updateLiveActivityIfNeeded(with summary: DailyActivitySummary?) async {
+        guard
+            let summary,
+            calendar.isDateInToday(summary.dateStart)
+        else {
+            liveActivityStatus = liveActivityService.status
+            return
+        }
+
+        liveActivityStatus = await liveActivityService.updateIfActive(summary: summary)
     }
 
     private func syncAggregateSummaries(selectedSummary: DailyActivitySummary?) async {
@@ -442,6 +495,22 @@ final class ActivityRepository: ObservableObject {
     func generatedSharedCompetitionInviteCode() -> String {
         let random = UUID().uuidString.replacingOccurrences(of: "-", with: "")
         return SharedCompetitionSettings.normalizedInviteCode("SR\(random.prefix(8))")
+    }
+
+    func prepareHouseholdCompetitionShare() async throws -> HouseholdCompetitionShare {
+        guard let cloudCompetitionSync = competitionSync as? CloudKitCompetitionSync else {
+            throw CloudSyncError.unavailable("iCloud household sharing requires the production CloudKit build.")
+        }
+
+        let settings = sharedCompetitionSettings
+        guard settings.canSync else {
+            throw CloudSyncError.unavailable("Sync a household board before opening the iCloud invite.")
+        }
+
+        return try await cloudCompetitionSync.prepareHouseholdShare(
+            inviteCode: settings.inviteCode,
+            displayName: preferences.displayName
+        )
     }
 
     var canPublishSharedCompetitionEntries: Bool {

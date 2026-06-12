@@ -14,17 +14,28 @@ protocol SharedCompetitionSyncing: Sendable {
     func sync(entries: [CompetitionEntry], inviteCode: String) async throws -> [CompetitionEntry]
 }
 
+struct HouseholdCompetitionShare: Identifiable {
+    var id: CKRecord.ID { share.recordID }
+
+    let share: CKShare
+    let container: CKContainer
+}
+
 final class CloudKitCompetitionSync: @unchecked Sendable {
     private static let schemaVersion = 1
     private static let maxEntriesPerBoard = 400
     private static let entryRecordType = "CompetitionEntry"
+    private static let shareZoneName = "HouseholdCompetition"
+    private static let boardRecordType = "HouseholdCompetitionBoard"
 
     private let container: CKContainer
     private let database: CKDatabase
+    private let privateDatabase: CKDatabase
 
     init(containerIdentifier: String = "iCloud.com.tyronsamaroo.stepreceipt") {
         container = CKContainer(identifier: containerIdentifier)
         database = container.publicCloudDatabase
+        privateDatabase = container.privateCloudDatabase
     }
 
     func sync(entries: [CompetitionEntry], inviteCode: String) async throws -> [CompetitionEntry] {
@@ -46,6 +57,43 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
 
         let savedEntries = mergedEntries(remoteEntries + localEntries)
         return savedEntries
+    }
+
+    func prepareHouseholdShare(inviteCode: String, displayName: String) async throws -> HouseholdCompetitionShare {
+        let normalizedCode = SharedCompetitionSettings.normalizedInviteCode(inviteCode)
+        guard !normalizedCode.isEmpty else {
+            throw CloudSyncError.unavailable("Create or paste a household code before sharing.")
+        }
+
+        try await requireAvailableAccount()
+        let groupHash = Self.groupHash(for: normalizedCode)
+        let zoneID = CKRecordZone.ID(zoneName: Self.shareZoneName, ownerName: CKCurrentUserDefaultName)
+        try await ensureShareZone(zoneID: zoneID)
+
+        let boardRecordID = CKRecord.ID(recordName: Self.boardRecordName(for: groupHash), zoneID: zoneID)
+        let boardRecord = try await loadOrCreateBoardRecord(
+            recordID: boardRecordID,
+            groupHash: groupHash,
+            inviteCode: normalizedCode,
+            displayName: displayName
+        )
+
+        let share = CKShare(rootRecord: boardRecord)
+        share[CKShare.SystemFieldKey.title] = "StepReceipt Household Board" as CKRecordValue
+        share[CKShare.SystemFieldKey.shareType] = "com.tyronsamaroo.stepreceipt.household-board" as CKRecordValue
+        share.publicPermission = .none
+
+        do {
+            _ = try await privateDatabase.modifyRecords(
+                saving: [boardRecord, share],
+                deleting: [],
+                savePolicy: .changedKeys,
+                atomically: true
+            )
+            return HouseholdCompetitionShare(share: share, container: container)
+        } catch {
+            throw CloudSyncError.unavailable("iCloud sharing could not be prepared: \(error.localizedDescription)")
+        }
     }
 
     private func requireAvailableAccount() async throws {
@@ -70,6 +118,38 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         } catch {
             throw CloudSyncError.unavailable(error.localizedDescription)
         }
+    }
+
+    private func ensureShareZone(zoneID: CKRecordZone.ID) async throws {
+        do {
+            _ = try await privateDatabase.recordZone(for: zoneID)
+        } catch {
+            guard isMissingRecord(error) else { throw error }
+            _ = try await privateDatabase.save(CKRecordZone(zoneID: zoneID))
+        }
+    }
+
+    private func loadOrCreateBoardRecord(
+        recordID: CKRecord.ID,
+        groupHash: String,
+        inviteCode: String,
+        displayName: String
+    ) async throws -> CKRecord {
+        let record: CKRecord
+        do {
+            record = try await privateDatabase.record(for: recordID)
+        } catch {
+            guard isMissingRecord(error) else { throw error }
+            record = CKRecord(recordType: Self.boardRecordType, recordID: recordID)
+        }
+
+        record["groupHash"] = groupHash
+        record["schemaVersion"] = Self.schemaVersion
+        record["inviteCodeHint"] = inviteCode
+        record["ownerDisplayName"] = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        record["privacyBoundary"] = "competition-aggregates-only"
+        record["updatedAt"] = Date()
+        return record
     }
 
     private func fetchEntryRecords(groupHash: String) async throws -> [CKRecord] {

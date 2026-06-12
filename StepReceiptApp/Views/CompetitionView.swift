@@ -1,5 +1,6 @@
 import SwiftUI
 import UIKit
+import CloudKit
 
 struct CompetitionView: View {
     @EnvironmentObject private var repository: ActivityRepository
@@ -7,6 +8,9 @@ struct CompetitionView: View {
     @State private var profileNameDraft = ""
     @State private var inviteCodeDraft = ""
     @State private var inviteShare: CompetitionInviteShare?
+    @State private var householdShare: HouseholdCompetitionShare?
+    @State private var householdShareError: String?
+    @State private var isPreparingHouseholdShare = false
     @State private var clipboardJoinError: String?
 
     var body: some View {
@@ -55,6 +59,9 @@ struct CompetitionView: View {
             }
             .sheet(item: $inviteShare) { inviteShare in
                 ShareSheet(items: [inviteShare.message])
+            }
+            .sheet(item: $householdShare) { share in
+                CloudSharingSheet(householdShare: share)
             }
             .onAppear {
                 profileNameDraft = repository.preferences.displayName
@@ -159,11 +166,27 @@ struct CompetitionView: View {
                 Button {
                     inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
                 } label: {
-                    Label("Share", systemImage: "square.and.arrow.up")
+                    Label("Code", systemImage: "square.and.arrow.up")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
                 .disabled(!repository.sharedCompetitionSettings.canSync)
+
+                Button {
+                    Task {
+                        await prepareHouseholdShare()
+                    }
+                } label: {
+                    if isPreparingHouseholdShare {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Label("iCloud", systemImage: "person.2.badge.gearshape")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.bordered)
+                .disabled(!repository.sharedCompetitionSettings.canSync || isPreparingHouseholdShare)
 
                 Button {
                     UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
@@ -196,6 +219,13 @@ struct CompetitionView: View {
 
             if let clipboardJoinError {
                 Text(clipboardJoinError)
+                    .font(.caption)
+                    .foregroundStyle(Color.stepWarning)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+
+            if let householdShareError {
+                Text(householdShareError)
                     .font(.caption)
                     .foregroundStyle(Color.stepWarning)
                     .fixedSize(horizontal: false, vertical: true)
@@ -257,6 +287,19 @@ struct CompetitionView: View {
         inviteCodeDraft = normalized
         saveBoardProfileName()
         await repository.updateSharedCompetition(isEnabled: true, inviteCode: normalized)
+    }
+
+    private func prepareHouseholdShare() async {
+        saveBoardProfileName()
+        householdShareError = nil
+        isPreparingHouseholdShare = true
+        defer { isPreparingHouseholdShare = false }
+
+        do {
+            householdShare = try await repository.prepareHouseholdCompetitionShare()
+        } catch {
+            householdShareError = error.localizedDescription
+        }
     }
 
     private func normalizedInviteCodeFromClipboard() -> String? {
@@ -393,6 +436,41 @@ struct CompetitionInviteShare: Identifiable {
 
     var message: String {
         "StepReceipt household code: \(code)\nOpen StepReceipt > Compete, paste this code, set your board name, then tap Sync."
+    }
+}
+
+struct CloudSharingSheet: UIViewControllerRepresentable {
+    let householdShare: HouseholdCompetitionShare
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator()
+    }
+
+    func makeUIViewController(context: Context) -> UICloudSharingController {
+        let controller = UICloudSharingController(
+            share: householdShare.share,
+            container: householdShare.container
+        )
+        controller.delegate = context.coordinator
+        controller.availablePermissions = [.allowReadOnly]
+        return controller
+    }
+
+    func updateUIViewController(_ uiViewController: UICloudSharingController, context: Context) {}
+
+    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
+        func itemTitle(for csc: UICloudSharingController) -> String? {
+            "StepReceipt Household Board"
+        }
+
+        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {}
+
+        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {}
+
+        func cloudSharingController(
+            _ csc: UICloudSharingController,
+            failedToSaveShareWithError error: Error
+        ) {}
     }
 }
 

@@ -1,0 +1,109 @@
+name: iOS CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_ui_smoke:
+        description: "Run the simulator UI smoke test"
+        required: false
+        default: "false"
+        type: choice
+        options:
+          - "false"
+          - "true"
+
+jobs:
+  validate:
+    name: Build and test
+    runs-on: macos-26
+    timeout-minutes: 45
+
+    env:
+      XCODE_PATH: /Applications/Xcode_26.5.app/Contents/Developer
+      SIMULATOR_DESTINATION: platform=iOS Simulator,name=iPhone 17,OS=26.5
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s "$XCODE_PATH"
+
+      - name: Show toolchain
+        run: |
+          xcodebuild -version
+          swift --version
+          xcrun simctl list devices available | sed -n '/iOS 26.5/,/--/p'
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Run Swift core checks
+        run: |
+          swift run StepReceiptCoreCheck
+          swift test --enable-swift-testing
+
+      - name: Typecheck app sources
+        run: |
+          SDK="$(xcrun --sdk iphonesimulator --show-sdk-path)"
+          swiftc -typecheck \
+            -target arm64-apple-ios17.0-simulator \
+            -sdk "$SDK" \
+            Sources/StepReceiptCore/*.swift \
+            StepReceiptApp/App/*.swift \
+            StepReceiptApp/Design/*.swift \
+            StepReceiptApp/Services/*.swift \
+            StepReceiptApp/Views/*.swift \
+            StepReceiptLiveActivityShared/*.swift
+
+      - name: Validate plist and asset JSON
+        run: |
+          plutil -lint StepReceiptApp/Info.plist StepReceiptApp/StepReceipt.entitlements StepReceiptApp/PrivacyInfo.xcprivacy
+          python3 - <<'PY'
+          import json
+          import pathlib
+
+          for path in pathlib.Path("StepReceiptApp/Assets.xcassets").rglob("Contents.json"):
+              json.loads(path.read_text())
+          print("asset json ok")
+          PY
+
+      - name: Build app and test bundles
+        run: |
+          xcodebuild \
+            -project StepReceipt.xcodeproj \
+            -scheme StepReceipt \
+            -destination "$SIMULATOR_DESTINATION" \
+            build
+
+          xcodebuild \
+            -project StepReceipt.xcodeproj \
+            -scheme StepReceipt \
+            -destination "$SIMULATOR_DESTINATION" \
+            build-for-testing
+
+      - name: Run Xcode unit tests
+        run: |
+          xcodebuild \
+            -project StepReceipt.xcodeproj \
+            -scheme StepReceipt \
+            -destination "$SIMULATOR_DESTINATION" \
+            -only-testing:StepReceiptTests \
+            test
+
+      - name: Run simulator UI smoke test
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_ui_smoke == 'true' }}
+        run: |
+          xcodebuild \
+            -project StepReceipt.xcodeproj \
+            -scheme StepReceipt \
+            -destination "$SIMULATOR_DESTINATION" \
+            -only-testing:StepReceiptUITests/StepReceiptUITests/testSamplePreviewShowsCoreTabs \
+            test

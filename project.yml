@@ -8,8 +8,8 @@ settings:
     SWIFT_VERSION: "6.0"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "1"
-    DEVELOPMENT_TEAM: ""
+    CURRENT_PROJECT_VERSION: "11"
+    DEVELOPMENT_TEAM: "U63TLL4JY4"
 targets:
   StepReceipt:
     type: application
@@ -18,6 +18,10 @@ targets:
     sources:
       - StepReceiptApp
       - Sources/StepReceiptCore
+      - StepReceiptLiveActivityShared
+    dependencies:
+      - target: StepReceiptLiveActivityWidget
+        embed: true
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.tyronsamaroo.stepreceipt
@@ -40,7 +44,10 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.tyronsamaroo.stepreceipt.tests
     sources:
       - Tests/StepReceiptCoreTests
+      - Tests/StepReceiptAppTests
       - Sources/StepReceiptCore
+      - StepReceiptApp/Services
+      - StepReceiptLiveActivityShared
   StepReceiptUITests:
     type: bundle.ui-testing
     platform: iOS
@@ -53,3 +60,16 @@ targets:
       - Tests/StepReceiptUITests
     dependencies:
       - target: StepReceipt
+  StepReceiptLiveActivityWidget:
+    type: app-extension
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - StepReceiptLiveActivityWidget
+      - StepReceiptLiveActivityShared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.tyronsamaroo.stepreceipt.liveactivity
+        INFOPLIST_FILE: StepReceiptLiveActivityWidget/Info.plist
+        TARGETED_DEVICE_FAMILY: "1"
+        SKIP_INSTALL: YES

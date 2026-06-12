@@ -161,38 +161,38 @@ struct CompetitionView: View {
                 .tint(.stepAccent)
                 .disabled(SharedCompetitionSettings.normalizedInviteCode(inviteCodeDraft).isEmpty)
             }
+            .controlSize(.regular)
 
-            HStack(spacing: 8) {
+            Button {
+                Task {
+                    await prepareHouseholdShare()
+                }
+            } label: {
+                if isPreparingHouseholdShare {
+                    ProgressView()
+                        .frame(maxWidth: .infinity)
+                } else {
+                    Label("Send iCloud Invite", systemImage: "person.2.badge.gearshape")
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(Color.stepDistance)
+            .disabled(!repository.sharedCompetitionSettings.canSync || isPreparingHouseholdShare)
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                 Button {
                     inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
                 } label: {
-                    Label("Code", systemImage: "square.and.arrow.up")
-                        .frame(maxWidth: .infinity)
+                    compactActionLabel("Share Code", systemImage: "square.and.arrow.up")
                 }
                 .buttonStyle(.bordered)
                 .disabled(!repository.sharedCompetitionSettings.canSync)
 
                 Button {
-                    Task {
-                        await prepareHouseholdShare()
-                    }
-                } label: {
-                    if isPreparingHouseholdShare {
-                        ProgressView()
-                            .frame(maxWidth: .infinity)
-                    } else {
-                        Label("iCloud", systemImage: "person.2.badge.gearshape")
-                            .frame(maxWidth: .infinity)
-                    }
-                }
-                .buttonStyle(.bordered)
-                .disabled(!repository.sharedCompetitionSettings.canSync || isPreparingHouseholdShare)
-
-                Button {
                     UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
                 } label: {
-                    Label("Copy", systemImage: "doc.on.doc")
-                        .frame(maxWidth: .infinity)
+                    compactActionLabel("Copy Code", systemImage: "doc.on.doc")
                 }
                 .buttonStyle(.bordered)
                 .disabled(!repository.sharedCompetitionSettings.canSync)
@@ -200,22 +200,20 @@ struct CompetitionView: View {
                 Button {
                     pasteInviteCode()
                 } label: {
-                    Label("Paste", systemImage: "doc.on.clipboard")
-                        .frame(maxWidth: .infinity)
+                    compactActionLabel("Paste Code", systemImage: "doc.on.clipboard")
                 }
                 .buttonStyle(.bordered)
-            }
 
-            Button {
-                Task {
-                    await joinFromClipboard()
+                Button {
+                    Task {
+                        await joinFromClipboard()
+                    }
+                } label: {
+                    compactActionLabel("Join", systemImage: "person.badge.plus")
                 }
-            } label: {
-                Label("Join from Clipboard", systemImage: "person.badge.plus")
-                    .frame(maxWidth: .infinity)
+                .buttonStyle(.bordered)
+                .tint(.stepDistance)
             }
-            .buttonStyle(.bordered)
-            .tint(.stepDistance)
 
             if let clipboardJoinError {
                 Text(clipboardJoinError)
@@ -267,6 +265,14 @@ struct CompetitionView: View {
     private func saveBoardProfileName() {
         repository.updatePreferences(displayName: profileNameDraft)
         profileNameDraft = repository.preferences.displayName
+    }
+
+    private func compactActionLabel(_ title: String, systemImage: String) -> some View {
+        Label(title, systemImage: systemImage)
+            .font(.subheadline.weight(.semibold))
+            .lineLimit(1)
+            .minimumScaleFactor(0.78)
+            .frame(maxWidth: .infinity, minHeight: 36)
     }
 
     private func pasteInviteCode() {

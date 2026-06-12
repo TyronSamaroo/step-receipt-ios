@@ -1,6 +1,6 @@
 # StepReceipt
 
-StepReceipt is a native SwiftUI iPhone app for daily movement, workout history, shareable activity receipts, and simple Apple Health insights.
+StepReceipt is a native SwiftUI iPhone app for daily movement, workout history, shareable activity receipts, and simple Apple Health insights. The current lightweight display-name direction is **StrideSlip**; project, bundle, and CloudKit identifiers intentionally remain StepReceipt-based for TestFlight continuity.
 
 Raw HealthKit samples stay on the device. CloudKit sync is limited to aggregate summaries, goals, preference-shaped app data, and opt-in household competition totals.
 

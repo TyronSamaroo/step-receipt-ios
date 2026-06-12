@@ -125,7 +125,15 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
             _ = try await privateDatabase.recordZone(for: zoneID)
         } catch {
             guard isMissingRecord(error) else { throw error }
-            _ = try await privateDatabase.save(CKRecordZone(zoneID: zoneID))
+            do {
+                _ = try await privateDatabase.modifyRecordZones(
+                    saving: [CKRecordZone(zoneID: zoneID)],
+                    deleting: []
+                )
+            } catch {
+                guard !isAlreadyExists(error) else { return }
+                throw CloudSyncError.unavailable("iCloud household sharing is still setting up. Try iCloud invite again in a moment.")
+            }
         }
     }
 
@@ -296,8 +304,18 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
     }
 
     private func isMissingRecord(_ error: Error) -> Bool {
-        guard let error = error as? CKError else { return false }
-        return error.code == .unknownItem
+        guard let error = error as? CKError else {
+            return error.localizedDescription.localizedCaseInsensitiveContains("does not exist")
+        }
+        return error.code == .unknownItem || error.code == .zoneNotFound
+    }
+
+    private func isAlreadyExists(_ error: Error) -> Bool {
+        guard let error = error as? CKError else {
+            return error.localizedDescription.localizedCaseInsensitiveContains("already exist")
+        }
+        return error.code == .serverRejectedRequest &&
+            error.localizedDescription.localizedCaseInsensitiveContains("already exist")
     }
 
     private func serverChangedRecord(from error: Error) -> CKRecord? {

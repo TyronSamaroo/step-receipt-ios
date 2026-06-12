@@ -105,6 +105,47 @@ struct SettingsView: View {
                     statusRow("Private Summary Sync", cloudStatusText, StepReceiptSymbol.cloud)
                 }
 
+                Section("Live Activity") {
+                    Label(repository.liveActivityStatus.title, systemImage: "iphone.radiowaves.left.and.right")
+                        .foregroundStyle(Color.stepInk)
+
+                    Text(liveActivityDetail)
+                        .font(.footnote)
+                        .foregroundStyle(Color.stepMuted)
+
+                    HStack(spacing: 10) {
+                        Button {
+                            Task { await repository.startDailyStepGoalLiveActivity() }
+                        } label: {
+                            Label(repository.liveActivityStatus.isActive ? "Restart" : "Start", systemImage: "play.fill")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(Color.stepAccent)
+                        .disabled(!canStartOrUpdateLiveActivity)
+
+                        Button {
+                            Task { await repository.updateDailyStepGoalLiveActivity() }
+                        } label: {
+                            Image(systemName: StepReceiptSymbol.refresh)
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("Update Live Activity")
+                        .disabled(!repository.liveActivityStatus.isActive || !canStartOrUpdateLiveActivity)
+
+                        Button {
+                            Task { await repository.endDailyStepGoalLiveActivity() }
+                        } label: {
+                            Image(systemName: "stop.fill")
+                                .frame(width: 22, height: 22)
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityLabel("End Live Activity")
+                        .disabled(!repository.liveActivityStatus.isActive)
+                    }
+                }
+
                 Section("Privacy") {
                     Text("StepReceipt reads HealthKit data on-device and syncs only aggregate daily summary records, preferences, goals, and opt-in household competition totals. Raw samples, hourly buckets, workout details, and source identifiers are not uploaded.")
                         .font(.footnote)
@@ -140,6 +181,19 @@ struct SettingsView: View {
         case .available: "Available"
         case .unavailable(let reason): reason
         }
+    }
+
+    private var canStartOrUpdateLiveActivity: Bool {
+        guard let summary = repository.todaySummary else { return false }
+        return Calendar.current.isDateInToday(summary.dateStart)
+    }
+
+    private var liveActivityDetail: String {
+        guard canStartOrUpdateLiveActivity else {
+            return "Live Activities follow today's step goal. Open Today or refresh after selecting today before starting one."
+        }
+
+        return "\(repository.liveActivityStatus.detail) Updates happen when StrideSlip refreshes or you tap update."
     }
 
     private func statusRow(_ title: String, _ value: String, _ icon: String) -> some View {

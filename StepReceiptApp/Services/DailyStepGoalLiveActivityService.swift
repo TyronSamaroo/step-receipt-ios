@@ -41,7 +41,7 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
 
     var status: DailyStepGoalLiveActivityStatus {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            return .unavailable("Live Activities are disabled for StepReceipt in iOS Settings.")
+            return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
         guard let activity = currentActivities.first else {
@@ -53,7 +53,7 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
 
     func start(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            return .unavailable("Live Activities are disabled for StepReceipt in iOS Settings.")
+            return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
         let content = ActivityContent(
@@ -88,7 +88,7 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
 
     func update(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else {
-            return .unavailable("Live Activities are disabled for StepReceipt in iOS Settings.")
+            return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
         let content = ActivityContent(

@@ -89,6 +89,7 @@ final class ActivityRepository: ObservableObject {
     private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
     private let currentCompetitorID: UUID
     private var activityDataSource: ActivityDataSource = .none
+    private var hasConfiguredStepBackgroundDelivery = false
 
     init(
         healthKit: any HealthKitProviding = HealthKitClient(),
@@ -145,6 +146,7 @@ final class ActivityRepository: ObservableObject {
         }
 
         await refresh()
+        await configureStepBackgroundDeliveryIfPossible()
     }
 
     func requestHealthAccess() async {
@@ -160,6 +162,7 @@ final class ActivityRepository: ObservableObject {
             }
 
             await refresh()
+            await configureStepBackgroundDeliveryIfPossible()
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
@@ -342,6 +345,7 @@ final class ActivityRepository: ObservableObject {
         updatePreferences(dailyStepGoalLiveActivityEnabled: isEnabled)
 
         if isEnabled {
+            await configureStepBackgroundDeliveryIfPossible()
             await startDailyStepGoalLiveActivity()
         } else {
             await endDailyStepGoalLiveActivity()
@@ -425,6 +429,66 @@ final class ActivityRepository: ObservableObject {
         } else {
             liveActivityStatus = await liveActivityService.updateIfActive(summary: summary)
         }
+    }
+
+    private func configureStepBackgroundDeliveryIfPossible() async {
+        guard healthKit.isAvailable, hasRequestedHealthAuthorization, !hasConfiguredStepBackgroundDelivery else {
+            return
+        }
+
+        do {
+            try await healthKit.startStepCountBackgroundDelivery { [weak self] in
+                await self?.refreshTodayFromStepBackgroundDelivery()
+            }
+            hasConfiguredStepBackgroundDelivery = true
+        } catch {
+            lastError = "Lock Screen auto-update setup failed: \(error.localizedDescription)"
+        }
+    }
+
+    private func refreshTodayFromStepBackgroundDelivery() async {
+        guard healthKit.isAvailable, hasRequestedHealthAuthorization else { return }
+
+        do {
+            let now = Date()
+            let todayStart = calendar.startOfDay(for: now)
+            let todayBuckets = try await healthKit.fetchHourlyBuckets(for: todayStart)
+            let updatedSummary = engine.aggregateDay(
+                containing: todayStart,
+                buckets: todayBuckets,
+                workouts: workouts,
+                goals: goals
+            )
+
+            upsertHistorySummary(updatedSummary)
+            if calendar.isDate(selectedDate, inSameDayAs: todayStart) {
+                todaySummary = updatedSummary
+            }
+            receipt = engine.receipt(for: historyForSelectedPeriod, goals: goals)
+            refreshCompetition()
+            activityDataSource = .healthKit
+            authorizationState = .authorized
+            lastError = nil
+            saveDerivedActivityCache(selectedSummary: todaySummary)
+            await updateLiveActivityIfNeeded(with: updatedSummary)
+
+            if sharedCompetitionSettings.canSync {
+                await syncSharedCompetition()
+            }
+        } catch {
+            liveActivityStatus = liveActivityService.status
+        }
+    }
+
+    private func upsertHistorySummary(_ summary: DailyActivitySummary) {
+        let summaryKey = ActivityFormatting.dayKey(for: summary.dateStart, calendar: calendar)
+        var summariesByDay = Dictionary(
+            uniqueKeysWithValues: history.map {
+                (ActivityFormatting.dayKey(for: $0.dateStart, calendar: calendar), $0)
+            }
+        )
+        summariesByDay[summaryKey] = summary
+        history = summariesByDay.values.sorted { $0.dateStart < $1.dateStart }
     }
 
     private func syncAggregateSummaries(selectedSummary: DailyActivitySummary?) async {

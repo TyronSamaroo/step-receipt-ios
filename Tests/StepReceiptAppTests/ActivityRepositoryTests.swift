@@ -63,6 +63,46 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testHealthKitBackgroundStepDeliveryRefreshesTodaySummary() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 120, distance: 90, energy: 4)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 120, distance: 90, energy: 4)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+
+        #expect(health.backgroundDeliveryRequestCount == 1)
+        #expect(repository.todaySummary?.steps == 120)
+
+        health.hourlyBuckets = [
+            bucket(day, hour: 8, steps: 120, distance: 90, energy: 4),
+            bucket(day, hour: 10, steps: 980, distance: 720, energy: 42)
+        ]
+
+        await health.deliverStepBackgroundUpdate()
+
+        #expect(repository.todaySummary?.steps == 1_100)
+        #expect(repository.history.contains { calendar.isDate($0.dateStart, inSameDayAs: day) && $0.steps == 1_100 })
+        #expect(repository.authorizationState == .authorized)
+    }
+
+    @Test
     func testRefreshDeduplicatesSelectedDayBeforeCloudSync() async throws {
         let day = calendar.startOfDay(for: Date())
         let previousDay = try #require(calendar.date(byAdding: .day, value: -1, to: day))
@@ -600,16 +640,46 @@ struct ActivityRepositoryTests {
     }
 }
 
-private struct FakeHealthKitProvider: HealthKitProviding {
+private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendable {
     var isAvailable = true
     var authorizationState: HealthAuthorizationState = .authorized
     var hourlyBuckets: [HealthMetricBucket]
     var dailyBuckets: [HealthMetricBucket]
     var workouts: [WorkoutActivity]
     var fetchError: HealthFixtureError? = nil
+    private var backgroundDeliveryHandler: (@MainActor @Sendable () async -> Void)?
+    private(set) var backgroundDeliveryRequestCount = 0
+
+    init(
+        isAvailable: Bool = true,
+        authorizationState: HealthAuthorizationState = .authorized,
+        hourlyBuckets: [HealthMetricBucket],
+        dailyBuckets: [HealthMetricBucket],
+        workouts: [WorkoutActivity],
+        fetchError: HealthFixtureError? = nil
+    ) {
+        self.isAvailable = isAvailable
+        self.authorizationState = authorizationState
+        self.hourlyBuckets = hourlyBuckets
+        self.dailyBuckets = dailyBuckets
+        self.workouts = workouts
+        self.fetchError = fetchError
+    }
 
     func requestAuthorization() async throws -> HealthAuthorizationState {
         authorizationState
+    }
+
+    func startStepCountBackgroundDelivery(
+        onDelivery: @escaping @MainActor @Sendable () async -> Void
+    ) async throws {
+        backgroundDeliveryRequestCount += 1
+        backgroundDeliveryHandler = onDelivery
+    }
+
+    @MainActor
+    func deliverStepBackgroundUpdate() async {
+        await backgroundDeliveryHandler?()
     }
 
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket] {

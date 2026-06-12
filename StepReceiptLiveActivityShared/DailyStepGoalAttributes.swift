@@ -17,6 +17,26 @@ struct DailyStepGoalAttributes: ActivityAttributes {
             min(1, Double(steps) / Double(stepGoal))
         }
 
+        var progressPercent: Int {
+            Int((progress * 100).rounded())
+        }
+
+        var progressPercentText: String {
+            "\(progressPercent)%"
+        }
+
+        var compactStepsText: String {
+            if steps >= 10_000 {
+                return "\(steps / 1_000)k"
+            }
+
+            if steps >= 1_000 {
+                return String(format: "%.1fk", Double(steps) / 1_000)
+            }
+
+            return steps.formatted()
+        }
+
         var remainingSteps: Int {
             max(0, stepGoal - steps)
         }

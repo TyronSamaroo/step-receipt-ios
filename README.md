@@ -88,6 +88,7 @@ StrideSlip is built around that personal loop. It reads HealthKit, keeps raw sam
 - Theme controls, with light theme as the default direction.
 - Today metric customization.
 - Live Activity controls kept in Settings instead of taking over the main screen.
+- HealthKit background step delivery to refresh the Lock Screen when iOS wakes the app.
 - CloudKit and HealthKit fallback states so the app remains useful with partial permissions or iCloud disabled.
 
 ## Apple Frameworks
@@ -320,6 +321,7 @@ Implemented:
 Still beta / follow-up:
 
 - Real HealthKit acceptance should be repeated on every release build.
+- Lock Screen step updates are background-delivery based, so iOS controls timing and they are not a per-step live stream.
 - CloudKit household competition needs continued two-device validation.
 - TestFlight external beta flow depends on Apple beta review state.
 - CKShare-style private invites are a future improvement over household-code boards.

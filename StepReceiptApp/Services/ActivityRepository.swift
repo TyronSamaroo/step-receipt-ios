@@ -245,6 +245,37 @@ final class ActivityRepository: ObservableObject {
         engine.filterDailySummaries(history, filter: filter, sort: sort)
     }
 
+    func todayCoachInsights(now: Date = Date()) -> [TodayCoachInsight] {
+        engine.todayCoachInsights(
+            today: todaySummary,
+            history: history,
+            competitionReceipt: competitionReceipt,
+            now: now
+        )
+    }
+
+    func periodSummary(scope: ActivityPeriodScope, now: Date = Date()) -> PeriodActivitySummary {
+        engine.periodSummary(
+            scope: scope,
+            containing: selectedDate,
+            summaries: historyForSelectedPeriod,
+            goals: goals,
+            now: now
+        )
+    }
+
+    private var historyForSelectedPeriod: [DailyActivitySummary] {
+        guard let todaySummary else { return history }
+        let selectedDayKey = ActivityFormatting.dayKey(for: todaySummary.dateStart, calendar: calendar)
+        var summariesByDay = Dictionary(
+            uniqueKeysWithValues: history.map {
+                (ActivityFormatting.dayKey(for: $0.dateStart, calendar: calendar), $0)
+            }
+        )
+        summariesByDay[selectedDayKey] = todaySummary
+        return summariesByDay.values.sorted { $0.dateStart < $1.dateStart }
+    }
+
     func selectableDateRange(now: Date = Date()) -> ClosedRange<Date> {
         let end = calendar.startOfDay(for: now)
         let start = calendar.date(byAdding: .day, value: -historyLookbackDays, to: end) ?? end

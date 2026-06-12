@@ -13,6 +13,7 @@ struct TodayView: View {
                         screenTitle
                         dateControls
                         todayHeader(summary)
+                        todayCoach(repository.todayCoachInsights())
                         weatherStrip(summary)
                         hourlyChart(summary)
                         metricGrid(summary)
@@ -138,6 +139,48 @@ struct TodayView: View {
                 .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepInk)
         }
         .metricCard()
+    }
+
+    @ViewBuilder
+    private func todayCoach(_ insights: [TodayCoachInsight]) -> some View {
+        if !insights.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack {
+                    Label("Today Coach", systemImage: "sparkles")
+                        .font(.headline)
+                        .foregroundStyle(Color.stepInk)
+                    Spacer()
+                    Text("Personal")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepAccent)
+                }
+
+                VStack(spacing: 10) {
+                    ForEach(insights) { insight in
+                        HStack(alignment: .top, spacing: 10) {
+                            Image(systemName: insight.systemImage)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Color.stepAccent)
+                                .frame(width: 28, height: 28)
+                                .background(Color.stepAccent.opacity(0.14))
+                                .clipShape(Circle())
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text(insight.title)
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.stepInk)
+                                Text(insight.detail)
+                                    .font(.caption.weight(.semibold))
+                                    .foregroundStyle(Color.stepMuted)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                    }
+                }
+            }
+            .metricCard()
+        }
     }
 
     @ViewBuilder

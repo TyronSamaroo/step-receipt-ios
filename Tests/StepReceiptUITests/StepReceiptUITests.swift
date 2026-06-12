@@ -13,6 +13,7 @@ final class StepReceiptUITests: XCTestCase {
         }
 
         XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
         XCTAssertTrue(stepsLeftText.waitForExistence(timeout: 3))
@@ -38,7 +39,11 @@ final class StepReceiptUITests: XCTestCase {
         app.buttons["Cancel"].tap()
 
         app.tabBars.buttons["Insights"].tap()
-        XCTAssertTrue(app.staticTexts["STEP RECEIPT"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Day"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Week"].exists)
+        XCTAssertTrue(app.buttons["Month"].exists)
+        XCTAssertTrue(app.staticTexts["WEEK RECEIPT"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Activity Heat Map"].exists)
 
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Profile"].waitForExistence(timeout: 3))

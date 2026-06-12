@@ -26,20 +26,38 @@ struct DailyStepGoalLiveActivityWidget: Widget {
 
                 DynamicIslandExpandedRegion(.trailing) {
                     StepGoalIslandMetric(
-                        title: "Left",
-                        value: context.state.remainingSteps.formatted()
+                        title: "Goal",
+                        value: context.state.progressPercentText
                     )
                 }
 
                 DynamicIslandExpandedRegion(.bottom) {
-                    StepGoalProgressBar(progress: context.state.progress)
-                        .padding(.top, 2)
+                    VStack(alignment: .leading, spacing: 5) {
+                        StepGoalProgressBar(progress: context.state.progress)
+                        HStack {
+                            Text(context.state.isGoalComplete ? "Goal cleared" : "\(context.state.remainingSteps.formatted()) steps left")
+                            Spacer(minLength: 8)
+                            Text("of \(context.state.stepGoal.formatted())")
+                        }
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(Color.stepWidgetMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                    }
+                    .padding(.top, 2)
                 }
             } compactLeading: {
-                Image(systemName: "figure.walk")
-                    .foregroundStyle(Color.stepWidgetAccent)
+                HStack(spacing: 2) {
+                    Image(systemName: "figure.walk")
+                    Text(context.state.compactStepsText)
+                        .monospacedDigit()
+                }
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.stepWidgetAccent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.75)
             } compactTrailing: {
-                Text("\(Int((context.state.progress * 100).rounded()))%")
+                Text(context.state.progressPercentText)
                     .font(.caption2.weight(.bold))
                     .monospacedDigit()
             } minimal: {
@@ -68,24 +86,58 @@ private struct StepGoalLockScreenView: View {
                     .minimumScaleFactor(0.75)
             }
 
-            HStack(alignment: .lastTextBaseline, spacing: 6) {
-                Text(context.state.steps.formatted())
-                    .font(.system(size: 34, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.stepWidgetInk)
-                    .monospacedDigit()
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text("of \(context.state.stepGoal.formatted())")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(Color.stepWidgetMuted)
-                    .lineLimit(1)
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Steps so far")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepWidgetMuted)
+                    HStack(alignment: .lastTextBaseline, spacing: 6) {
+                        Text(context.state.steps.formatted())
+                            .font(.system(size: 34, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.stepWidgetInk)
+                            .monospacedDigit()
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.72)
+                        Text("steps")
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.stepWidgetMuted)
+                            .lineLimit(1)
+                    }
+                }
+
+                Spacer(minLength: 8)
+
+                VStack(spacing: 2) {
+                    Text(context.state.progressPercentText)
+                        .font(.title2.weight(.black))
+                        .foregroundStyle(Color.stepWidgetAccent)
+                        .monospacedDigit()
+                    Text("of goal")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.stepWidgetMuted)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .fill(Color.stepWidgetAccent.opacity(0.13))
+                )
+                .overlay(
+                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                        .stroke(Color.stepWidgetAccent.opacity(0.25), lineWidth: 1)
+                )
+                .accessibilityLabel("\(context.state.progressPercentText) of step goal")
             }
 
             StepGoalProgressBar(progress: context.state.progress)
 
-            Text("Updated \(context.state.updatedAt, style: .time)")
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.stepWidgetMuted)
+            HStack {
+                Text("Goal \(context.state.stepGoal.formatted())")
+                Spacer(minLength: 8)
+                Text("Updated \(context.state.updatedAt, style: .time)")
+            }
+            .font(.caption2.weight(.semibold))
+            .foregroundStyle(Color.stepWidgetMuted)
         }
         .padding(16)
     }

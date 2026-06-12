@@ -34,6 +34,7 @@
 		A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
+		AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */; };
 		B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
 		B4CC36F293704EB2BC59E544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */; };
 		BE150B31D7F0F53A8CA5EF26 /* StepReceiptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */; };
@@ -97,6 +98,7 @@
 		383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngineTests.swift; sourceTree = "<group>"; };
 		39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributesTests.swift; sourceTree = "<group>"; };
 		55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributes.swift; sourceTree = "<group>"; };
 		6277880B45319181EE54747C /* CompetitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionEngine.swift; sourceTree = "<group>"; };
 		63A6EA53FBB377B2AB87EA82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -207,6 +209,7 @@
 			isa = PBXGroup;
 			children = (
 				DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */,
+				4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */,
 			);
 			name = StepReceiptAppTests;
 			path = Tests/StepReceiptAppTests;
@@ -441,6 +444,7 @@
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
 				B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */,
+				AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */,
 				5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */,
 				F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */,
 				30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */,
@@ -675,7 +679,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -741,7 +745,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 11;
+				CURRENT_PROJECT_VERSION = 12;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

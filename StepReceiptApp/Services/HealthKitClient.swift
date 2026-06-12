@@ -12,14 +12,43 @@ protocol HealthKitProviding: Sendable {
     var isAvailable: Bool { get }
 
     func requestAuthorization() async throws -> HealthAuthorizationState
+    func startStepCountBackgroundDelivery(
+        onDelivery: @escaping @MainActor @Sendable () async -> Void
+    ) async throws
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket]
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket]
     func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity]
 }
 
+enum HealthKitBackgroundDeliveryError: LocalizedError, Sendable {
+    case unavailable
+    case stepCountUnavailable
+    case notEnabled
+
+    var errorDescription: String? {
+        switch self {
+        case .unavailable:
+            "HealthKit is unavailable on this device."
+        case .stepCountUnavailable:
+            "Step count background delivery is unavailable."
+        case .notEnabled:
+            "HealthKit did not enable background delivery for steps."
+        }
+    }
+}
+
+private struct HealthKitObserverCompletion: @unchecked Sendable {
+    let handler: HKObserverQueryCompletionHandler
+
+    func callAsFunction() {
+        handler()
+    }
+}
+
 final class HealthKitClient: @unchecked Sendable {
     private let store = HKHealthStore()
     private let calendar: Calendar
+    private var stepObserverQuery: HKObserverQuery?
 
     init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -34,6 +63,34 @@ final class HealthKitClient: @unchecked Sendable {
         let readTypes = Set(readObjectTypes())
         try await store.requestAuthorization(toShare: [], read: readTypes)
         return .authorized
+    }
+
+    func startStepCountBackgroundDelivery(
+        onDelivery: @escaping @MainActor @Sendable () async -> Void
+    ) async throws {
+        guard isAvailable else { throw HealthKitBackgroundDeliveryError.unavailable }
+        guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
+            throw HealthKitBackgroundDeliveryError.stepCountUnavailable
+        }
+
+        if stepObserverQuery == nil {
+            let query = HKObserverQuery(sampleType: stepType, predicate: nil) { _, completionHandler, error in
+                guard error == nil else {
+                    completionHandler()
+                    return
+                }
+
+                let completion = HealthKitObserverCompletion(handler: completionHandler)
+                Task {
+                    await onDelivery()
+                    completion()
+                }
+            }
+            stepObserverQuery = query
+            store.execute(query)
+        }
+
+        try await enableBackgroundDelivery(for: stepType)
     }
 
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket] {
@@ -238,6 +295,24 @@ final class HealthKitClient: @unchecked Sendable {
             return 60 * Double(minute)
         }
         return 3_600
+    }
+
+    private func enableBackgroundDelivery(for type: HKObjectType) async throws {
+        try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
+            store.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+
+                guard success else {
+                    continuation.resume(throwing: HealthKitBackgroundDeliveryError.notEnabled)
+                    return
+                }
+
+                continuation.resume(returning: ())
+            }
+        }
     }
 
     private func safelyFetchHeartRateSamples(for workout: HKWorkout) async -> [WorkoutHeartRateSample] {

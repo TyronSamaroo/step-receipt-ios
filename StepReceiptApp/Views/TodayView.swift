@@ -10,11 +10,9 @@ struct TodayView: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     if let summary = repository.todaySummary {
-                        screenTitle
-                        dateControls
-                        todayHeader(summary)
+                        todayHero(summary)
                         todayCoach(repository.todayCoachInsights())
-                        weatherStrip(summary)
+                        primaryWorkoutCard(summary)
                         hourlyChart(summary)
                         metricGrid(summary)
                         workoutSection(summary)
@@ -117,28 +115,177 @@ struct TodayView: View {
         .metricCard()
     }
 
-    private func todayHeader(_ summary: DailyActivitySummary) -> some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("\(summary.steps.formatted())")
-                        .font(.system(size: 46, weight: .bold, design: .rounded))
+    private func todayHero(_ summary: DailyActivitySummary) -> some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(alignment: .top, spacing: 12) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(selectedNavigationTitle)
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
-                        .contentTransition(.numericText())
-                    Text("\(summary.dateStart, format: .dateTime.weekday(.wide).month(.abbreviated).day()) · of \(summary.goals.stepsPerDay.formatted()) steps")
-                        .font(.subheadline)
+                    Text(repository.selectedDate, format: .dateTime.weekday(.wide).month(.wide).day())
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.stepMuted)
                 }
-                Spacer()
-                ProgressRing(progress: summary.stepGoalProgress)
-                    .frame(width: 72, height: 72)
+
+                Spacer(minLength: 0)
+
+                weatherPill(summary)
             }
 
-            Text(goalStatusText(for: summary))
-                .font(.headline)
-                .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepInk)
+            heroDateControls
+
+            HStack(alignment: .center, spacing: 18) {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("\(summary.steps.formatted())")
+                        .font(.system(size: 58, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.stepInk)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.62)
+                        .contentTransition(.numericText())
+                    Text("of \(summary.goals.stepsPerDay.formatted()) steps")
+                        .font(.headline.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                    Text(goalStatusText(for: summary))
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                ProgressRing(progress: summary.stepGoalProgress)
+                    .frame(width: 114, height: 114)
+                    .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
+            }
+
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 8) {
+                    heroMetricPill("Distance", ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit), StepReceiptSymbol.distance, Color.stepDistance)
+                    heroMetricPill("Burn", ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
+                    heroMetricPill("Workout", ActivityFormatting.formattedMinutes(summary.workoutMinutes), StepReceiptSymbol.workout, Color.stepAccent)
+                }
+
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                    heroMetricPill("Distance", ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit), StepReceiptSymbol.distance, Color.stepDistance)
+                    heroMetricPill("Burn", ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
+                    heroMetricPill("Workout", ActivityFormatting.formattedMinutes(summary.workoutMinutes), StepReceiptSymbol.workout, Color.stepAccent)
+                }
+            }
         }
-        .metricCard()
+        .padding(18)
+        .background(
+            LinearGradient(
+                colors: [
+                    Color.stepSurface,
+                    Color.stepAccent.opacity(0.13),
+                    Color.stepDistance.opacity(0.09),
+                    Color.stepEnergy.opacity(0.10)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.stepAccent.opacity(0.16), lineWidth: 1)
+        )
+        .shadow(color: Color.stepAccent.opacity(0.08), radius: 20, x: 0, y: 12)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var heroDateControls: some View {
+        HStack(spacing: 10) {
+            Button {
+                Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: -1, to: repository.selectedDate) ?? repository.selectedDate) }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(canMoveBackward ? Color.stepAccent : Color.stepMuted.opacity(0.45))
+            .background(Color.stepSurface.opacity(0.82))
+            .clipShape(Circle())
+            .disabled(!canMoveBackward)
+            .accessibilityLabel("Previous day")
+
+            DatePicker(
+                "Activity date",
+                selection: Binding(
+                    get: { repository.selectedDate },
+                    set: { newDate in
+                        Task { await repository.selectDate(newDate) }
+                    }
+                ),
+                in: repository.selectableDateRange(),
+                displayedComponents: .date
+            )
+            .labelsHidden()
+            .tint(Color.stepAccent)
+            .padding(.horizontal, 14)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity)
+            .background(Color.stepSurface.opacity(0.82))
+            .clipShape(Capsule())
+
+            Button {
+                Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: 1, to: repository.selectedDate) ?? repository.selectedDate) }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .frame(width: 34, height: 34)
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(canMoveForward ? Color.stepAccent : Color.stepMuted.opacity(0.45))
+            .background(Color.stepSurface.opacity(0.82))
+            .clipShape(Circle())
+            .disabled(!canMoveForward)
+            .accessibilityLabel("Next day")
+        }
+    }
+
+    private func weatherPill(_ summary: DailyActivitySummary) -> some View {
+        let weather = weatherSummary(for: summary)
+        return VStack(alignment: .trailing, spacing: 4) {
+            Label(weather?.temperature ?? "-- F", systemImage: "thermometer.sun")
+                .foregroundStyle(Color.stepEnergy)
+            Label(weather?.humidity ?? "--%", systemImage: "water.waves")
+                .foregroundStyle(Color.stepDistance)
+        }
+        .font(.caption.weight(.bold))
+        .lineLimit(1)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 8)
+        .background(Color.stepSurface.opacity(0.82))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Weather \(weather?.temperature ?? "not available"), humidity \(weather?.humidity ?? "not available")")
+    }
+
+    private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22)
+                .background(color.opacity(0.16))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                    .lineLimit(1)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.stepSurface.opacity(0.76))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     @ViewBuilder
@@ -181,6 +328,109 @@ struct TodayView: View {
             }
             .metricCard()
         }
+    }
+
+    @ViewBuilder
+    private func primaryWorkoutCard(_ summary: DailyActivitySummary) -> some View {
+        if let workout = summary.workouts.first {
+            let style = WorkoutVisualStyle(kind: workout.type)
+            NavigationLink {
+                WorkoutDetailView(workout: workout)
+            } label: {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .top, spacing: 12) {
+                        Image(systemName: style.icon)
+                            .font(.title3.weight(.bold))
+                            .foregroundStyle(style.accent)
+                            .frame(width: 44, height: 44)
+                            .background(style.accent.opacity(0.16))
+                            .clipShape(Circle())
+
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Today's Workout")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(style.accent)
+                            Text(repository.workoutTag(for: workout) ?? workout.displayTitle)
+                                .font(.headline.weight(.bold))
+                                .foregroundStyle(Color.stepInk)
+                                .lineLimit(2)
+                                .minimumScaleFactor(0.82)
+                        }
+
+                        Spacer(minLength: 0)
+
+                        Image(systemName: "chevron.right")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Color.stepMuted)
+                    }
+
+                    ViewThatFits(in: .horizontal) {
+                        HStack(spacing: 8) {
+                            workoutHeroMetric("Duration", ActivityFormatting.formattedDuration(workout.durationMinutes * 60), StepReceiptSymbol.workout, style.accent)
+                            if let burn = workout.activeEnergyKilocalories {
+                                workoutHeroMetric("Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
+                            }
+                            if let averageHeartRate = workout.averageHeartRateBPM {
+                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", HeartRateZoneBreakdown.template(for: averageHeartRate).color)
+                            }
+                        }
+
+                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                            workoutHeroMetric("Duration", ActivityFormatting.formattedDuration(workout.durationMinutes * 60), StepReceiptSymbol.workout, style.accent)
+                            if let burn = workout.activeEnergyKilocalories {
+                                workoutHeroMetric("Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
+                            }
+                            if let averageHeartRate = workout.averageHeartRateBPM {
+                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", HeartRateZoneBreakdown.template(for: averageHeartRate).color)
+                            }
+                        }
+                    }
+                }
+                .padding(16)
+                .background(
+                    LinearGradient(
+                        colors: [style.accent.opacity(0.14), Color.stepSurface],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8, style: .continuous)
+                        .stroke(style.accent.opacity(0.20), lineWidth: 1)
+                )
+                .shadow(color: style.accent.opacity(0.08), radius: 14, x: 0, y: 8)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Today's Workout \(workout.displayTitle)")
+        }
+    }
+
+    private func workoutHeroMetric(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22)
+                .background(color.opacity(0.14))
+                .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.68)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                    .lineLimit(1)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.stepSurface.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     @ViewBuilder
@@ -272,24 +522,32 @@ struct TodayView: View {
                 MetricTile(
                     title: DashboardMetric.distance.displayName,
                     value: ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
-                    icon: StepReceiptSymbol.distance
+                    icon: StepReceiptSymbol.distance,
+                    color: Color.stepDistance
                 )
             }
             if repository.preferences.shows(.activeEnergy) {
                 MetricTile(
                     title: DashboardMetric.activeEnergy.displayName,
                     value: ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories),
-                    icon: StepReceiptSymbol.activeEnergy
+                    icon: StepReceiptSymbol.activeEnergy,
+                    color: Color.stepEnergy
                 )
             }
             if repository.preferences.shows(.flights) {
-                MetricTile(title: DashboardMetric.flights.displayName, value: "\(summary.flightsClimbed)", icon: StepReceiptSymbol.stairClimbing)
+                MetricTile(
+                    title: DashboardMetric.flights.displayName,
+                    value: "\(summary.flightsClimbed)",
+                    icon: StepReceiptSymbol.stairClimbing,
+                    color: Color(red: 0.640, green: 0.430, blue: 1.000)
+                )
             }
             if repository.preferences.shows(.workoutMinutes) {
                 MetricTile(
                     title: DashboardMetric.workoutMinutes.displayName,
                     value: ActivityFormatting.formattedMinutes(summary.workoutMinutes),
-                    icon: StepReceiptSymbol.workout
+                    icon: StepReceiptSymbol.workout,
+                    color: Color.stepAccent
                 )
             }
         }
@@ -405,11 +663,12 @@ struct MetricTile: View {
     let title: String
     let value: String
     let icon: String
+    var color: Color = .stepAccent
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             Image(systemName: icon)
-                .foregroundStyle(Color.stepAccent)
+                .foregroundStyle(color)
                 .frame(width: 22, height: 22, alignment: .leading)
             VStack(alignment: .leading, spacing: 2) {
                 Text(value)
@@ -436,7 +695,13 @@ struct ProgressRing: View {
                 .stroke(Color.stepAccent.opacity(0.18), lineWidth: 10)
             Circle()
                 .trim(from: 0, to: min(1, max(0, progress)))
-                .stroke(Color.stepAccent, style: StrokeStyle(lineWidth: 10, lineCap: .round))
+                .stroke(
+                    AngularGradient(
+                        colors: [Color.stepAccent, Color.stepDistance, Color.stepEnergy, Color.stepAccent],
+                        center: .center
+                    ),
+                    style: StrokeStyle(lineWidth: 10, lineCap: .round)
+                )
                 .rotationEffect(.degrees(-90))
             Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%")
                 .font(.caption.weight(.bold))

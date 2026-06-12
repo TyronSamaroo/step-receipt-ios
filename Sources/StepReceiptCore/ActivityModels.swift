@@ -406,6 +406,22 @@ public enum DailySummarySort: String, Codable, CaseIterable, Equatable, Identifi
     }
 }
 
+public enum ActivityPeriodScope: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case day
+    case week
+    case month
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .day: "Day"
+        case .week: "Week"
+        case .month: "Month"
+        }
+    }
+}
+
 public struct UserPreferences: Codable, Equatable, Sendable {
     public var displayName: String
     public var distanceUnit: DistanceUnit
@@ -585,6 +601,59 @@ public struct InsightReceipt: Codable, Equatable, Sendable {
         self.projectedStepsToday = projectedStepsToday.map { max(0, $0) }
         self.stepGoalCompletionRate = max(0, min(1, stepGoalCompletionRate))
         self.onTrackMessage = onTrackMessage
+    }
+}
+
+public struct PeriodActivitySummary: Codable, Equatable, Sendable {
+    public let scope: ActivityPeriodScope
+    public let periodStart: Date
+    public let periodEnd: Date
+    public let summaries: [DailyActivitySummary]
+    public let receipt: InsightReceipt
+    public let activeDays: Int
+    public let goalHitDays: Int
+    public let workoutCount: Int
+    public let bestDay: DailyActivitySummary?
+    public let headline: String
+
+    public init(
+        scope: ActivityPeriodScope,
+        periodStart: Date,
+        periodEnd: Date,
+        summaries: [DailyActivitySummary],
+        receipt: InsightReceipt,
+        activeDays: Int,
+        goalHitDays: Int,
+        workoutCount: Int,
+        bestDay: DailyActivitySummary?,
+        headline: String
+    ) {
+        self.scope = scope
+        self.periodStart = periodStart
+        self.periodEnd = periodEnd
+        self.summaries = summaries.sorted { $0.dateStart < $1.dateStart }
+        self.receipt = receipt
+        self.activeDays = max(0, activeDays)
+        self.goalHitDays = max(0, goalHitDays)
+        self.workoutCount = max(0, workoutCount)
+        self.bestDay = bestDay
+        self.headline = headline
+    }
+}
+
+public struct TodayCoachInsight: Codable, Equatable, Identifiable, Sendable {
+    public var id: String { "\(title)-\(detail)" }
+
+    public let title: String
+    public let detail: String
+    public let systemImage: String
+    public let priority: Int
+
+    public init(title: String, detail: String, systemImage: String, priority: Int) {
+        self.title = title
+        self.detail = detail
+        self.systemImage = systemImage
+        self.priority = priority
     }
 }
 

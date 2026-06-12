@@ -114,6 +114,105 @@ public struct InsightEngine: Sendable {
             }
     }
 
+    public func summaries(
+        in scope: ActivityPeriodScope,
+        containing date: Date,
+        from summaries: [DailyActivitySummary]
+    ) -> [DailyActivitySummary] {
+        let interval = dateInterval(for: scope, containing: date)
+        return summaries
+            .filter { summary in
+                summary.dateStart >= interval.start && summary.dateStart < interval.end
+            }
+            .sorted { $0.dateStart < $1.dateStart }
+    }
+
+    public func periodSummary(
+        scope: ActivityPeriodScope,
+        containing date: Date,
+        summaries: [DailyActivitySummary],
+        goals: UserGoals,
+        now: Date = Date()
+    ) -> PeriodActivitySummary {
+        let interval = dateInterval(for: scope, containing: date)
+        let scopedSummaries = self.summaries(in: scope, containing: date, from: summaries)
+        let periodReceipt = receipt(for: scopedSummaries, goals: goals, now: now)
+        let activeDays = scopedSummaries.filter(\.hasActivityData).count
+        let goalHitDays = scopedSummaries.filter { $0.steps >= goals.stepsPerDay }.count
+        let workoutCount = scopedSummaries.reduce(0) { $0 + $1.workouts.count }
+        let bestDay = scopedSummaries.max {
+            if $0.steps == $1.steps {
+                return $0.dateStart < $1.dateStart
+            }
+            return $0.steps < $1.steps
+        }
+
+        return PeriodActivitySummary(
+            scope: scope,
+            periodStart: interval.start,
+            periodEnd: interval.end,
+            summaries: scopedSummaries,
+            receipt: periodReceipt,
+            activeDays: activeDays,
+            goalHitDays: goalHitDays,
+            workoutCount: workoutCount,
+            bestDay: bestDay,
+            headline: periodHeadline(
+                scope: scope,
+                summaries: scopedSummaries,
+                receipt: periodReceipt,
+                goals: goals
+            )
+        )
+    }
+
+    public func todayCoachInsights(
+        today: DailyActivitySummary?,
+        history: [DailyActivitySummary],
+        competitionReceipt: CompetitionReceipt?,
+        now: Date = Date()
+    ) -> [TodayCoachInsight] {
+        guard let today else {
+            return [
+                TodayCoachInsight(
+                    title: "Connect Apple Health",
+                    detail: "Coach insights get personal once today's step summary is available.",
+                    systemImage: "heart.fill",
+                    priority: 100
+                )
+            ]
+        }
+
+        var insights: [TodayCoachInsight] = []
+        insights.append(goalGapInsight(for: today))
+
+        if let weekdayInsight = weekdayPaceInsight(today: today, history: history) {
+            insights.append(weekdayInsight)
+        }
+
+        if let workoutInsight = workoutContextInsight(for: today) {
+            insights.append(workoutInsight)
+        }
+
+        if let householdInsight = householdInsight(from: competitionReceipt) {
+            insights.append(householdInsight)
+        }
+
+        if let projectionInsight = projectionInsight(today: today, now: now) {
+            insights.append(projectionInsight)
+        }
+
+        return insights
+            .sorted {
+                if $0.priority == $1.priority {
+                    return $0.title < $1.title
+                }
+                return $0.priority > $1.priority
+            }
+            .prefix(4)
+            .map { $0 }
+    }
+
     public func receipt(
         for summaries: [DailyActivitySummary],
         goals: UserGoals,
@@ -163,6 +262,211 @@ public struct InsightEngine: Sendable {
                 goals: goals
             )
         )
+    }
+
+    private func dateInterval(for scope: ActivityPeriodScope, containing date: Date) -> DateInterval {
+        switch scope {
+        case .day:
+            let start = calendar.startOfDay(for: date)
+            let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86_400)
+            return DateInterval(start: start, end: end)
+        case .week:
+            if let interval = calendar.dateInterval(of: .weekOfYear, for: date) {
+                return interval
+            }
+            let start = calendar.startOfDay(for: date)
+            let end = calendar.date(byAdding: .day, value: 7, to: start) ?? start.addingTimeInterval(604_800)
+            return DateInterval(start: start, end: end)
+        case .month:
+            if let interval = calendar.dateInterval(of: .month, for: date) {
+                return interval
+            }
+            let start = calendar.startOfDay(for: date)
+            let end = calendar.date(byAdding: .day, value: 31, to: start) ?? start.addingTimeInterval(2_678_400)
+            return DateInterval(start: start, end: end)
+        }
+    }
+
+    private func periodHeadline(
+        scope: ActivityPeriodScope,
+        summaries: [DailyActivitySummary],
+        receipt: InsightReceipt,
+        goals: UserGoals
+    ) -> String {
+        guard !summaries.isEmpty else {
+            return "No \(scope.displayName.lowercased()) activity yet."
+        }
+
+        let completionPercent = Int((receipt.stepGoalCompletionRate * 100).rounded())
+        switch scope {
+        case .day:
+            if let day = summaries.first, day.steps >= goals.stepsPerDay {
+                return "Daily goal cleared."
+            }
+            return receipt.onTrackMessage
+        case .week:
+            return "\(receipt.dailyAverageSteps.formatted()) average steps/day with \(completionPercent)% goal completion."
+        case .month:
+            return "\(summaries.filter(\.hasActivityData).count) active days and \(completionPercent)% goal completion this month."
+        }
+    }
+
+    private func goalGapInsight(for today: DailyActivitySummary) -> TodayCoachInsight {
+        let remaining = max(0, today.goals.stepsPerDay - today.steps)
+        if remaining == 0 {
+            return TodayCoachInsight(
+                title: "Goal cleared",
+                detail: "You are at \(today.steps.formatted()) steps. Keep the streak intact.",
+                systemImage: "checkmark.circle.fill",
+                priority: 95
+            )
+        }
+
+        let walkingMinutes = Int(ceil(Double(remaining) / 110.0))
+        return TodayCoachInsight(
+            title: "\(remaining.formatted()) steps left",
+            detail: "About \(walkingMinutes) min of easy walking gets you to \(today.goals.stepsPerDay.formatted()).",
+            systemImage: "figure.walk",
+            priority: 100
+        )
+    }
+
+    private func weekdayPaceInsight(today: DailyActivitySummary, history: [DailyActivitySummary]) -> TodayCoachInsight? {
+        let todayStart = calendar.startOfDay(for: today.dateStart)
+        let weekday = calendar.component(.weekday, from: todayStart)
+        let matchingDays = history.filter { summary in
+            let sameWeekday = calendar.component(.weekday, from: summary.dateStart) == weekday
+            return sameWeekday &&
+                summary.dateStart < todayStart &&
+                summary.hasActivityData
+        }
+        guard matchingDays.count >= 2 else { return nil }
+
+        let average = Int((Double(matchingDays.reduce(0) { $0 + $1.steps }) / Double(matchingDays.count)).rounded())
+        let delta = today.steps - average
+        guard abs(delta) >= 750 else {
+            return TodayCoachInsight(
+                title: "Normal \(weekdayName(for: todayStart)) pace",
+                detail: "You are within \(abs(delta).formatted()) steps of your recent \(weekdayName(for: todayStart)) average.",
+                systemImage: "chart.line.uptrend.xyaxis",
+                priority: 65
+            )
+        }
+
+        if delta < 0 {
+            return TodayCoachInsight(
+                title: "Behind usual \(weekdayName(for: todayStart))",
+                detail: "\(abs(delta).formatted()) steps under your recent \(weekdayName(for: todayStart)) average of \(average.formatted()).",
+                systemImage: "clock.arrow.circlepath",
+                priority: 90
+            )
+        }
+
+        return TodayCoachInsight(
+            title: "Ahead of usual \(weekdayName(for: todayStart))",
+            detail: "\(delta.formatted()) steps above your recent \(weekdayName(for: todayStart)) average.",
+            systemImage: "chart.line.uptrend.xyaxis",
+            priority: 85
+        )
+    }
+
+    private func workoutContextInsight(for today: DailyActivitySummary) -> TodayCoachInsight? {
+        guard !today.workouts.isEmpty || today.workoutMinutes > 0 else { return nil }
+        if today.workouts.contains(where: { $0.type == .strengthTraining }) {
+            return TodayCoachInsight(
+                title: "Strength day context",
+                detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) logged. Steps can be lighter, but a short walk helps recovery.",
+                systemImage: "dumbbell",
+                priority: 82
+            )
+        }
+
+        if let topWorkout = today.workouts.first {
+            return TodayCoachInsight(
+                title: "\(topWorkout.displayTitle) logged",
+                detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) of workout time is already on the board today.",
+                systemImage: "bolt.heart",
+                priority: 80
+            )
+        }
+
+        return TodayCoachInsight(
+            title: "Workout time logged",
+            detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) already counts toward your weekly training goal.",
+            systemImage: "timer",
+            priority: 78
+        )
+    }
+
+    private func householdInsight(from receipt: CompetitionReceipt?) -> TodayCoachInsight? {
+        guard
+            let receipt,
+            let currentRow = receipt.rows.first(where: \.isCurrentUser),
+            receipt.rows.count > 1
+        else { return nil }
+
+        if currentRow.rank == 1, let nextRow = receipt.rows.dropFirst().first {
+            let lead = currentRow.score - nextRow.score
+            return TodayCoachInsight(
+                title: "Household lead",
+                detail: "You are ahead by \(formattedCompetitionScore(lead, metric: receipt.metric)) in \(receipt.window.displayName.lowercased()).",
+                systemImage: "person.2.fill",
+                priority: 75
+            )
+        }
+
+        if let gap = receipt.gapToNextRank, gap > 0 {
+            return TodayCoachInsight(
+                title: "Household chase",
+                detail: "\(formattedCompetitionScore(gap, metric: receipt.metric)) separates you from the next rank.",
+                systemImage: "person.2.fill",
+                priority: 75
+            )
+        }
+
+        return nil
+    }
+
+    private func projectionInsight(today: DailyActivitySummary, now: Date) -> TodayCoachInsight? {
+        guard calendar.isDate(today.dateStart, inSameDayAs: now) else { return nil }
+        let projected = projectionForToday(from: [today], now: now) ?? today.steps
+        guard projected > 0 else { return nil }
+
+        if projected >= today.goals.stepsPerDay {
+            return TodayCoachInsight(
+                title: "Projected on track",
+                detail: "Current pace points to about \(projected.formatted()) steps today.",
+                systemImage: "target",
+                priority: 70
+            )
+        }
+
+        return TodayCoachInsight(
+            title: "Projected short",
+            detail: "Current pace points to about \(projected.formatted()) steps, below today's goal.",
+            systemImage: "target",
+            priority: 88
+        )
+    }
+
+    private func weekdayName(for date: Date) -> String {
+        let index = calendar.component(.weekday, from: date) - 1
+        let symbols = calendar.weekdaySymbols
+        guard symbols.indices.contains(index) else { return "day" }
+        return symbols[index]
+    }
+
+    private func formattedCompetitionScore(_ score: Double, metric: CompetitionMetric) -> String {
+        switch metric {
+        case .steps:
+            return "\(Int(score.rounded()).formatted()) steps"
+        case .distance:
+            return String(format: "%.2f km", score / 1_000)
+        case .activeEnergy:
+            return ActivityFormatting.formattedCalories(score)
+        case .workoutMinutes:
+            return ActivityFormatting.formattedMinutes(score)
+        }
     }
 
     public func syncedRecord(

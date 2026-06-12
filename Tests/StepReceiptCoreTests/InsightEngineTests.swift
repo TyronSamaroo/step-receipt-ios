@@ -11,6 +11,7 @@ struct InsightEngineTests {
     init() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        calendar.firstWeekday = 1
         self.calendar = calendar
         self.engine = InsightEngine(calendar: calendar)
     }
@@ -112,6 +113,121 @@ struct InsightEngineTests {
 
         #expect(receipt.projectedStepsToday == 10_000)
         #expect(receipt.onTrackMessage == "On pace to hit your step goal today.")
+    }
+
+    @Test
+    func testPeriodSummaryBuildsWeekAndMonthReceipts() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let summaries = [
+            summary("2026-06-01T00:00:00Z", steps: 6_000, goals: goals),
+            summary("2026-06-07T00:00:00Z", steps: 11_000, goals: goals),
+            summary("2026-06-08T00:00:00Z", steps: 9_000, goals: goals),
+            summary("2026-06-09T00:00:00Z", steps: 14_000, goals: goals),
+            summary("2026-06-10T00:00:00Z", steps: 4_000, goals: goals),
+            summary("2026-07-01T00:00:00Z", steps: 20_000, goals: goals)
+        ]
+
+        let week = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            summaries: summaries,
+            goals: goals,
+            now: try date("2026-06-10T18:00:00Z")
+        )
+        let month = engine.periodSummary(
+            scope: .month,
+            containing: try date("2026-06-10T12:00:00Z"),
+            summaries: summaries,
+            goals: goals,
+            now: try date("2026-06-10T18:00:00Z")
+        )
+
+        #expect(week.summaries.map(\.steps) == [11_000, 9_000, 14_000, 4_000])
+        #expect(week.receipt.totalSteps == 38_000)
+        #expect(week.goalHitDays == 2)
+        #expect(week.bestDay?.steps == 14_000)
+        #expect(week.headline.contains("average steps/day"))
+
+        #expect(month.summaries.count == 5)
+        #expect(month.receipt.totalSteps == 44_000)
+        #expect(month.activeDays == 5)
+        #expect(month.bestDay?.steps == 14_000)
+        #expect(month.receipt.bestMonth?.steps == 44_000)
+    }
+
+    @Test
+    func testTodayCoachUsesGoalWeekdayWorkoutAndHouseholdContext() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let strengthStart = try date("2026-06-12T12:00:00Z")
+        let strengthWorkout = WorkoutActivity(
+            sourceIdentifier: "strength-today",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: strengthStart,
+            endDate: strengthStart.addingTimeInterval(60 * 60),
+            activeEnergyKilocalories: 320
+        )
+        let today = DailyActivitySummary(
+            dateStart: try date("2026-06-12T00:00:00Z"),
+            steps: 6_000,
+            distanceMeters: 4_500,
+            activeEnergyKilocalories: 260,
+            flightsClimbed: 5,
+            workoutMinutes: 60,
+            buckets: [],
+            workouts: [strengthWorkout],
+            goals: goals
+        )
+        let currentUserID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000001"))
+        let spouseID = try #require(UUID(uuidString: "00000000-0000-0000-0000-000000000002"))
+        let competitionReceipt = CompetitionReceipt(
+            window: .today,
+            metric: .steps,
+            generatedAt: try date("2026-06-12T13:00:00Z"),
+            rows: [
+                LeaderboardRow(
+                    rank: 1,
+                    competitor: CompetitorProfile(id: spouseID, displayName: "Tiffany"),
+                    metric: .steps,
+                    score: 8_000,
+                    steps: 8_000,
+                    distanceMeters: 6_000,
+                    activeEnergyKilocalories: 320,
+                    workoutMinutes: 20,
+                    isCurrentUser: false
+                ),
+                LeaderboardRow(
+                    rank: 2,
+                    competitor: CompetitorProfile(id: currentUserID, displayName: "Tyron"),
+                    metric: .steps,
+                    score: 6_000,
+                    steps: 6_000,
+                    distanceMeters: 4_500,
+                    activeEnergyKilocalories: 260,
+                    workoutMinutes: 60,
+                    isCurrentUser: true
+                )
+            ],
+            currentUserRank: 2,
+            gapToNextRank: 2_000,
+            headline: "Tiffany is ahead today."
+        )
+
+        let insights = engine.todayCoachInsights(
+            today: today,
+            history: [
+                summary("2026-05-29T00:00:00Z", steps: 10_000, goals: goals),
+                summary("2026-06-05T00:00:00Z", steps: 9_500, goals: goals)
+            ],
+            competitionReceipt: competitionReceipt,
+            now: try date("2026-06-13T12:00:00Z")
+        )
+        let titles = insights.map(\.title)
+
+        #expect(titles.contains { $0.contains("steps left") })
+        #expect(titles.contains { $0.hasPrefix("Behind usual") })
+        #expect(titles.contains("Strength day context"))
+        #expect(titles.contains("Household chase"))
     }
 
     @Test

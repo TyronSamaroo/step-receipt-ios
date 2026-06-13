@@ -194,6 +194,29 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testBootstrapWithoutHealthRequestStartsInEmptyRealState() async throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.bootstrap()
+
+        #expect(repository.authorizationState == .notDetermined)
+        #expect(repository.todaySummary?.steps == 0)
+        #expect(repository.todaySummary?.buckets.isEmpty == true)
+        #expect(repository.history.isEmpty)
+        #expect(repository.workouts.isEmpty)
+        #expect(repository.receipt?.totalSteps == 0)
+    }
+
+    @Test
     func testDeniedHealthAccessUsesCachedDataBeforeSamplePreview() async throws {
         let day = calendar.startOfDay(for: Date())
         let suiteName = defaultsSuiteName()

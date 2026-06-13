@@ -9,6 +9,8 @@ struct TodayView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
+                    healthConnectionCard
+
                     if let summary = repository.todaySummary {
                         todayHero(summary)
                         todayCoach(repository.todayCoachInsights())
@@ -61,6 +63,73 @@ struct TodayView: View {
         }
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
+        }
+    }
+
+    @ViewBuilder
+    private var healthConnectionCard: some View {
+        if repository.authorizationState != .authorized {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: StepReceiptSymbol.health)
+                    .font(.title3.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .frame(width: 42, height: 42)
+                    .background(Color.stepAccent.opacity(0.14))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(healthConnectionTitle)
+                        .font(.headline.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                    Text(healthConnectionDetail)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                if repository.authorizationState != .unavailable {
+                    Button {
+                        Task { await repository.requestHealthAccess() }
+                    } label: {
+                        Text("Connect")
+                            .font(.caption.weight(.bold))
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(Color.stepAccent)
+                    .accessibilityLabel("Connect Apple Health")
+                }
+            }
+            .metricCard()
+        }
+    }
+
+    private var healthConnectionTitle: String {
+        switch repository.authorizationState {
+        case .notDetermined:
+            "Connect Apple Health once"
+        case .deniedOrLimited:
+            "Apple Health access needs attention"
+        case .unavailable:
+            "Apple Health is unavailable"
+        case .authorized:
+            ""
+        }
+    }
+
+    private var healthConnectionDetail: String {
+        switch repository.authorizationState {
+        case .notDetermined:
+            "Enable steps, distance, calories, workouts, and heart rate. After that, the app opens straight to Today."
+        case .deniedOrLimited:
+            "If anything is missing, reconnect here or allow StepReceipt in the Health app."
+        case .unavailable:
+            "This device cannot read Health data, so real activity will not populate here."
+        case .authorized:
+            ""
         }
     }
 

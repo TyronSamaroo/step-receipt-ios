@@ -16,7 +16,6 @@
 		1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
-		3C9290E64EBEE8D1D186287F /* PermissionOnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */; };
 		4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */; };
 		55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
@@ -129,7 +128,6 @@
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
 		F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisabledCloudSync.swift; sourceTree = "<group>"; };
-		FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PermissionOnboardingView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -182,7 +180,6 @@
 				DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */,
 				C419C531AB76EA4334533C31 /* CompetitionView.swift */,
 				7BCCA4BE75DE26E667433C90 /* InsightsView.swift */,
-				FF1D925C3C0F4FBB2E523E10 /* PermissionOnboardingView.swift */,
 				77D7B3688BBF71678CEEFABC /* SettingsView.swift */,
 				D7AA520E58D9123739472025 /* ShareSheet.swift */,
 				E6DCB0108D22D9887D64D763 /* TodayView.swift */,
@@ -476,7 +473,6 @@
 				0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */,
 				A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */,
 				7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */,
-				3C9290E64EBEE8D1D186287F /* PermissionOnboardingView.swift in Sources */,
 				12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */,
 				D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */,
 				F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */,
@@ -679,7 +675,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -745,7 +741,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 12;
+				CURRENT_PROJECT_VERSION = 13;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

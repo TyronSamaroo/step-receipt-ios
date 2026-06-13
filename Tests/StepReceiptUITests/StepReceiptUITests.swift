@@ -5,12 +5,8 @@ final class StepReceiptUITests: XCTestCase {
     func testSamplePreviewShowsCoreTabs() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-stepReceiptUITestingResetDefaults"]
+        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
         app.launch()
-
-        if app.staticTexts["StepReceipt"].waitForExistence(timeout: 5) {
-            app.buttons["Preview Sample Data"].tap()
-        }
 
         XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
@@ -69,12 +65,8 @@ final class StepReceiptUITests: XCTestCase {
     func testSampleWorkoutDetailShowsRichPanels() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-stepReceiptUITestingResetDefaults"]
+        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
         app.launch()
-
-        if app.staticTexts["StepReceipt"].waitForExistence(timeout: 5) {
-            app.buttons["Preview Sample Data"].tap()
-        }
 
         XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
         app.tabBars.buttons["Activity"].tap()

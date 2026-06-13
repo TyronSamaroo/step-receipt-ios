@@ -125,9 +125,16 @@ final class ActivityRepository: ObservableObject {
     func bootstrap() async {
         resetDefaultsForUITestingIfNeeded()
         cloudSyncState = await cloudKit.status()
+        if isUITestingSampleDataEnabled {
+            authorizationState = .authorized
+            loadSampleData()
+            await syncSharedCompetition()
+            return
+        }
+
         if !healthKit.isAvailable {
             authorizationState = .unavailable
-            loadCachedDataOrSample()
+            loadCachedDataOrEmpty()
             await syncSharedCompetition()
             return
         }
@@ -140,7 +147,7 @@ final class ActivityRepository: ObservableObject {
                 return
             }
             authorizationState = .notDetermined
-            loadCachedDataOrSample()
+            loadCachedDataOrEmpty()
             await syncSharedCompetition()
             return
         }
@@ -157,7 +164,7 @@ final class ActivityRepository: ObservableObject {
             let state = try await healthKit.requestAuthorization()
             authorizationState = state
             guard state == .authorized else {
-                loadCachedDataOrSample()
+                loadCachedDataOrEmpty()
                 return
             }
 
@@ -166,7 +173,7 @@ final class ActivityRepository: ObservableObject {
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
-            loadCachedDataOrSample()
+            loadCachedDataOrEmpty()
         }
     }
 
@@ -222,7 +229,7 @@ final class ActivityRepository: ObservableObject {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
             if history.isEmpty {
-                loadCachedDataOrSample()
+                loadCachedDataOrEmpty()
             }
         }
     }
@@ -719,6 +726,10 @@ final class ActivityRepository: ObservableObject {
         userDefaults.bool(forKey: samplePreviewEnabledKey)
     }
 
+    private var isUITestingSampleDataEnabled: Bool {
+        ProcessInfo.processInfo.arguments.contains("-stepReceiptUITestingUseSampleData")
+    }
+
     private func markHealthAuthorizationRequested() {
         userDefaults.set(true, forKey: authorizationRequestedKey)
     }
@@ -757,10 +768,21 @@ final class ActivityRepository: ObservableObject {
         lastError = nil
     }
 
-    private func loadCachedDataOrSample() {
+    private func loadCachedDataOrEmpty() {
         if !loadCachedActivityData() {
-            loadSampleData()
+            loadEmptyActivityState()
         }
+    }
+
+    private func loadEmptyActivityState() {
+        selectedDate = normalizedActivityDate(selectedDate)
+        workouts = []
+        history = []
+        todaySummary = emptySummary(for: selectedDate)
+        receipt = engine.receipt(for: history, goals: goals)
+        activityDataSource = .none
+        refreshCompetition()
+        Task { await updateLiveActivityIfNeeded(with: todaySummary) }
     }
 
     @discardableResult

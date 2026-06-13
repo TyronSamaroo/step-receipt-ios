@@ -38,12 +38,6 @@ struct AppRootView: View {
         }
         .tint(.stepAccent)
         .preferredColorScheme(repository.preferences.appTheme.colorScheme)
-        .overlay {
-            if repository.authorizationState == .notDetermined {
-                PermissionOnboardingView()
-                    .transition(.opacity)
-            }
-        }
     }
 }
 

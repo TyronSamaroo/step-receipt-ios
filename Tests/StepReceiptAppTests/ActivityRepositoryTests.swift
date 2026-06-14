@@ -103,6 +103,47 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testForegroundActivationRefreshesStaleTodaySummary() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 250, distance: 180, energy: 8)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 250, distance: 180, energy: 8)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        #expect(repository.todaySummary?.steps == 250)
+
+        health.hourlyBuckets = [
+            bucket(day, hour: 8, steps: 250, distance: 180, energy: 8),
+            bucket(day, hour: 14, steps: 2_750, distance: 2_000, energy: 108)
+        ]
+        health.dailyBuckets = [
+            bucket(day, hour: 0, steps: 3_000, distance: 2_180, energy: 116)
+        ]
+
+        await repository.refreshAfterAppBecameActive()
+
+        #expect(repository.todaySummary?.steps == 3_000)
+        #expect(repository.receipt?.totalSteps == 3_000)
+        #expect(health.backgroundDeliveryRequestCount == 1)
+    }
+
+    @Test
     func testRefreshDeduplicatesSelectedDayBeforeCloudSync() async throws {
         let day = calendar.startOfDay(for: Date())
         let previousDay = try #require(calendar.date(byAdding: .day, value: -1, to: day))

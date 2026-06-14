@@ -124,13 +124,14 @@ final class ActivityRepository: ObservableObject {
 
     func bootstrap() async {
         resetDefaultsForUITestingIfNeeded()
-        cloudSyncState = await cloudKit.status()
         if isUITestingSampleDataEnabled {
             authorizationState = .authorized
             loadSampleData()
             await syncSharedCompetition()
             return
         }
+
+        cloudSyncState = await cloudKit.status()
 
         if !healthKit.isAvailable {
             authorizationState = .unavailable
@@ -185,6 +186,7 @@ final class ActivityRepository: ObservableObject {
     }
 
     func refresh() async {
+        guard !isLoading else { return }
         isLoading = true
         defer { isLoading = false }
 
@@ -232,6 +234,17 @@ final class ActivityRepository: ObservableObject {
                 loadCachedDataOrEmpty()
             }
         }
+    }
+
+    func refreshAfterAppBecameActive() async {
+        liveActivityStatus = liveActivityService.status
+
+        guard healthKit.isAvailable, hasRequestedHealthAuthorization else {
+            return
+        }
+
+        await configureStepBackgroundDeliveryIfPossible()
+        await refresh()
     }
 
     func filteredWorkouts(kind: ActivityKind?) -> [WorkoutActivity] {

@@ -174,7 +174,7 @@ struct SettingsView: View {
             return "StrideSlip will start it after today's step summary loads."
         }
 
-        return "\(repository.liveActivityStatus.detail) StrideSlip asks Apple Health for background step updates, then refreshes the Lock Screen when iOS wakes the app."
+        return "\(repository.liveActivityStatus.detail) While the app is open, StrideSlip refreshes about once a minute. On the Lock Screen, iOS decides when HealthKit background step updates wake the app."
     }
 
     private func statusRow(_ title: String, _ value: String, _ icon: String) -> some View {

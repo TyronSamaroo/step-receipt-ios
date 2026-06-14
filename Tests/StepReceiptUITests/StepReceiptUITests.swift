@@ -5,10 +5,9 @@ final class StepReceiptUITests: XCTestCase {
     func testSamplePreviewShowsCoreTabs() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
-        app.launch()
+        launchWithSampleData(app)
 
-        XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
@@ -65,10 +64,9 @@ final class StepReceiptUITests: XCTestCase {
     func testSampleWorkoutDetailShowsRichPanels() throws {
         continueAfterFailure = false
         let app = XCUIApplication()
-        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
-        app.launch()
+        launchWithSampleData(app)
 
-        XCTAssertTrue(app.staticTexts["Hourly Steps"].waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 2))
         app.tabBars.buttons["Activity"].tap()
         let workoutsSegment = app.segmentedControls.buttons["Workouts"]
         XCTAssertTrue(workoutsSegment.waitForExistence(timeout: 3))
@@ -112,12 +110,44 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
+    private func launchWithSampleData(_ app: XCUIApplication) {
+        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
+        app.launch()
+
+        if app.buttons["Preview Sample Data"].waitForExistence(timeout: 2) {
+            app.buttons["Preview Sample Data"].tap()
+        }
+    }
+
+    @MainActor
     private func scrollToElement(_ element: XCUIElement, in app: XCUIApplication, maxSwipes: Int = 5) {
         for _ in 0..<maxSwipes where !element.exists {
             app.swipeUp()
         }
     }
 
+    @MainActor
+    private func scrollToElement(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        timeout: TimeInterval,
+        maxSwipes: Int
+    ) -> Bool {
+        if element.waitForExistence(timeout: timeout) {
+            return true
+        }
+
+        for _ in 0..<maxSwipes {
+            app.swipeUp()
+            if element.waitForExistence(timeout: 1) {
+                return true
+            }
+        }
+
+        return false
+    }
+
+    @MainActor
     private func workoutRow(containing text: String, in app: XCUIApplication) -> XCUIElementQuery {
         app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "workout-row-", text)

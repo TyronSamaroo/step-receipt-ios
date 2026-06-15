@@ -46,7 +46,11 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
 
         let groupHash = Self.groupHash(for: normalizedCode)
         let localEntries = mergedEntries(entries)
-        let remoteRecords = try await fetchEntryRecords(groupHash: groupHash)
+        let boardRecord = try await loadOrCreatePublicBoardRecord(groupHash: groupHash, inviteCode: normalizedCode)
+        let knownEntryNames = entryRecordNames(from: boardRecord)
+        let localEntryNames = localEntries.map { Self.entryRecordName(groupHash: groupHash, entryID: $0.id) }
+        let entryNamesToFetch = Array(Set(knownEntryNames).union(localEntryNames)).sorted()
+        let remoteRecords = try await fetchEntryRecords(recordNames: entryNamesToFetch)
         let remoteEntries = mergedEntries(remoteRecords.compactMap(entry(from:)))
 
         for entry in localEntries {
@@ -54,6 +58,14 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
             let currentRecord = remoteRecords.first { $0.recordID.recordName == recordName }
             try await saveLocalEntry(entry, groupHash: groupHash, existingRecord: currentRecord)
         }
+
+        let savedEntryNames = Array(Set(entryNamesToFetch).union(localEntryNames)).sorted()
+        try await savePublicBoardRecord(
+            boardRecord,
+            groupHash: groupHash,
+            inviteCode: normalizedCode,
+            entryNames: savedEntryNames
+        )
 
         let savedEntries = mergedEntries(remoteEntries + localEntries)
         return savedEntries
@@ -160,29 +172,104 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         return record
     }
 
-    private func fetchEntryRecords(groupHash: String) async throws -> [CKRecord] {
-        let query = CKQuery(recordType: Self.entryRecordType, predicate: NSPredicate(format: "groupHash == %@", groupHash))
+    private func loadOrCreatePublicBoardRecord(groupHash: String, inviteCode: String) async throws -> CKRecord {
+        let recordID = CKRecord.ID(recordName: Self.boardRecordName(for: groupHash))
+        do {
+            let record = try await database.record(for: recordID)
+            updateBoardRecord(record, groupHash: groupHash, inviteCode: inviteCode, entryNames: entryRecordNames(from: record))
+            return record
+        } catch {
+            guard isMissingRecord(error) else { throw error }
+            let record = CKRecord(recordType: Self.boardRecordType, recordID: recordID)
+            updateBoardRecord(record, groupHash: groupHash, inviteCode: inviteCode, entryNames: [])
+            return record
+        }
+    }
+
+    private func savePublicBoardRecord(
+        _ boardRecord: CKRecord,
+        groupHash: String,
+        inviteCode: String,
+        entryNames: [String]
+    ) async throws {
+        var record = boardRecord
+        var namesToSave = entryNames
+
+        for _ in 0..<3 {
+            updateBoardRecord(record, groupHash: groupHash, inviteCode: inviteCode, entryNames: namesToSave)
+
+            do {
+                _ = try await database.save(record)
+                return
+            } catch {
+                if let serverRecord = serverChangedRecord(from: error) {
+                    namesToSave = Array(Set(namesToSave).union(entryRecordNames(from: serverRecord))).sorted()
+                    record = serverRecord
+                    continue
+                }
+                if isMissingRecord(error) {
+                    record = CKRecord(
+                        recordType: Self.boardRecordType,
+                        recordID: CKRecord.ID(recordName: Self.boardRecordName(for: groupHash))
+                    )
+                    continue
+                }
+                throw error
+            }
+        }
+
+        throw CloudSyncError.unavailable("Household board could not be saved.")
+    }
+
+    private func updateBoardRecord(
+        _ record: CKRecord,
+        groupHash: String,
+        inviteCode: String,
+        entryNames: [String]
+    ) {
+        let cappedEntryNames = Array(Set(entryNames)).sorted().prefix(Self.maxEntriesPerBoard)
+        record["groupHash"] = groupHash
+        record["schemaVersion"] = Self.schemaVersion
+        record["inviteCodeHint"] = String(inviteCode.suffix(4))
+        record["entryNames"] = Array(cappedEntryNames) as NSArray
+        record["privacyBoundary"] = "competition-aggregates-only"
+        record["updatedAt"] = Date()
+    }
+
+    private func entryRecordNames(from record: CKRecord) -> [String] {
+        if let values = record["entryNames"] as? [String] {
+            return values
+        }
+        if let values = record["entryNames"] as? NSArray {
+            return values.compactMap { $0 as? String }
+        }
+        return []
+    }
+
+    private func fetchEntryRecords(recordNames: [String]) async throws -> [CKRecord] {
+        let cappedNames = Array(Set(recordNames)).sorted().prefix(Self.maxEntriesPerBoard)
+        guard !cappedNames.isEmpty else { return [] }
+
         var records: [CKRecord] = []
+        let recordIDs = cappedNames.map { CKRecord.ID(recordName: $0) }
+        var startIndex = 0
 
-        let firstPage = try await database.records(
-            matching: query,
-            desiredKeys: nil,
-            resultsLimit: Self.maxEntriesPerBoard
-        )
-        records.append(contentsOf: successfulRecords(from: firstPage.matchResults))
-
-        var cursor = firstPage.queryCursor
-        while let currentCursor = cursor, records.count < Self.maxEntriesPerBoard {
-            let page = try await database.records(
-                continuingMatchFrom: currentCursor,
-                desiredKeys: nil,
-                resultsLimit: Self.maxEntriesPerBoard - records.count
-            )
-            records.append(contentsOf: successfulRecords(from: page.matchResults))
-            cursor = page.queryCursor
+        while startIndex < recordIDs.count {
+            let endIndex = min(startIndex + 100, recordIDs.count)
+            let batch = Array(recordIDs[startIndex..<endIndex])
+            let results = try await database.records(for: batch, desiredKeys: nil)
+            records.append(contentsOf: successfulRecords(from: results))
+            startIndex = endIndex
         }
 
         return records
+    }
+
+    private func successfulRecords(from matches: [CKRecord.ID: Result<CKRecord, Error>]) -> [CKRecord] {
+        matches.values.compactMap { result in
+            guard case .success(let record) = result else { return nil }
+            return record
+        }
     }
 
     private func successfulRecords(from matches: [(CKRecord.ID, Result<CKRecord, Error>)]) -> [CKRecord] {

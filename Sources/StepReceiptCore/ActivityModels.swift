@@ -30,6 +30,15 @@ public enum ActivityKind: String, Codable, CaseIterable, Equatable, Identifiable
         case .other: "Other"
         }
     }
+
+    public var isCardioMovement: Bool {
+        switch self {
+        case .walking, .running, .cycling, .hiking, .swimming, .elliptical, .stairClimbing, .rowing:
+            true
+        case .strengthTraining, .yoga, .other:
+            false
+        }
+    }
 }
 
 public struct HealthMetricBucket: Codable, Equatable, Identifiable, Sendable {
@@ -286,6 +295,187 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
     }
 }
 
+public struct HeartRateZoneConfiguration: Codable, Equatable, Sendable {
+    public static let `default` = HeartRateZoneConfiguration(validatedLowerBoundsBPM: [115, 134, 153, 172])
+
+    public let zone2LowerBoundBPM: Int
+    public let zone3LowerBoundBPM: Int
+    public let zone4LowerBoundBPM: Int
+    public let zone5LowerBoundBPM: Int
+
+    public init(
+        zone2LowerBoundBPM: Int = 115,
+        zone3LowerBoundBPM: Int = 134,
+        zone4LowerBoundBPM: Int = 153,
+        zone5LowerBoundBPM: Int = 172
+    ) {
+        let lowerBounds = [
+            zone2LowerBoundBPM,
+            zone3LowerBoundBPM,
+            zone4LowerBoundBPM,
+            zone5LowerBoundBPM
+        ]
+        guard Self.isValid(lowerBoundsBPM: lowerBounds) else {
+            self = Self.default
+            return
+        }
+        self.init(validatedLowerBoundsBPM: lowerBounds)
+    }
+
+    public init(lowerBoundsBPM: [Int]) {
+        guard Self.isValid(lowerBoundsBPM: lowerBoundsBPM) else {
+            self = Self.default
+            return
+        }
+        self.init(validatedLowerBoundsBPM: lowerBoundsBPM)
+    }
+
+    private init(validatedLowerBoundsBPM lowerBounds: [Int]) {
+        self.zone2LowerBoundBPM = lowerBounds[0]
+        self.zone3LowerBoundBPM = lowerBounds[1]
+        self.zone4LowerBoundBPM = lowerBounds[2]
+        self.zone5LowerBoundBPM = lowerBounds[3]
+    }
+
+    public var lowerBoundsBPM: [Int] {
+        [
+            zone2LowerBoundBPM,
+            zone3LowerBoundBPM,
+            zone4LowerBoundBPM,
+            zone5LowerBoundBPM
+        ]
+    }
+
+    public static func isValid(lowerBoundsBPM: [Int]) -> Bool {
+        guard lowerBoundsBPM.count == 4 else { return false }
+        guard lowerBoundsBPM.allSatisfy({ (30...240).contains($0) }) else { return false }
+        return zip(lowerBoundsBPM, lowerBoundsBPM.dropFirst()).allSatisfy { lhs, rhs in
+            lhs < rhs
+        }
+    }
+
+    public func template(forLevel level: Int) -> HeartRateZoneSummary {
+        switch level {
+        case 1:
+            HeartRateZoneSummary(level: 1, lowerBoundBPM: nil, upperBoundBPM: Double(zone2LowerBoundBPM))
+        case 2:
+            HeartRateZoneSummary(level: 2, lowerBoundBPM: Double(zone2LowerBoundBPM), upperBoundBPM: Double(zone3LowerBoundBPM))
+        case 3:
+            HeartRateZoneSummary(level: 3, lowerBoundBPM: Double(zone3LowerBoundBPM), upperBoundBPM: Double(zone4LowerBoundBPM))
+        case 4:
+            HeartRateZoneSummary(level: 4, lowerBoundBPM: Double(zone4LowerBoundBPM), upperBoundBPM: Double(zone5LowerBoundBPM))
+        default:
+            HeartRateZoneSummary(level: 5, lowerBoundBPM: Double(zone5LowerBoundBPM), upperBoundBPM: nil)
+        }
+    }
+
+    public func template(for beatsPerMinute: Double) -> HeartRateZoneSummary {
+        let zoneLevel: Int
+        switch beatsPerMinute {
+        case ..<Double(zone2LowerBoundBPM):
+            zoneLevel = 1
+        case ..<Double(zone3LowerBoundBPM):
+            zoneLevel = 2
+        case ..<Double(zone4LowerBoundBPM):
+            zoneLevel = 3
+        case ..<Double(zone5LowerBoundBPM):
+            zoneLevel = 4
+        default:
+            zoneLevel = 5
+        }
+        return template(forLevel: zoneLevel)
+    }
+
+    public func zoneSummaries(for workout: WorkoutActivity) -> [HeartRateZoneSummary] {
+        zoneSummaries(from: segments(for: workout))
+    }
+
+    public func zoneSummaries(for workouts: [WorkoutActivity]) -> [HeartRateZoneSummary] {
+        zoneSummaries(from: workouts.flatMap { segments(for: $0) })
+    }
+
+    public func segments(for workout: WorkoutActivity) -> [HeartRateZoneSegment] {
+        let samples = workout.heartRateSamples
+        guard !samples.isEmpty else { return [] }
+
+        let fallbackDuration = max(1, workout.durationMinutes * 60 / Double(samples.count))
+        return samples.enumerated().map { index, sample in
+            let nextDate = index + 1 < samples.count ? samples[index + 1].timestamp : workout.endDate
+            var duration = nextDate.timeIntervalSince(sample.timestamp)
+            if duration <= 0 || duration > fallbackDuration * 4 {
+                duration = fallbackDuration
+            }
+
+            return HeartRateZoneSegment(
+                zone: template(for: sample.beatsPerMinute),
+                durationSeconds: max(1, duration)
+            )
+        }
+    }
+
+    private func zoneSummaries(from segments: [HeartRateZoneSegment]) -> [HeartRateZoneSummary] {
+        let totals = segments.reduce(into: [Int: TimeInterval]()) { result, segment in
+            result[segment.zone.level, default: 0] += segment.durationSeconds
+        }
+
+        return (1...5).map { level in
+            let template = template(forLevel: level)
+            return HeartRateZoneSummary(
+                level: template.level,
+                lowerBoundBPM: template.lowerBoundBPM,
+                upperBoundBPM: template.upperBoundBPM,
+                durationSeconds: totals[level] ?? 0
+            )
+        }
+    }
+}
+
+public struct HeartRateZoneSummary: Codable, Equatable, Identifiable, Sendable {
+    public var id: Int { level }
+
+    public let level: Int
+    public let title: String
+    public let lowerBoundBPM: Double?
+    public let upperBoundBPM: Double?
+    public let durationSeconds: TimeInterval
+
+    public init(
+        level: Int,
+        lowerBoundBPM: Double?,
+        upperBoundBPM: Double?,
+        durationSeconds: TimeInterval = 0
+    ) {
+        self.level = max(1, min(5, level))
+        self.title = "Zone \(self.level)"
+        self.lowerBoundBPM = lowerBoundBPM.map { max(0, $0) }
+        self.upperBoundBPM = upperBoundBPM.map { max(0, $0) }
+        self.durationSeconds = max(0, durationSeconds)
+    }
+
+    public var rangeLabel: String {
+        switch (lowerBoundBPM, upperBoundBPM) {
+        case (nil, let upper?):
+            "< \(Int(upper.rounded())) bpm"
+        case (let lower?, let upper?):
+            "\(Int(lower.rounded()))-\(Int(upper.rounded())) bpm"
+        case (let lower?, nil):
+            ">= \(Int(lower.rounded())) bpm"
+        default:
+            "bpm"
+        }
+    }
+}
+
+public struct HeartRateZoneSegment: Codable, Equatable, Sendable {
+    public let zone: HeartRateZoneSummary
+    public let durationSeconds: TimeInterval
+
+    public init(zone: HeartRateZoneSummary, durationSeconds: TimeInterval) {
+        self.zone = zone
+        self.durationSeconds = max(0, durationSeconds)
+    }
+}
+
 public enum WorkoutEnvironment: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
     case indoor
     case outdoor
@@ -428,13 +618,15 @@ public struct UserPreferences: Codable, Equatable, Sendable {
     public var visibleDashboardMetrics: [DashboardMetric]
     public var appTheme: AppTheme
     public var dailyStepGoalLiveActivityEnabled: Bool
+    public var heartRateZoneConfiguration: HeartRateZoneConfiguration
 
     public init(
         displayName: String = "You",
         distanceUnit: DistanceUnit = .miles,
         visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases,
         appTheme: AppTheme = .light,
-        dailyStepGoalLiveActivityEnabled: Bool = false
+        dailyStepGoalLiveActivityEnabled: Bool = false,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
     ) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         self.displayName = trimmedName.isEmpty ? "You" : trimmedName
@@ -442,6 +634,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         self.visibleDashboardMetrics = visibleDashboardMetrics.isEmpty ? DashboardMetric.allCases : visibleDashboardMetrics
         self.appTheme = appTheme
         self.dailyStepGoalLiveActivityEnabled = dailyStepGoalLiveActivityEnabled
+        self.heartRateZoneConfiguration = heartRateZoneConfiguration
     }
 
     public func shows(_ metric: DashboardMetric) -> Bool {
@@ -454,6 +647,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         case visibleDashboardMetrics
         case appTheme
         case dailyStepGoalLiveActivityEnabled
+        case heartRateZoneConfiguration
     }
 
     public init(from decoder: Decoder) throws {
@@ -463,7 +657,8 @@ public struct UserPreferences: Codable, Equatable, Sendable {
             distanceUnit: try container.decodeIfPresent(DistanceUnit.self, forKey: .distanceUnit) ?? .miles,
             visibleDashboardMetrics: try container.decodeIfPresent([DashboardMetric].self, forKey: .visibleDashboardMetrics) ?? DashboardMetric.allCases,
             appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .light,
-            dailyStepGoalLiveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .dailyStepGoalLiveActivityEnabled) ?? false
+            dailyStepGoalLiveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .dailyStepGoalLiveActivityEnabled) ?? false,
+            heartRateZoneConfiguration: try container.decodeIfPresent(HeartRateZoneConfiguration.self, forKey: .heartRateZoneConfiguration) ?? .default
         )
     }
 
@@ -474,6 +669,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         try container.encode(visibleDashboardMetrics, forKey: .visibleDashboardMetrics)
         try container.encode(appTheme, forKey: .appTheme)
         try container.encode(dailyStepGoalLiveActivityEnabled, forKey: .dailyStepGoalLiveActivityEnabled)
+        try container.encode(heartRateZoneConfiguration, forKey: .heartRateZoneConfiguration)
     }
 }
 
@@ -604,6 +800,78 @@ public struct InsightReceipt: Codable, Equatable, Sendable {
     }
 }
 
+public struct CardioPeriodInsight: Codable, Equatable, Sendable {
+    public static let empty = CardioPeriodInsight()
+
+    public let totalMinutes: Double
+    public let sessionCount: Int
+    public let totalDistanceMeters: Double
+    public let totalActiveEnergyKilocalories: Double
+    public let averageHeartRateBPM: Double?
+    public let bestWorkout: WorkoutActivity?
+    public let zoneSummaries: [HeartRateZoneSummary]
+
+    public init(
+        totalMinutes: Double = 0,
+        sessionCount: Int = 0,
+        totalDistanceMeters: Double = 0,
+        totalActiveEnergyKilocalories: Double = 0,
+        averageHeartRateBPM: Double? = nil,
+        bestWorkout: WorkoutActivity? = nil,
+        zoneSummaries: [HeartRateZoneSummary] = HeartRateZoneConfiguration.default.zoneSummaries(for: [])
+    ) {
+        self.totalMinutes = max(0, totalMinutes)
+        self.sessionCount = max(0, sessionCount)
+        self.totalDistanceMeters = max(0, totalDistanceMeters)
+        self.totalActiveEnergyKilocalories = max(0, totalActiveEnergyKilocalories)
+        self.averageHeartRateBPM = averageHeartRateBPM.map { max(0, $0) }
+        self.bestWorkout = bestWorkout
+        self.zoneSummaries = zoneSummaries.sorted { $0.level < $1.level }
+    }
+
+    public var hasCardio: Bool {
+        sessionCount > 0 || totalMinutes > 0
+    }
+
+    public var totalZoneSeconds: TimeInterval {
+        zoneSummaries.reduce(0) { $0 + $1.durationSeconds }
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case totalMinutes
+        case sessionCount
+        case totalDistanceMeters
+        case totalActiveEnergyKilocalories
+        case averageHeartRateBPM
+        case bestWorkout
+        case zoneSummaries
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            totalMinutes: try container.decodeIfPresent(Double.self, forKey: .totalMinutes) ?? 0,
+            sessionCount: try container.decodeIfPresent(Int.self, forKey: .sessionCount) ?? 0,
+            totalDistanceMeters: try container.decodeIfPresent(Double.self, forKey: .totalDistanceMeters) ?? 0,
+            totalActiveEnergyKilocalories: try container.decodeIfPresent(Double.self, forKey: .totalActiveEnergyKilocalories) ?? 0,
+            averageHeartRateBPM: try container.decodeIfPresent(Double.self, forKey: .averageHeartRateBPM),
+            bestWorkout: try container.decodeIfPresent(WorkoutActivity.self, forKey: .bestWorkout),
+            zoneSummaries: try container.decodeIfPresent([HeartRateZoneSummary].self, forKey: .zoneSummaries) ?? HeartRateZoneConfiguration.default.zoneSummaries(for: [])
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(totalMinutes, forKey: .totalMinutes)
+        try container.encode(sessionCount, forKey: .sessionCount)
+        try container.encode(totalDistanceMeters, forKey: .totalDistanceMeters)
+        try container.encode(totalActiveEnergyKilocalories, forKey: .totalActiveEnergyKilocalories)
+        try container.encodeIfPresent(averageHeartRateBPM, forKey: .averageHeartRateBPM)
+        try container.encodeIfPresent(bestWorkout, forKey: .bestWorkout)
+        try container.encode(zoneSummaries, forKey: .zoneSummaries)
+    }
+}
+
 public struct PeriodActivitySummary: Codable, Equatable, Sendable {
     public let scope: ActivityPeriodScope
     public let periodStart: Date
@@ -614,6 +882,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
     public let goalHitDays: Int
     public let workoutCount: Int
     public let bestDay: DailyActivitySummary?
+    public let cardioInsight: CardioPeriodInsight
     public let headline: String
 
     public init(
@@ -626,6 +895,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         goalHitDays: Int,
         workoutCount: Int,
         bestDay: DailyActivitySummary?,
+        cardioInsight: CardioPeriodInsight = .empty,
         headline: String
     ) {
         self.scope = scope
@@ -637,7 +907,54 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         self.goalHitDays = max(0, goalHitDays)
         self.workoutCount = max(0, workoutCount)
         self.bestDay = bestDay
+        self.cardioInsight = cardioInsight
         self.headline = headline
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case scope
+        case periodStart
+        case periodEnd
+        case summaries
+        case receipt
+        case activeDays
+        case goalHitDays
+        case workoutCount
+        case bestDay
+        case cardioInsight
+        case headline
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            scope: try container.decode(ActivityPeriodScope.self, forKey: .scope),
+            periodStart: try container.decode(Date.self, forKey: .periodStart),
+            periodEnd: try container.decode(Date.self, forKey: .periodEnd),
+            summaries: try container.decode([DailyActivitySummary].self, forKey: .summaries),
+            receipt: try container.decode(InsightReceipt.self, forKey: .receipt),
+            activeDays: try container.decode(Int.self, forKey: .activeDays),
+            goalHitDays: try container.decode(Int.self, forKey: .goalHitDays),
+            workoutCount: try container.decode(Int.self, forKey: .workoutCount),
+            bestDay: try container.decodeIfPresent(DailyActivitySummary.self, forKey: .bestDay),
+            cardioInsight: try container.decodeIfPresent(CardioPeriodInsight.self, forKey: .cardioInsight) ?? .empty,
+            headline: try container.decode(String.self, forKey: .headline)
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(scope, forKey: .scope)
+        try container.encode(periodStart, forKey: .periodStart)
+        try container.encode(periodEnd, forKey: .periodEnd)
+        try container.encode(summaries, forKey: .summaries)
+        try container.encode(receipt, forKey: .receipt)
+        try container.encode(activeDays, forKey: .activeDays)
+        try container.encode(goalHitDays, forKey: .goalHitDays)
+        try container.encode(workoutCount, forKey: .workoutCount)
+        try container.encodeIfPresent(bestDay, forKey: .bestDay)
+        try container.encode(cardioInsight, forKey: .cardioInsight)
+        try container.encode(headline, forKey: .headline)
     }
 }
 

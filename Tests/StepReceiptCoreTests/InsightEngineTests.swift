@@ -11,7 +11,7 @@ struct InsightEngineTests {
     init() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        calendar.firstWeekday = 1
+        calendar.firstWeekday = 2
         self.calendar = calendar
         self.engine = InsightEngine(calendar: calendar)
     }
@@ -141,10 +141,14 @@ struct InsightEngineTests {
             goals: goals,
             now: try date("2026-06-10T18:00:00Z")
         )
+        let expectedWeekStart = try date("2026-06-08T00:00:00Z")
+        let expectedWeekEnd = try date("2026-06-15T00:00:00Z")
 
-        #expect(week.summaries.map(\.steps) == [11_000, 9_000, 14_000, 4_000])
-        #expect(week.receipt.totalSteps == 38_000)
-        #expect(week.goalHitDays == 2)
+        #expect(week.periodStart == expectedWeekStart)
+        #expect(week.periodEnd == expectedWeekEnd)
+        #expect(week.summaries.map(\.steps) == [9_000, 14_000, 4_000])
+        #expect(week.receipt.totalSteps == 27_000)
+        #expect(week.goalHitDays == 1)
         #expect(week.bestDay?.steps == 14_000)
         #expect(week.headline.contains("average steps/day"))
 
@@ -153,6 +157,185 @@ struct InsightEngineTests {
         #expect(month.activeDays == 5)
         #expect(month.bestDay?.steps == 14_000)
         #expect(month.receipt.bestMonth?.steps == 44_000)
+    }
+
+    @Test
+    func testPeriodNavigationAnchorsClampToHistoryRange() throws {
+        let lowerBound = try date("2026-06-01T00:00:00Z")
+        let upperBound = try date("2026-06-30T00:00:00Z")
+
+        let currentWeekStart = engine.adjacentPeriodAnchor(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            offset: 0,
+            lowerBound: lowerBound,
+            upperBound: upperBound
+        )
+        let previousWeekStart = engine.adjacentPeriodAnchor(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            offset: -1,
+            lowerBound: lowerBound,
+            upperBound: upperBound
+        )
+        let firstWeekPrevious = engine.adjacentPeriodAnchor(
+            scope: .week,
+            containing: try date("2026-06-02T12:00:00Z"),
+            offset: -1,
+            lowerBound: lowerBound,
+            upperBound: upperBound
+        )
+        let nextMonth = engine.adjacentPeriodAnchor(
+            scope: .month,
+            containing: try date("2026-06-10T12:00:00Z"),
+            offset: 1,
+            lowerBound: lowerBound,
+            upperBound: upperBound
+        )
+        let expectedCurrentWeekStart = try date("2026-06-08T00:00:00Z")
+        let expectedPreviousWeekStart = try date("2026-06-01T00:00:00Z")
+
+        #expect(currentWeekStart == expectedCurrentWeekStart)
+        #expect(previousWeekStart == expectedPreviousWeekStart)
+        #expect(firstWeekPrevious == nil)
+        #expect(nextMonth == nil)
+    }
+
+    @Test
+    func testCardioInsightIncludesMovementWorkoutsAndExcludesStrength() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let runStart = try date("2026-06-08T18:00:00Z")
+        let run = WorkoutActivity(
+            sourceIdentifier: "run",
+            type: .running,
+            title: "Outdoor Run",
+            startDate: runStart,
+            endDate: runStart.addingTimeInterval(45 * 60),
+            distanceMeters: 5_000,
+            activeEnergyKilocalories: 420,
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: runStart.addingTimeInterval(60), beatsPerMinute: 100),
+                WorkoutHeartRateSample(timestamp: runStart.addingTimeInterval(120), beatsPerMinute: 140)
+            ]
+        )
+        let stairStart = try date("2026-06-09T18:00:00Z")
+        let stairs = WorkoutActivity(
+            sourceIdentifier: "stairs",
+            type: .stairClimbing,
+            title: "Stair Stepper",
+            startDate: stairStart,
+            endDate: stairStart.addingTimeInterval(30 * 60),
+            activeEnergyKilocalories: 310,
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: stairStart.addingTimeInterval(60), beatsPerMinute: 120)
+            ]
+        )
+        let strength = WorkoutActivity(
+            sourceIdentifier: "strength",
+            type: .strengthTraining,
+            title: "Traditional Strength Training",
+            startDate: runStart.addingTimeInterval(2 * 60 * 60),
+            endDate: runStart.addingTimeInterval(3 * 60 * 60),
+            activeEnergyKilocalories: 500
+        )
+        let yoga = WorkoutActivity(
+            sourceIdentifier: "yoga",
+            type: .yoga,
+            startDate: stairStart.addingTimeInterval(2 * 60 * 60),
+            endDate: stairStart.addingTimeInterval(3 * 60 * 60),
+            activeEnergyKilocalories: 150
+        )
+        let summaries = [
+            summary("2026-06-08T00:00:00Z", steps: 9_000, goals: goals, workouts: [run, strength]),
+            summary("2026-06-09T00:00:00Z", steps: 8_000, goals: goals, workouts: [stairs, yoga])
+        ]
+
+        let period = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            summaries: summaries,
+            goals: goals
+        )
+
+        #expect(period.cardioInsight.sessionCount == 2)
+        #expect(period.cardioInsight.totalMinutes == 75)
+        #expect(period.cardioInsight.totalDistanceMeters == 5_000)
+        #expect(period.cardioInsight.totalActiveEnergyKilocalories == 730)
+        #expect(period.cardioInsight.averageHeartRateBPM == 120)
+        #expect(period.cardioInsight.bestWorkout?.sourceIdentifier == "run")
+        #expect(period.cardioInsight.zoneSummaries.first { $0.level == 1 }?.durationSeconds == 60)
+        #expect(period.cardioInsight.zoneSummaries.first { $0.level == 2 }?.durationSeconds == 1_740)
+        #expect(period.cardioInsight.zoneSummaries.first { $0.level == 3 }?.durationSeconds == 2_580)
+        #expect(period.cardioInsight.totalZoneSeconds == 4_380)
+    }
+
+    @Test
+    func testEmptyCardioInsightIsStable() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let period = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            summaries: [
+                summary("2026-06-08T00:00:00Z", steps: 9_000, goals: goals),
+                summary("2026-06-09T00:00:00Z", steps: 8_000, goals: goals)
+            ],
+            goals: goals
+        )
+
+        #expect(period.cardioInsight == .empty)
+        #expect(!period.cardioInsight.hasCardio)
+    }
+
+    @Test
+    func testHeartRateZoneConfigurationDefaultsAndValidation() {
+        let defaults = HeartRateZoneConfiguration.default
+
+        #expect(defaults.lowerBoundsBPM == [115, 134, 153, 172])
+        #expect(defaults.template(for: 114).level == 1)
+        #expect(defaults.template(for: 115).level == 2)
+        #expect(defaults.template(for: 134).level == 3)
+        #expect(defaults.template(for: 153).level == 4)
+        #expect(defaults.template(for: 172).level == 5)
+        #expect(defaults.template(forLevel: 2).rangeLabel == "115-134 bpm")
+
+        let custom = HeartRateZoneConfiguration(lowerBoundsBPM: [100, 120, 140, 160])
+        let invalid = HeartRateZoneConfiguration(lowerBoundsBPM: [100, 120, 120, 160])
+
+        #expect(custom.lowerBoundsBPM == [100, 120, 140, 160])
+        #expect(invalid == .default)
+        #expect(HeartRateZoneConfiguration.isValid(lowerBoundsBPM: [100, 120, 140, 160]))
+        #expect(!HeartRateZoneConfiguration.isValid(lowerBoundsBPM: [100, 120, 120, 160]))
+    }
+
+    @Test
+    func testCardioInsightAggregatesCustomHeartRateZones() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let start = try date("2026-06-08T18:00:00Z")
+        let workout = WorkoutActivity(
+            sourceIdentifier: "run-zones",
+            type: .running,
+            startDate: start,
+            endDate: start.addingTimeInterval(240),
+            durationMinutes: 4,
+            activeEnergyKilocalories: 80,
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: start, beatsPerMinute: 100),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(60), beatsPerMinute: 120),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(120), beatsPerMinute: 140),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(180), beatsPerMinute: 180)
+            ]
+        )
+        let summary = summary("2026-06-08T00:00:00Z", steps: 4_000, goals: goals, workouts: [workout])
+        let period = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-08T12:00:00Z"),
+            summaries: [summary],
+            goals: goals,
+            heartRateZoneConfiguration: HeartRateZoneConfiguration(lowerBoundsBPM: [90, 110, 130, 150])
+        )
+
+        #expect(period.cardioInsight.zoneSummaries.map(\.durationSeconds) == [0, 60, 60, 60, 60])
+        #expect(period.cardioInsight.totalZoneSeconds == 240)
     }
 
     @Test
@@ -358,6 +541,7 @@ struct InsightEngineTests {
         #expect(preferences.visibleDashboardMetrics == DashboardMetric.allCases)
         #expect(preferences.appTheme == .light)
         #expect(preferences.dailyStepGoalLiveActivityEnabled == false)
+        #expect(preferences.heartRateZoneConfiguration == .default)
         #expect(ActivityFormatting.formattedDistance(from: 1_609.344, unit: .miles) == "1.00 mi")
         #expect(ActivityFormatting.formattedDistance(from: 1_000, unit: .kilometers) == "1.00 km")
         #expect(ActivityFormatting.formattedDuration(5_197) == "1h 26m 37s")
@@ -502,8 +686,8 @@ struct InsightEngineTests {
     @Test
     func testSharedCompetitionSettingsFindInviteCodeCandidates() {
         let inviteMessage = """
-        StepReceipt household code: SRWIFE2026
-        Open StepReceipt > Compete, paste this code, set your board name, then tap Sync.
+        StrideSlip household code: SRWIFE2026
+        Open StrideSlip > Compete, paste this code, set your board name, then tap Sync.
         """
 
         #expect(SharedCompetitionSettings.normalizedInviteCodeCandidates(from: inviteMessage).first == "SRWIFE2026")
@@ -774,7 +958,12 @@ struct InsightEngineTests {
         )
     }
 
-    private func summary(_ isoDayStart: String, steps: Int, goals: UserGoals) -> DailyActivitySummary {
+    private func summary(
+        _ isoDayStart: String,
+        steps: Int,
+        goals: UserGoals,
+        workouts: [WorkoutActivity] = []
+    ) -> DailyActivitySummary {
         let start = try! date(isoDayStart)
         return DailyActivitySummary(
             dateStart: start,
@@ -782,9 +971,9 @@ struct InsightEngineTests {
             distanceMeters: Double(steps) * 0.75,
             activeEnergyKilocalories: Double(steps) * 0.04,
             flightsClimbed: steps / 2_000,
-            workoutMinutes: steps >= goals.stepsPerDay ? 35 : 0,
+            workoutMinutes: workouts.isEmpty ? (steps >= goals.stepsPerDay ? 35 : 0) : workouts.reduce(0) { $0 + $1.durationMinutes },
             buckets: [],
-            workouts: [],
+            workouts: workouts,
             goals: goals
         )
     }

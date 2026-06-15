@@ -132,7 +132,8 @@ public struct InsightEngine: Sendable {
         containing date: Date,
         summaries: [DailyActivitySummary],
         goals: UserGoals,
-        now: Date = Date()
+        now: Date = Date(),
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
     ) -> PeriodActivitySummary {
         let interval = dateInterval(for: scope, containing: date)
         let scopedSummaries = self.summaries(in: scope, containing: date, from: summaries)
@@ -140,6 +141,10 @@ public struct InsightEngine: Sendable {
         let activeDays = scopedSummaries.filter(\.hasActivityData).count
         let goalHitDays = scopedSummaries.filter { $0.steps >= goals.stepsPerDay }.count
         let workoutCount = scopedSummaries.reduce(0) { $0 + $1.workouts.count }
+        let cardioInsight = cardioInsight(
+            from: scopedSummaries,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
         let bestDay = scopedSummaries.max {
             if $0.steps == $1.steps {
                 return $0.dateStart < $1.dateStart
@@ -157,6 +162,7 @@ public struct InsightEngine: Sendable {
             goalHitDays: goalHitDays,
             workoutCount: workoutCount,
             bestDay: bestDay,
+            cardioInsight: cardioInsight,
             headline: periodHeadline(
                 scope: scope,
                 summaries: scopedSummaries,
@@ -164,6 +170,39 @@ public struct InsightEngine: Sendable {
                 goals: goals
             )
         )
+    }
+
+    public func adjacentPeriodAnchor(
+        scope: ActivityPeriodScope,
+        containing date: Date,
+        offset: Int,
+        lowerBound: Date,
+        upperBound: Date
+    ) -> Date? {
+        let lowerDay = calendar.startOfDay(for: lowerBound)
+        let upperDay = calendar.startOfDay(for: upperBound)
+        guard lowerDay <= upperDay else { return nil }
+        guard offset != 0 else {
+            let currentStart = calendar.startOfDay(for: dateInterval(for: scope, containing: date).start)
+            return min(max(currentStart, lowerDay), upperDay)
+        }
+
+        let component: Calendar.Component = switch scope {
+        case .day: .day
+        case .week: .weekOfYear
+        case .month: .month
+        }
+        guard let candidate = calendar.date(byAdding: component, value: offset, to: date) else {
+            return nil
+        }
+
+        let candidateInterval = dateInterval(for: scope, containing: candidate)
+        guard candidateInterval.end > lowerDay, candidateInterval.start <= upperDay else {
+            return nil
+        }
+
+        let candidateDay = calendar.startOfDay(for: candidateInterval.start)
+        return min(max(candidateDay, lowerDay), upperDay)
     }
 
     public func todayCoachInsights(
@@ -264,7 +303,7 @@ public struct InsightEngine: Sendable {
         )
     }
 
-    private func dateInterval(for scope: ActivityPeriodScope, containing date: Date) -> DateInterval {
+    public func dateInterval(for scope: ActivityPeriodScope, containing date: Date) -> DateInterval {
         switch scope {
         case .day:
             let start = calendar.startOfDay(for: date)
@@ -285,6 +324,57 @@ public struct InsightEngine: Sendable {
             let end = calendar.date(byAdding: .day, value: 31, to: start) ?? start.addingTimeInterval(2_678_400)
             return DateInterval(start: start, end: end)
         }
+    }
+
+    private func cardioInsight(
+        from summaries: [DailyActivitySummary],
+        heartRateZoneConfiguration: HeartRateZoneConfiguration
+    ) -> CardioPeriodInsight {
+        var workoutsBySource: [String: WorkoutActivity] = [:]
+        for workout in summaries.flatMap(\.workouts) where workout.type.isCardioMovement {
+            workoutsBySource[workout.sourceIdentifier] = workout
+        }
+
+        let cardioWorkouts = workoutsBySource.values.sorted { $0.startDate < $1.startDate }
+        let zoneSummaries = heartRateZoneConfiguration.zoneSummaries(for: cardioWorkouts)
+        guard !cardioWorkouts.isEmpty else {
+            return CardioPeriodInsight(zoneSummaries: zoneSummaries)
+        }
+
+        let heartRateSamples = cardioWorkouts.flatMap(\.heartRateSamples)
+        let averageHeartRate = heartRateSamples.isEmpty
+            ? nil
+            : heartRateSamples.reduce(0) { $0 + $1.beatsPerMinute } / Double(heartRateSamples.count)
+
+        let bestWorkout = cardioWorkouts.max { lhs, rhs in
+            let lhsEnergy = lhs.activeEnergyKilocalories ?? 0
+            let rhsEnergy = rhs.activeEnergyKilocalories ?? 0
+            if lhsEnergy != rhsEnergy {
+                return lhsEnergy < rhsEnergy
+            }
+
+            let lhsDistance = lhs.distanceMeters ?? 0
+            let rhsDistance = rhs.distanceMeters ?? 0
+            if lhsDistance != rhsDistance {
+                return lhsDistance < rhsDistance
+            }
+
+            if lhs.durationMinutes != rhs.durationMinutes {
+                return lhs.durationMinutes < rhs.durationMinutes
+            }
+
+            return lhs.startDate < rhs.startDate
+        }
+
+        return CardioPeriodInsight(
+            totalMinutes: cardioWorkouts.reduce(0) { $0 + $1.durationMinutes },
+            sessionCount: cardioWorkouts.count,
+            totalDistanceMeters: cardioWorkouts.reduce(0) { $0 + ($1.distanceMeters ?? 0) },
+            totalActiveEnergyKilocalories: cardioWorkouts.reduce(0) { $0 + ($1.activeEnergyKilocalories ?? 0) },
+            averageHeartRateBPM: averageHeartRate,
+            bestWorkout: bestWorkout,
+            zoneSummaries: zoneSummaries
+        )
     }
 
     private func periodHeadline(

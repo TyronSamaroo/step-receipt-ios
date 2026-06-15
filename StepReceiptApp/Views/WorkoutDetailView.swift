@@ -40,7 +40,12 @@ struct WorkoutDetailView: View {
                 WorkoutRoutePanel(workout: workout, style: style)
                 insightPanel
                 detailPanel
-                WorkoutShareCard(workout: workout, distanceUnit: repository.preferences.distanceUnit, tag: workoutTag)
+                WorkoutShareCard(
+                    workout: workout,
+                    distanceUnit: repository.preferences.distanceUnit,
+                    tag: workoutTag,
+                    heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
+                )
             }
             .padding(16)
         }
@@ -54,7 +59,8 @@ struct WorkoutDetailView: View {
                         WorkoutShareCard(
                             workout: workout,
                             distanceUnit: repository.preferences.distanceUnit,
-                            tag: workoutTag
+                            tag: workoutTag,
+                            heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
                         )
                             .frame(width: 390)
                             .padding(18)
@@ -475,11 +481,17 @@ struct WorkoutDetailView: View {
     }
 
     private var effortText: String {
-        WorkoutEffort(workout: workout).title
+        WorkoutEffort(
+            workout: workout,
+            heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
+        ).title
     }
 
     private var effortColor: Color {
-        WorkoutEffort(workout: workout).color
+        WorkoutEffort(
+            workout: workout,
+            heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
+        ).color
     }
 
     private var weatherText: String? {
@@ -573,10 +585,11 @@ struct WorkoutDetailView: View {
 }
 
 struct HeartRatePanel: View {
+    @EnvironmentObject private var repository: ActivityRepository
     let workout: WorkoutActivity
 
-    private var zones: [HeartRateZoneBreakdown] {
-        HeartRateZoneBreakdown.zones(for: workout)
+    private var zones: [HeartRateZoneSummary] {
+        repository.preferences.heartRateZoneConfiguration.zoneSummaries(for: workout)
     }
 
     private var totalTrackedSeconds: TimeInterval {
@@ -584,7 +597,7 @@ struct HeartRatePanel: View {
     }
 
     private var segments: [HeartRateZoneSegment] {
-        HeartRateZoneSegment.segments(for: workout)
+        repository.preferences.heartRateZoneConfiguration.segments(for: workout)
     }
 
     private var chartDomain: ClosedRange<Double> {
@@ -976,9 +989,12 @@ struct WorkoutEffort {
     let title: String
     let color: Color
 
-    init(workout: WorkoutActivity) {
+    init(
+        workout: WorkoutActivity,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
+    ) {
         if let averageHeartRate = workout.averageHeartRateBPM {
-            let zone = HeartRateZoneBreakdown.template(for: averageHeartRate)
+            let zone = heartRateZoneConfiguration.template(for: averageHeartRate)
             title = switch zone.level {
             case 1: "Easy"
             case 2: "Steady"
@@ -994,16 +1010,16 @@ struct WorkoutEffort {
             switch burnRate {
             case ..<4:
                 title = "Easy"
-                color = HeartRateZoneBreakdown.zone1Color
+                color = HeartRateZoneStyle.color(forLevel: 1)
             case ..<7:
                 title = "Steady"
-                color = HeartRateZoneBreakdown.zone2Color
+                color = HeartRateZoneStyle.color(forLevel: 2)
             case ..<10:
                 title = "Hard"
-                color = HeartRateZoneBreakdown.zone4Color
+                color = HeartRateZoneStyle.color(forLevel: 4)
             default:
                 title = "Peak"
-                color = HeartRateZoneBreakdown.zone5Color
+                color = HeartRateZoneStyle.color(forLevel: 5)
             }
             return
         }
@@ -1013,117 +1029,27 @@ struct WorkoutEffort {
     }
 }
 
-struct HeartRateZoneBreakdown: Identifiable {
-    let level: Int
-    let title: String
-    let lowerBound: Double?
-    let upperBound: Double?
-    let durationSeconds: TimeInterval
-    let color: Color
-
-    var id: Int { level }
-
-    var rangeLabel: String {
-        switch (lowerBound, upperBound) {
-        case (nil, let upper?):
-            "< \(Int(upper.rounded())) bpm"
-        case (let lower?, let upper?):
-            "\(Int(lower.rounded()))-\(Int(upper.rounded())) bpm"
-        case (let lower?, nil):
-            ">= \(Int(lower.rounded())) bpm"
-        default:
-            "bpm"
-        }
-    }
-
+enum HeartRateZoneStyle {
     static let zone1Color = Color(red: 0.82, green: 0.84, blue: 0.88)
     static let zone2Color = Color(red: 0.54, green: 0.88, blue: 0.96)
     static let zone3Color = Color(red: 0.32, green: 0.82, blue: 0.62)
     static let zone4Color = Color(red: 1.00, green: 0.55, blue: 0.22)
     static let zone5Color = Color(red: 1.00, green: 0.24, blue: 0.38)
 
-    private static let estimatedMaxHeartRate = 191.0
-
-    private static var thresholds: [Double] {
-        [
-            estimatedMaxHeartRate * 0.60,
-            estimatedMaxHeartRate * 0.70,
-            estimatedMaxHeartRate * 0.80,
-            estimatedMaxHeartRate * 0.90
-        ]
-    }
-
-    static func zones(for workout: WorkoutActivity) -> [HeartRateZoneBreakdown] {
-        let segments = HeartRateZoneSegment.segments(for: workout)
-        return (1...5).map { level in
-            let template = template(forLevel: level)
-            return HeartRateZoneBreakdown(
-                level: template.level,
-                title: template.title,
-                lowerBound: template.lowerBound,
-                upperBound: template.upperBound,
-                durationSeconds: segments
-                    .filter { $0.zone.level == level }
-                    .reduce(0) { $0 + $1.durationSeconds },
-                color: template.color
-            )
-        }
-    }
-
-    static func template(for beatsPerMinute: Double) -> HeartRateZoneBreakdown {
-        let zoneLevel: Int
-        switch beatsPerMinute {
-        case ..<thresholds[0]:
-            zoneLevel = 1
-        case ..<thresholds[1]:
-            zoneLevel = 2
-        case ..<thresholds[2]:
-            zoneLevel = 3
-        case ..<thresholds[3]:
-            zoneLevel = 4
-        default:
-            zoneLevel = 5
-        }
-        return template(forLevel: zoneLevel)
-    }
-
-    private static func template(forLevel level: Int) -> HeartRateZoneBreakdown {
+    static func color(forLevel level: Int) -> Color {
         switch level {
-        case 1:
-            HeartRateZoneBreakdown(level: 1, title: "Zone 1", lowerBound: nil, upperBound: thresholds[0], durationSeconds: 0, color: zone1Color)
-        case 2:
-            HeartRateZoneBreakdown(level: 2, title: "Zone 2", lowerBound: thresholds[0], upperBound: thresholds[1], durationSeconds: 0, color: zone2Color)
-        case 3:
-            HeartRateZoneBreakdown(level: 3, title: "Zone 3", lowerBound: thresholds[1], upperBound: thresholds[2], durationSeconds: 0, color: zone3Color)
-        case 4:
-            HeartRateZoneBreakdown(level: 4, title: "Zone 4", lowerBound: thresholds[2], upperBound: thresholds[3], durationSeconds: 0, color: zone4Color)
-        default:
-            HeartRateZoneBreakdown(level: 5, title: "Zone 5", lowerBound: thresholds[3], upperBound: nil, durationSeconds: 0, color: zone5Color)
+        case 1: zone1Color
+        case 2: zone2Color
+        case 3: zone3Color
+        case 4: zone4Color
+        default: zone5Color
         }
     }
 }
 
-struct HeartRateZoneSegment {
-    let zone: HeartRateZoneBreakdown
-    let durationSeconds: TimeInterval
-
-    static func segments(for workout: WorkoutActivity) -> [HeartRateZoneSegment] {
-        let samples = workout.heartRateSamples
-        guard !samples.isEmpty else { return [] }
-
-        let fallbackDuration = max(1, workout.durationMinutes * 60 / Double(samples.count))
-        return samples.enumerated().map { index, sample in
-            let nextDate = index + 1 < samples.count ? samples[index + 1].timestamp : workout.endDate
-            var duration = nextDate.timeIntervalSince(sample.timestamp)
-            if duration <= 0 || duration > fallbackDuration * 4 {
-                duration = fallbackDuration
-            }
-
-            return HeartRateZoneSegment(
-                zone: HeartRateZoneBreakdown.template(for: sample.beatsPerMinute),
-                durationSeconds: max(1, duration)
-            )
-        }
+extension HeartRateZoneSummary {
+    var color: Color {
+        HeartRateZoneStyle.color(forLevel: level)
     }
 }
 

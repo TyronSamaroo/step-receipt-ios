@@ -440,7 +440,8 @@ struct TodayView: View {
                                 workoutHeroMetric("Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
                             }
                             if let averageHeartRate = workout.averageHeartRateBPM {
-                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", HeartRateZoneBreakdown.template(for: averageHeartRate).color)
+                                let zone = repository.preferences.heartRateZoneConfiguration.template(for: averageHeartRate)
+                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", zone.color)
                             }
                         }
 
@@ -450,7 +451,8 @@ struct TodayView: View {
                                 workoutHeroMetric("Burn", ActivityFormatting.formattedCalories(burn), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
                             }
                             if let averageHeartRate = workout.averageHeartRateBPM {
-                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", HeartRateZoneBreakdown.template(for: averageHeartRate).color)
+                                let zone = repository.preferences.heartRateZoneConfiguration.template(for: averageHeartRate)
+                                workoutHeroMetric("Avg HR", "\(Int(averageHeartRate.rounded())) bpm", "heart.fill", zone.color)
                             }
                         }
                     }

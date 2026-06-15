@@ -4,11 +4,18 @@ struct WorkoutShareCard: View {
     let workout: WorkoutActivity
     let distanceUnit: DistanceUnit
     let tag: String?
+    let heartRateZoneConfiguration: HeartRateZoneConfiguration
 
-    init(workout: WorkoutActivity, distanceUnit: DistanceUnit, tag: String? = nil) {
+    init(
+        workout: WorkoutActivity,
+        distanceUnit: DistanceUnit,
+        tag: String? = nil,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
+    ) {
         self.workout = workout
         self.distanceUnit = distanceUnit
         self.tag = tag
+        self.heartRateZoneConfiguration = heartRateZoneConfiguration
     }
 
     private var style: WorkoutVisualStyle {
@@ -16,11 +23,16 @@ struct WorkoutShareCard: View {
     }
 
     private var metrics: [ShareMetric] {
-        WorkoutShareFormatter.metrics(for: workout, distanceUnit: distanceUnit, tag: tag)
+        WorkoutShareFormatter.metrics(
+            for: workout,
+            distanceUnit: distanceUnit,
+            tag: tag,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
     }
 
-    private var zones: [HeartRateZoneBreakdown] {
-        HeartRateZoneBreakdown.zones(for: workout)
+    private var zones: [HeartRateZoneSummary] {
+        heartRateZoneConfiguration.zoneSummaries(for: workout)
     }
 
     private var totalZoneSeconds: TimeInterval {
@@ -407,7 +419,12 @@ private struct DayShareWorkoutRow: View {
 }
 
 private enum WorkoutShareFormatter {
-    static func metrics(for workout: WorkoutActivity, distanceUnit: DistanceUnit, tag: String? = nil) -> [ShareMetric] {
+    static func metrics(
+        for workout: WorkoutActivity,
+        distanceUnit: DistanceUnit,
+        tag: String? = nil,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
+    ) -> [ShareMetric] {
         let template = WorkoutTemplate.preferred(for: workout, tag: tag)
         var metrics: [ShareMetric] = [
             ShareMetric("Duration", ActivityFormatting.formattedDuration(workout.durationMinutes * 60), StepReceiptSymbol.workout, WorkoutVisualStyle(kind: workout.type).accent)
@@ -418,14 +435,14 @@ private enum WorkoutShareFormatter {
             appendEnergy(to: &metrics, workout: workout)
             appendAverageHeartRate(to: &metrics, workout: workout)
             appendMaxHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
-            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
+            appendEnergyAndEffort(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendBurnRate(to: &metrics, workout: workout)
             appendTotalEnergy(to: &metrics, workout: workout)
         case .some(.stairSession):
-            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendEnergyAndEffort(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendAverageHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendStepsOrDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
             appendBurnRate(to: &metrics, workout: workout)
             appendPace(to: &metrics, workout: workout, distanceUnit: distanceUnit)
@@ -436,7 +453,7 @@ private enum WorkoutShareFormatter {
             appendEnergy(to: &metrics, workout: workout)
             appendAverageHeartRate(to: &metrics, workout: workout)
             appendMaxHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendWeather(to: &metrics, workout: workout)
         case .some(.indoorWalk):
             appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
@@ -445,27 +462,37 @@ private enum WorkoutShareFormatter {
             appendEnergy(to: &metrics, workout: workout)
             appendAverageHeartRate(to: &metrics, workout: workout)
             appendMaxHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
         case .none:
-            appendFallbackMetrics(to: &metrics, workout: workout, distanceUnit: distanceUnit)
+            appendFallbackMetrics(
+                to: &metrics,
+                workout: workout,
+                distanceUnit: distanceUnit,
+                heartRateZoneConfiguration: heartRateZoneConfiguration
+            )
         }
 
         return Array(deduplicated(metrics).prefix(8))
     }
 
-    private static func appendFallbackMetrics(to metrics: inout [ShareMetric], workout: WorkoutActivity, distanceUnit: DistanceUnit) {
+    private static func appendFallbackMetrics(
+        to metrics: inout [ShareMetric],
+        workout: WorkoutActivity,
+        distanceUnit: DistanceUnit,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration
+    ) {
         switch workout.type {
         case .stairClimbing, .elliptical:
-            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendEnergyAndEffort(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendAverageHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendBurnRate(to: &metrics, workout: workout)
             appendStepsOrDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
         case .strengthTraining, .yoga:
-            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendEnergyAndEffort(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendAverageHeartRate(to: &metrics, workout: workout)
             appendMaxHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendBurnRate(to: &metrics, workout: workout)
             appendTotalEnergy(to: &metrics, workout: workout)
         case .walking, .running, .hiking:
@@ -475,13 +502,13 @@ private enum WorkoutShareFormatter {
             appendEnergy(to: &metrics, workout: workout)
             appendAverageHeartRate(to: &metrics, workout: workout)
             appendMaxHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendWeather(to: &metrics, workout: workout)
         default:
             appendDistance(to: &metrics, workout: workout, distanceUnit: distanceUnit)
-            appendEnergyAndEffort(to: &metrics, workout: workout)
+            appendEnergyAndEffort(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendAverageHeartRate(to: &metrics, workout: workout)
-            appendTopZone(to: &metrics, workout: workout)
+            appendTopZone(to: &metrics, workout: workout, heartRateZoneConfiguration: heartRateZoneConfiguration)
             appendSteps(to: &metrics, workout: workout)
         }
     }
@@ -500,10 +527,17 @@ private enum WorkoutShareFormatter {
         return pieces.joined(separator: " · ")
     }
 
-    private static func appendEnergyAndEffort(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
+    private static func appendEnergyAndEffort(
+        to metrics: inout [ShareMetric],
+        workout: WorkoutActivity,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration
+    ) {
         appendEnergy(to: &metrics, workout: workout)
 
-        let effort = WorkoutEffort(workout: workout)
+        let effort = WorkoutEffort(
+            workout: workout,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
         metrics.append(ShareMetric("Effort", effort.title, "bolt.heart", effort.color))
     }
 
@@ -523,8 +557,12 @@ private enum WorkoutShareFormatter {
         metrics.append(ShareMetric("Max HR", "\(Int(maxHeartRate.rounded())) bpm", "heart.fill", Color(red: 1.0, green: 0.28, blue: 0.30)))
     }
 
-    private static func appendTopZone(to metrics: inout [ShareMetric], workout: WorkoutActivity) {
-        guard let zone = HeartRateZoneBreakdown.zones(for: workout).max(by: { $0.durationSeconds < $1.durationSeconds }),
+    private static func appendTopZone(
+        to metrics: inout [ShareMetric],
+        workout: WorkoutActivity,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration
+    ) {
+        guard let zone = heartRateZoneConfiguration.zoneSummaries(for: workout).max(by: { $0.durationSeconds < $1.durationSeconds }),
               zone.durationSeconds > 0
         else { return }
         metrics.append(ShareMetric("Top Zone", "Z\(zone.level) \(ActivityFormatting.formattedDuration(zone.durationSeconds))", "heart.text.square", zone.color))

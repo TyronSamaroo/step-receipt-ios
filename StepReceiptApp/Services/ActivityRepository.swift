@@ -99,14 +99,15 @@ final class ActivityRepository: ObservableObject {
         calendar: Calendar = .current,
         userDefaults: UserDefaults = .standard
     ) {
+        let activityCalendar = Self.mondayFirstCalendar(calendar)
         self.healthKit = healthKit
         self.cloudKit = cloudKit
         self.competitionSync = competitionSync
         self.liveActivityService = liveActivityService
-        self.calendar = calendar
+        self.calendar = activityCalendar
         self.userDefaults = userDefaults
-        self.engine = InsightEngine(calendar: calendar)
-        self.competitionEngine = CompetitionEngine(calendar: calendar)
+        self.engine = InsightEngine(calendar: activityCalendar)
+        self.competitionEngine = CompetitionEngine(calendar: activityCalendar)
         self.goals = Self.loadGoals(key: goalsKey, userDefaults: userDefaults)
         self.preferences = Self.loadPreferences(
             key: preferencesKey,
@@ -278,12 +279,28 @@ final class ActivityRepository: ObservableObject {
     }
 
     func periodSummary(scope: ActivityPeriodScope, now: Date = Date()) -> PeriodActivitySummary {
+        periodSummary(scope: scope, containing: selectedDate, now: now)
+    }
+
+    func periodSummary(scope: ActivityPeriodScope, containing date: Date, now: Date = Date()) -> PeriodActivitySummary {
         engine.periodSummary(
             scope: scope,
-            containing: selectedDate,
+            containing: normalizedActivityDate(date, now: now),
             summaries: historyForSelectedPeriod,
             goals: goals,
-            now: now
+            now: now,
+            heartRateZoneConfiguration: preferences.heartRateZoneConfiguration
+        )
+    }
+
+    func adjacentInsightPeriodAnchor(scope: ActivityPeriodScope, containing date: Date, offset: Int, now: Date = Date()) -> Date? {
+        let range = selectableDateRange(now: now)
+        return engine.adjacentPeriodAnchor(
+            scope: scope,
+            containing: normalizedActivityDate(date, now: now),
+            offset: offset,
+            lowerBound: range.lowerBound,
+            upperBound: range.upperBound
         )
     }
 
@@ -422,6 +439,12 @@ final class ActivityRepository: ObservableObject {
     private func normalizedActivityDate(_ date: Date, now: Date = Date()) -> Date {
         let range = selectableDateRange(now: now)
         return min(max(calendar.startOfDay(for: date), range.lowerBound), range.upperBound)
+    }
+
+    private static func mondayFirstCalendar(_ calendar: Calendar) -> Calendar {
+        var calendar = calendar
+        calendar.firstWeekday = 2
+        return calendar
     }
 
     private var liveActivitySummary: DailyActivitySummary? {
@@ -978,14 +1001,16 @@ final class ActivityRepository: ObservableObject {
         distanceUnit: DistanceUnit? = nil,
         visibleDashboardMetrics: [DashboardMetric]? = nil,
         appTheme: AppTheme? = nil,
-        dailyStepGoalLiveActivityEnabled: Bool? = nil
+        dailyStepGoalLiveActivityEnabled: Bool? = nil,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration? = nil
     ) {
         preferences = UserPreferences(
             displayName: displayName ?? preferences.displayName,
             distanceUnit: distanceUnit ?? preferences.distanceUnit,
             visibleDashboardMetrics: visibleDashboardMetrics ?? preferences.visibleDashboardMetrics,
             appTheme: appTheme ?? preferences.appTheme,
-            dailyStepGoalLiveActivityEnabled: dailyStepGoalLiveActivityEnabled ?? preferences.dailyStepGoalLiveActivityEnabled
+            dailyStepGoalLiveActivityEnabled: dailyStepGoalLiveActivityEnabled ?? preferences.dailyStepGoalLiveActivityEnabled,
+            heartRateZoneConfiguration: heartRateZoneConfiguration ?? preferences.heartRateZoneConfiguration
         )
     }
 
@@ -1052,7 +1077,8 @@ final class ActivityRepository: ObservableObject {
             distanceUnit: preferences.distanceUnit,
             visibleDashboardMetrics: preferences.visibleDashboardMetrics,
             appTheme: .light,
-            dailyStepGoalLiveActivityEnabled: preferences.dailyStepGoalLiveActivityEnabled
+            dailyStepGoalLiveActivityEnabled: preferences.dailyStepGoalLiveActivityEnabled,
+            heartRateZoneConfiguration: preferences.heartRateZoneConfiguration
         )
 
         if let data = try? JSONEncoder().encode(migratedPreferences) {

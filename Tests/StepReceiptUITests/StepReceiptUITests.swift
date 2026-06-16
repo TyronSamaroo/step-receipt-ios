@@ -37,8 +37,18 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Day"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Week"].exists)
         XCTAssertTrue(app.buttons["Month"].exists)
+        let periodLabel = app.staticTexts["insights-period-label"]
+        XCTAssertTrue(periodLabel.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Previous period"].exists)
+        XCTAssertTrue(app.buttons["Next period"].exists)
+        XCTAssertFalse(app.buttons["Next period"].isEnabled)
+        let currentPeriodLabel = periodLabel.label
+        app.buttons["Previous period"].tap()
+        XCTAssertTrue(waitForLabelChange(periodLabel, from: currentPeriodLabel, timeout: 3))
         XCTAssertTrue(app.staticTexts["WEEK RECEIPT"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Activity Heat Map"].exists)
+        XCTAssertTrue(scrollToElement(app.staticTexts["Cardio"], in: app, timeout: 3, maxSwipes: 3))
+        XCTAssertTrue(app.staticTexts["Best cardio"].exists)
 
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Profile"].waitForExistence(timeout: 3))
@@ -110,6 +120,54 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
+    func testInsightsCardioAndWeekDetailDrillDown() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        app.tabBars.buttons["Insights"].tap()
+        XCTAssertTrue(app.buttons["Previous period"].waitForExistence(timeout: 3))
+        app.buttons["Previous period"].tap()
+
+        let cardioCard = app.buttons["insights-cardio-card"]
+        XCTAssertTrue(scrollToElement(cardioCard, in: app, timeout: 3, maxSwipes: 4))
+        cardioCard.tap()
+
+        XCTAssertTrue(app.navigationBars["Cardio Detail"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Zone 1"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Zone 5"].exists)
+        XCTAssertTrue(app.buttons["edit-heart-rate-zones-button"].exists)
+        app.buttons["edit-heart-rate-zones-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Heart Rate Zones"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["heart-rate-zones-reset-defaults-button"].waitForExistence(timeout: 3))
+        app.buttons["heart-rate-zones-reset-defaults-button"].tap()
+        XCTAssertTrue(app.buttons["heart-rate-zones-save-button"].exists)
+        app.buttons["heart-rate-zones-save-button"].tap()
+
+        XCTAssertTrue(app.navigationBars["Cardio Detail"].waitForExistence(timeout: 3))
+        app.navigationBars.buttons.element(boundBy: 0).tap()
+        XCTAssertTrue(app.navigationBars["Insights"].waitForExistence(timeout: 3))
+
+        let dayRow = insightsDayRowWithWorkout(in: app).firstMatch
+        XCTAssertTrue(scrollToElement(dayRow, in: app, timeout: 3, maxSwipes: 5))
+        dayRow.tap()
+
+        XCTAssertTrue(app.navigationBars["Day"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Share day"].exists)
+        XCTAssertTrue(app.staticTexts["Hourly Timeline"].waitForExistence(timeout: 3))
+
+        let dayWorkout = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "day-workout-")
+        ).firstMatch
+        XCTAssertTrue(scrollToElement(dayWorkout, in: app, timeout: 3, maxSwipes: 3))
+        dayWorkout.tap()
+
+        XCTAssertTrue(app.staticTexts["Workout Snapshot"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Heart Rate"].exists)
+    }
+
+    @MainActor
     private func launchWithSampleData(_ app: XCUIApplication) {
         app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
         app.launch()
@@ -148,9 +206,27 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
+    private func waitForLabelChange(_ element: XCUIElement, from originalLabel: String, timeout: TimeInterval) -> Bool {
+        let predicate = NSPredicate(format: "label != %@", originalLabel)
+        let expectation = XCTNSPredicateExpectation(predicate: predicate, object: element)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    @MainActor
     private func workoutRow(containing text: String, in app: XCUIApplication) -> XCUIElementQuery {
         app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@ AND label CONTAINS %@", "workout-row-", text)
+        )
+    }
+
+    @MainActor
+    private func insightsDayRowWithWorkout(in app: XCUIApplication) -> XCUIElementQuery {
+        app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label MATCHES %@",
+                "insights-week-day-row-",
+                ".*[1-9][0-9]* workouts.*"
+            )
         )
     }
 }

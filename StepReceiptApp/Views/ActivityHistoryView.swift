@@ -60,6 +60,7 @@ struct ActivityHistoryView: View {
                         DaySummaryRow(summary: summary, distanceUnit: repository.preferences.distanceUnit)
                     }
                     .buttonStyle(.plain)
+                    .accessibilityIdentifier("activity-day-row-\(summary.id)")
                     .simultaneousGesture(TapGesture().onEnded {
                         Task { await repository.selectDate(summary.dateStart) }
                     })
@@ -242,6 +243,14 @@ struct DaySummaryDetailView: View {
     let summary: DailyActivitySummary
     @State private var shareImage: ShareImage?
 
+    private var dayPeriod: PeriodActivitySummary {
+        repository.periodSummary(scope: .day, containing: summary.dateStart)
+    }
+
+    private var cardioInsight: CardioPeriodInsight {
+        dayPeriod.cardioInsight
+    }
+
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
@@ -257,6 +266,12 @@ struct DaySummaryDetailView: View {
 
                 if !summary.workouts.isEmpty {
                     topWorkoutLinks
+                }
+
+                dayTimeline
+
+                if cardioInsight.hasCardio {
+                    dayCardioSection
                 }
 
                 DayShareCard(
@@ -293,6 +308,7 @@ struct DaySummaryDetailView: View {
                 .metricCard()
             }
             .padding(16)
+            .accessibilityIdentifier("day-detail-screen-\(summary.id)")
         }
         .background(Color.stepBackground)
         .navigationTitle("Day")
@@ -354,6 +370,80 @@ struct DaySummaryDetailView: View {
                 .padding(.vertical, 2)
             }
         }
+    }
+
+    private var dayTimeline: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Hourly Timeline", systemImage: "clock")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                Text(summary.buckets.isEmpty ? "No buckets" : "\(summary.buckets.count) hours")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+
+            if summary.buckets.isEmpty {
+                Text("No hourly timeline for this day yet.")
+                    .font(.subheadline)
+                    .foregroundStyle(Color.stepMuted)
+                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+            } else {
+                VStack(spacing: 8) {
+                    ForEach(summary.buckets) { bucket in
+                        HStack(spacing: 12) {
+                            Text(bucket.startDate, format: .dateTime.hour())
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color.stepMuted)
+                                .frame(width: 50, alignment: .leading)
+
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("\(bucket.steps.formatted()) steps")
+                                    .font(.subheadline.weight(.bold))
+                                    .foregroundStyle(Color.stepInk)
+                                Text("\(ActivityFormatting.formattedDistance(from: bucket.distanceMeters, unit: repository.preferences.distanceUnit)) · \(ActivityFormatting.formattedCalories(bucket.activeEnergyKilocalories))")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.stepMuted)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(10)
+                        .background(Color.stepBackground)
+                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    }
+                }
+            }
+        }
+        .metricCard()
+    }
+
+    private var dayCardioSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Cardio", systemImage: "figure.run")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                Text("\(cardioInsight.sessionCount) sessions")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                MetricTile(title: "Minutes", value: ActivityFormatting.formattedMinutes(cardioInsight.totalMinutes), icon: StepReceiptSymbol.workout)
+                MetricTile(title: "Distance", value: ActivityFormatting.formattedDistance(from: cardioInsight.totalDistanceMeters, unit: repository.preferences.distanceUnit), icon: StepReceiptSymbol.distance)
+                MetricTile(title: "Active Burn", value: ActivityFormatting.formattedCalories(cardioInsight.totalActiveEnergyKilocalories), icon: StepReceiptSymbol.activeEnergy)
+                MetricTile(title: "Avg HR", value: averageHeartRateText, icon: "heart.fill")
+            }
+        }
+        .metricCard()
+    }
+
+    private var averageHeartRateText: String {
+        guard let bpm = cardioInsight.averageHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
     }
 }
 

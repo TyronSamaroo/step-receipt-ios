@@ -179,6 +179,45 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testInsightsPeriodSummaryUsesMondayWeekWithoutChangingSelectedDate() async throws {
+        let now = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 15)))
+        let sunday = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 7)))
+        let monday = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 8)))
+        let tuesday = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 9)))
+        let wednesday = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 10)))
+        let nextMonday = try #require(calendar.date(from: DateComponents(year: 2026, month: 6, day: 15)))
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+        repository.history = [
+            summary(sunday, steps: 11_000),
+            summary(monday, steps: 9_000),
+            summary(tuesday, steps: 14_000),
+            summary(wednesday, steps: 4_000)
+        ]
+        repository.selectedDate = sunday
+
+        let selectedDateBeforeInsightsBrowse = repository.selectedDate
+        let week = repository.periodSummary(scope: .week, containing: wednesday, now: now)
+        let nextAnchor = repository.adjacentInsightPeriodAnchor(scope: .week, containing: wednesday, offset: 1, now: now)
+        let unavailableFutureAnchor = repository.adjacentInsightPeriodAnchor(scope: .week, containing: nextMonday, offset: 1, now: now)
+
+        #expect(repository.selectedDate == selectedDateBeforeInsightsBrowse)
+        #expect(week.periodStart == monday)
+        #expect(week.periodEnd == nextMonday)
+        #expect(week.summaries.map(\.steps) == [9_000, 14_000, 4_000])
+        #expect(nextAnchor == nextMonday)
+        #expect(unavailableFutureAnchor == nil)
+    }
+
+    @Test
     func testBootstrapUsesCachedHealthDataWhenRefreshFails() async throws {
         let day = calendar.startOfDay(for: Date())
         let suiteName = defaultsSuiteName()
@@ -572,6 +611,33 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testHeartRateZonePreferencesPersist() throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let customZones = HeartRateZoneConfiguration(lowerBoundsBPM: [100, 120, 140, 160])
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.updatePreferences(heartRateZoneConfiguration: customZones)
+
+        let restoredRepository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        #expect(restoredRepository.preferences.heartRateZoneConfiguration == customZones)
+    }
+
+    @Test
     func testWorkoutTagsPersistTrimCapAndClearBySourceIdentifier() throws {
         let suiteName = defaultsSuiteName()
         let defaults = isolatedDefaults(suiteName: suiteName)
@@ -700,6 +766,20 @@ struct ActivityRepositoryTests {
             distanceMeters: distance,
             activeEnergyKilocalories: energy,
             flightsClimbed: flights
+        )
+    }
+
+    private func summary(_ day: Date, steps: Int, goals: UserGoals = UserGoals()) -> DailyActivitySummary {
+        DailyActivitySummary(
+            dateStart: calendar.startOfDay(for: day),
+            steps: steps,
+            distanceMeters: Double(steps) * 0.74,
+            activeEnergyKilocalories: Double(steps) * 0.038,
+            flightsClimbed: steps / 2_000,
+            workoutMinutes: 0,
+            buckets: [],
+            workouts: [],
+            goals: goals
         )
     }
 }

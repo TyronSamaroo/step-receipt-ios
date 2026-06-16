@@ -1,6 +1,5 @@
 import SwiftUI
 import UIKit
-import CloudKit
 
 struct CompetitionView: View {
     @EnvironmentObject private var repository: ActivityRepository
@@ -8,9 +7,6 @@ struct CompetitionView: View {
     @State private var profileNameDraft = ""
     @State private var inviteCodeDraft = ""
     @State private var inviteShare: CompetitionInviteShare?
-    @State private var householdShare: HouseholdCompetitionShare?
-    @State private var householdShareError: String?
-    @State private var isPreparingHouseholdShare = false
     @State private var clipboardJoinError: String?
 
     var body: some View {
@@ -60,9 +56,6 @@ struct CompetitionView: View {
             .sheet(item: $inviteShare) { inviteShare in
                 ShareSheet(items: [inviteShare.message])
             }
-            .sheet(item: $householdShare) { share in
-                CloudSharingSheet(householdShare: share)
-            }
             .onAppear {
                 profileNameDraft = repository.preferences.displayName
                 inviteCodeDraft = repository.sharedCompetitionSettings.inviteCode
@@ -109,13 +102,33 @@ struct CompetitionView: View {
 
     private var householdBoard: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .center) {
-                Label("Household Board", systemImage: "person.2")
-                    .font(.headline)
-                    .foregroundStyle(Color.stepInk)
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: "person.2.fill")
+                    .font(.title3.weight(.semibold))
+                    .foregroundStyle(Color.stepAccent)
+                    .frame(width: 34, height: 34)
+                    .background(Color.stepAccent.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Household Board")
+                        .font(.headline)
+                        .foregroundStyle(Color.stepInk)
+                    Text("Use one shared code on both phones. Only daily totals sync.")
+                        .font(.caption)
+                        .foregroundStyle(Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .layoutPriority(1)
+
                 Spacer()
+
                 Text(sharedStatusText)
                     .font(.caption.weight(.semibold))
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(sharedStatusColor.opacity(0.14))
+                    .clipShape(Capsule())
                     .foregroundStyle(sharedStatusColor)
             }
 
@@ -139,7 +152,7 @@ struct CompetitionView: View {
                 .background(Color.stepBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
                 Button {
                     inviteCodeDraft = repository.generatedSharedCompetitionInviteCode()
                 } label: {
@@ -147,6 +160,7 @@ struct CompetitionView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
+                .tint(.stepAccent)
 
                 Button {
                     Task {
@@ -161,26 +175,9 @@ struct CompetitionView: View {
                 .tint(.stepAccent)
                 .disabled(SharedCompetitionSettings.normalizedInviteCode(inviteCodeDraft).isEmpty)
             }
-            .controlSize(.regular)
+            .controlSize(.large)
 
-            Button {
-                Task {
-                    await prepareHouseholdShare()
-                }
-            } label: {
-                if isPreparingHouseholdShare {
-                    ProgressView()
-                        .frame(maxWidth: .infinity)
-                } else {
-                    Label("Send iCloud Invite", systemImage: "person.2.badge.gearshape")
-                        .frame(maxWidth: .infinity)
-                }
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(Color.stepDistance)
-            .disabled(!repository.sharedCompetitionSettings.canSync || isPreparingHouseholdShare)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                 Button {
                     inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
                 } label: {
@@ -214,16 +211,10 @@ struct CompetitionView: View {
                 .buttonStyle(.bordered)
                 .tint(.stepDistance)
             }
+            .controlSize(.large)
 
             if let clipboardJoinError {
                 Text(clipboardJoinError)
-                    .font(.caption)
-                    .foregroundStyle(Color.stepWarning)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-
-            if let householdShareError {
-                Text(householdShareError)
                     .font(.caption)
                     .foregroundStyle(Color.stepWarning)
                     .fixedSize(horizontal: false, vertical: true)
@@ -255,9 +246,10 @@ struct CompetitionView: View {
                 .accessibilityLabel("Stop household board")
             }
 
-            Text("Daily totals only")
+            Text("If Tiffany has the same code saved and taps Sync, her daily row should appear here after CloudKit finishes the update.")
                 .font(.caption)
                 .foregroundStyle(Color.stepMuted)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .metricCard()
     }
@@ -270,14 +262,15 @@ struct CompetitionView: View {
     private func compactActionLabel(_ title: String, systemImage: String) -> some View {
         Label(title, systemImage: systemImage)
             .font(.subheadline.weight(.semibold))
-            .lineLimit(1)
-            .minimumScaleFactor(0.78)
-            .frame(maxWidth: .infinity, minHeight: 36)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .minimumScaleFactor(0.85)
+            .frame(maxWidth: .infinity, minHeight: 44)
     }
 
     private func pasteInviteCode() {
         guard let normalized = normalizedInviteCodeFromClipboard() else {
-            clipboardJoinError = "No StepReceipt code found on the clipboard."
+            clipboardJoinError = "No StrideSlip code found on the clipboard."
             return
         }
         clipboardJoinError = nil
@@ -286,26 +279,13 @@ struct CompetitionView: View {
 
     private func joinFromClipboard() async {
         guard let normalized = normalizedInviteCodeFromClipboard() else {
-            clipboardJoinError = "No StepReceipt code found on the clipboard."
+            clipboardJoinError = "No StrideSlip code found on the clipboard."
             return
         }
         clipboardJoinError = nil
         inviteCodeDraft = normalized
         saveBoardProfileName()
         await repository.updateSharedCompetition(isEnabled: true, inviteCode: normalized)
-    }
-
-    private func prepareHouseholdShare() async {
-        saveBoardProfileName()
-        householdShareError = nil
-        isPreparingHouseholdShare = true
-        defer { isPreparingHouseholdShare = false }
-
-        do {
-            householdShare = try await repository.prepareHouseholdCompetitionShare()
-        } catch {
-            householdShareError = error.localizedDescription
-        }
     }
 
     private func normalizedInviteCodeFromClipboard() -> String? {
@@ -441,42 +421,7 @@ struct CompetitionInviteShare: Identifiable {
     let code: String
 
     var message: String {
-        "StepReceipt household code: \(code)\nOpen StepReceipt > Compete, paste this code, set your board name, then tap Sync."
-    }
-}
-
-struct CloudSharingSheet: UIViewControllerRepresentable {
-    let householdShare: HouseholdCompetitionShare
-
-    func makeCoordinator() -> Coordinator {
-        Coordinator()
-    }
-
-    func makeUIViewController(context: Context) -> UICloudSharingController {
-        let controller = UICloudSharingController(
-            share: householdShare.share,
-            container: householdShare.container
-        )
-        controller.delegate = context.coordinator
-        controller.availablePermissions = [.allowReadOnly]
-        return controller
-    }
-
-    func updateUIViewController(_ uiViewController: UICloudSharingController, context: Context) {}
-
-    final class Coordinator: NSObject, UICloudSharingControllerDelegate {
-        func itemTitle(for csc: UICloudSharingController) -> String? {
-            "StepReceipt Household Board"
-        }
-
-        func cloudSharingControllerDidSaveShare(_ csc: UICloudSharingController) {}
-
-        func cloudSharingControllerDidStopSharing(_ csc: UICloudSharingController) {}
-
-        func cloudSharingController(
-            _ csc: UICloudSharingController,
-            failedToSaveShareWithError error: Error
-        ) {}
+        "StrideSlip household code: \(code)\nOpen StrideSlip > Compete, paste this code, set your board name, then tap Sync."
     }
 }
 

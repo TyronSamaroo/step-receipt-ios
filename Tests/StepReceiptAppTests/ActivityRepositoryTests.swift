@@ -266,11 +266,73 @@ struct ActivityRepositoryTests {
 
         await cachedRepository.bootstrap()
 
-        #expect(cachedRepository.authorizationState == .deniedOrLimited)
+        #expect(cachedRepository.authorizationState == .authorized)
         #expect(cachedRepository.todaySummary?.steps == 5_200)
         #expect(cachedRepository.todaySummary?.buckets.count == 2)
         #expect(cachedRepository.workouts.first?.sourceIdentifier == "cached-workout")
         #expect(cachedRepository.receipt?.totalSteps ?? 0 >= 5_200)
+        #expect(cachedRepository.lastError?.contains("Apple Health") == true)
+    }
+
+    @Test
+    func testRefreshUsesHourlyTodayWhenDailyHistoryFails() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 8, steps: 1_500, distance: 1_100, energy: 62),
+                    bucket(day, hour: 12, steps: 2_100, distance: 1_550, energy: 84)
+                ],
+                dailyBuckets: [],
+                workouts: [],
+                dailyFetchError: .fetchFailed
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+
+        #expect(repository.authorizationState == .authorized)
+        #expect(repository.todaySummary?.steps == 3_600)
+        #expect(repository.history.contains { calendar.isDate($0.dateStart, inSameDayAs: day) && $0.steps == 3_600 })
+        #expect(repository.receipt?.totalSteps == 3_600)
+        #expect(repository.lastError?.contains("Daily Apple Health history") == true)
+    }
+
+    @Test
+    func testRefreshUsesDailyHistoryWhenHourlyTodayFails() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 5_700, distance: 4_180, energy: 226)
+                ],
+                workouts: [],
+                hourlyFetchError: .fetchFailed
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+
+        #expect(repository.authorizationState == .authorized)
+        #expect(repository.todaySummary?.steps == 5_700)
+        #expect(repository.history.contains { calendar.isDate($0.dateStart, inSameDayAs: day) && $0.steps == 5_700 })
+        #expect(repository.receipt?.totalSteps == 5_700)
+        #expect(repository.lastError?.contains("Hourly Apple Health activity") == true)
     }
 
     @Test
@@ -791,6 +853,9 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
     var dailyBuckets: [HealthMetricBucket]
     var workouts: [WorkoutActivity]
     var fetchError: HealthFixtureError? = nil
+    var hourlyFetchError: HealthFixtureError? = nil
+    var dailyFetchError: HealthFixtureError? = nil
+    var workoutFetchError: HealthFixtureError? = nil
     private var backgroundDeliveryHandler: (@MainActor @Sendable () async -> Void)?
     private(set) var backgroundDeliveryRequestCount = 0
 
@@ -800,7 +865,10 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         hourlyBuckets: [HealthMetricBucket],
         dailyBuckets: [HealthMetricBucket],
         workouts: [WorkoutActivity],
-        fetchError: HealthFixtureError? = nil
+        fetchError: HealthFixtureError? = nil,
+        hourlyFetchError: HealthFixtureError? = nil,
+        dailyFetchError: HealthFixtureError? = nil,
+        workoutFetchError: HealthFixtureError? = nil
     ) {
         self.isAvailable = isAvailable
         self.authorizationState = authorizationState
@@ -808,6 +876,9 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         self.dailyBuckets = dailyBuckets
         self.workouts = workouts
         self.fetchError = fetchError
+        self.hourlyFetchError = hourlyFetchError
+        self.dailyFetchError = dailyFetchError
+        self.workoutFetchError = workoutFetchError
     }
 
     func requestAuthorization() async throws -> HealthAuthorizationState {
@@ -827,16 +898,19 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
     }
 
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket] {
+        if let hourlyFetchError { throw hourlyFetchError }
         if let fetchError { throw fetchError }
         return hourlyBuckets
     }
 
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket] {
+        if let dailyFetchError { throw dailyFetchError }
         if let fetchError { throw fetchError }
         return dailyBuckets
     }
 
     func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity] {
+        if let workoutFetchError { throw workoutFetchError }
         if let fetchError { throw fetchError }
         return workouts
     }

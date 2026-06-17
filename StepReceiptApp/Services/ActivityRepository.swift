@@ -191,50 +191,88 @@ final class ActivityRepository: ObservableObject {
         isLoading = true
         defer { isLoading = false }
 
-        do {
-            let now = Date()
-            let selectedDate = normalizedActivityDate(self.selectedDate, now: now)
-            self.selectedDate = selectedDate
-            let historyEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now.addingTimeInterval(86_400)
-            let defaultHistoryStart = calendar.date(byAdding: .day, value: -historyLookbackDays, to: historyEnd) ?? historyEnd.addingTimeInterval(-Double(historyLookbackDays) * 86_400)
-            let historyStart = min(defaultHistoryStart, selectedDate)
+        let now = Date()
+        let selectedDate = normalizedActivityDate(self.selectedDate, now: now)
+        self.selectedDate = selectedDate
+        let previousHistory = history
+        let previousSummary = todaySummary
+        let previousWorkouts = workouts
+        let historyEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now.addingTimeInterval(86_400)
+        let defaultHistoryStart = calendar.date(byAdding: .day, value: -historyLookbackDays, to: historyEnd) ?? historyEnd.addingTimeInterval(-Double(historyLookbackDays) * 86_400)
+        let historyStart = min(defaultHistoryStart, selectedDate)
 
-            async let todayBuckets = healthKit.fetchHourlyBuckets(for: selectedDate)
-            async let dailyBuckets = healthKit.fetchDailyBuckets(daysBack: historyLookbackDays, endingAt: now)
-            async let fetchedWorkouts = healthKit.fetchWorkouts(startDate: historyStart, endDate: historyEnd)
+        async let todayFetch = fetchHealthValue(label: "Hourly Apple Health activity") {
+            try await healthKit.fetchHourlyBuckets(for: selectedDate)
+        }
+        async let dailyFetch = fetchHealthValue(label: "Daily Apple Health history") {
+            try await healthKit.fetchDailyBuckets(daysBack: historyLookbackDays, endingAt: now)
+        }
+        async let workoutsFetch = fetchHealthValue(label: "Apple Health workouts") {
+            try await healthKit.fetchWorkouts(startDate: historyStart, endDate: historyEnd)
+        }
 
-            let values = try await (todayBuckets: todayBuckets, dailyBuckets: dailyBuckets, workouts: fetchedWorkouts)
-            workouts = values.workouts
-            history = engine.dailySummaries(
-                from: values.dailyBuckets,
-                workouts: values.workouts,
+        let fetches = await (today: todayFetch, daily: dailyFetch, workouts: workoutsFetch)
+        let fetchErrors = [fetches.today.errorDescription, fetches.daily.errorDescription, fetches.workouts.errorDescription]
+            .compactMap { $0 }
+
+        guard fetches.today.value != nil || fetches.daily.value != nil || !previousHistory.isEmpty || previousSummary != nil else {
+            if !loadCachedActivityData() {
+                loadEmptyActivityState()
+            }
+            authorizationState = .authorized
+            lastError = fetchErrors.isEmpty ? nil : fetchErrors.joined(separator: "\n")
+            await updateLiveActivityIfNeeded(with: todaySummary)
+            await syncSharedCompetition()
+            return
+        }
+
+        let resolvedWorkouts = fetches.workouts.value ?? previousWorkouts
+        var resolvedHistory: [DailyActivitySummary]
+        if let dailyBuckets = fetches.daily.value {
+            resolvedHistory = engine.dailySummaries(
+                from: dailyBuckets,
+                workouts: resolvedWorkouts,
                 startDate: historyStart,
                 endDate: now,
                 goals: goals
             )
-            todaySummary = engine.aggregateDay(
+        } else {
+            resolvedHistory = previousHistory.map(rebuildSummaryWithCurrentGoals)
+        }
+
+        let resolvedSummary: DailyActivitySummary
+        if let todayBuckets = fetches.today.value {
+            resolvedSummary = engine.aggregateDay(
                 containing: selectedDate,
-                buckets: values.todayBuckets,
-                workouts: values.workouts,
+                buckets: todayBuckets,
+                workouts: resolvedWorkouts,
                 goals: goals
             )
-            receipt = engine.receipt(for: history, goals: goals)
-            refreshCompetition()
-            activityDataSource = .healthKit
-            authorizationState = .authorized
-            lastError = nil
-            saveDerivedActivityCache(selectedSummary: todaySummary)
-            await updateLiveActivityIfNeeded(with: todaySummary)
-
-            await syncAggregateSummaries(selectedSummary: todaySummary)
-            await syncSharedCompetition()
-        } catch {
-            authorizationState = .deniedOrLimited
-            lastError = error.localizedDescription
-            if history.isEmpty {
-                loadCachedDataOrEmpty()
-            }
+        } else if
+            let previousSummary,
+            calendar.isDate(previousSummary.dateStart, inSameDayAs: selectedDate)
+        {
+            resolvedSummary = rebuildSummaryWithCurrentGoals(previousSummary)
+        } else if let historySummary = resolvedHistory.first(where: { calendar.isDate($0.dateStart, inSameDayAs: selectedDate) }) {
+            resolvedSummary = historySummary
+        } else {
+            resolvedSummary = emptySummary(for: selectedDate)
         }
+
+        resolvedHistory = replacingSummary(resolvedSummary, in: resolvedHistory)
+        workouts = resolvedWorkouts
+        history = resolvedHistory
+        todaySummary = resolvedSummary
+        receipt = engine.receipt(for: history, goals: goals)
+        refreshCompetition()
+        activityDataSource = .healthKit
+        authorizationState = .authorized
+        lastError = fetchErrors.isEmpty ? nil : fetchErrors.joined(separator: "\n")
+        saveDerivedActivityCache(selectedSummary: todaySummary)
+        await updateLiveActivityIfNeeded(with: todaySummary)
+
+        await syncAggregateSummaries(selectedSummary: todaySummary)
+        await syncSharedCompetition()
     }
 
     func refreshAfterAppBecameActive() async {
@@ -329,8 +367,11 @@ final class ActivityRepository: ObservableObject {
             return
         }
 
-        do {
-            let hourlyBuckets = try await healthKit.fetchHourlyBuckets(for: selectedDate)
+        let hourlyFetch = await fetchHealthValue(label: "Selected day Apple Health activity") {
+            try await healthKit.fetchHourlyBuckets(for: selectedDate)
+        }
+
+        if let hourlyBuckets = hourlyFetch.value {
             todaySummary = engine.aggregateDay(
                 containing: selectedDate,
                 buckets: hourlyBuckets,
@@ -339,11 +380,16 @@ final class ActivityRepository: ObservableObject {
             )
             lastError = nil
             if activityDataSource == .healthKit || activityDataSource == .cache {
+                if let todaySummary {
+                    history = replacingSummary(todaySummary, in: history)
+                    receipt = engine.receipt(for: history, goals: goals)
+                    refreshCompetition()
+                }
                 saveDerivedActivityCache(selectedSummary: todaySummary)
             }
             await updateLiveActivityIfNeeded(with: todaySummary)
-        } catch {
-            lastError = error.localizedDescription
+        } else {
+            lastError = hourlyFetch.errorDescription
             loadSelectedSummaryFromHistory()
         }
     }
@@ -420,6 +466,20 @@ final class ActivityRepository: ObservableObject {
         } else {
             todaySummary = emptySummary(for: selectedDate)
         }
+    }
+
+    private func replacingSummary(
+        _ summary: DailyActivitySummary,
+        in summaries: [DailyActivitySummary]
+    ) -> [DailyActivitySummary] {
+        let summaryKey = ActivityFormatting.dayKey(for: summary.dateStart, calendar: calendar)
+        var summariesByDay = Dictionary(
+            uniqueKeysWithValues: summaries.map {
+                (ActivityFormatting.dayKey(for: $0.dateStart, calendar: calendar), $0)
+            }
+        )
+        summariesByDay[summaryKey] = summary
+        return summariesByDay.values.sorted { $0.dateStart < $1.dateStart }
     }
 
     private func emptySummary(for date: Date) -> DailyActivitySummary {
@@ -1146,6 +1206,28 @@ private enum ActivityDataSource {
     case healthKit
     case cache
     case sample
+}
+
+private struct HealthFetchResult<Value: Sendable>: Sendable {
+    let value: Value?
+    let errorDescription: String?
+}
+
+private func fetchHealthValue<Value: Sendable>(
+    label: String,
+    retryDelayNanoseconds: UInt64 = 250_000_000,
+    operation: @Sendable () async throws -> Value
+) async -> HealthFetchResult<Value> {
+    do {
+        return HealthFetchResult(value: try await operation(), errorDescription: nil)
+    } catch {
+        try? await Task.sleep(nanoseconds: retryDelayNanoseconds)
+        do {
+            return HealthFetchResult(value: try await operation(), errorDescription: nil)
+        } catch {
+            return HealthFetchResult(value: nil, errorDescription: "\(label): \(error.localizedDescription)")
+        }
+    }
 }
 
 private struct DerivedActivityCache: Codable {

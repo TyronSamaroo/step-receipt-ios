@@ -8,18 +8,22 @@
 
 /* Begin PBXBuildFile section */
 		079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
+		0C19B3E6BD9402131FF0473D /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
 		0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
 		0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D7B3688BBF71678CEEFABC /* SettingsView.swift */; };
 		165E2C740BA12624FADDA990 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DCB0108D22D9887D64D763 /* TodayView.swift */; };
 		17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
 		1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
+		2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */; };
 		55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
+		58DD12BF3D9F204EFD70FC69 /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
+		5FE28FAF33A3F516EEDD5E36 /* TodayQuickDigestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */; };
 		610B65E52530B8D2AA8CC3D1 /* StepReceiptLiveActivityWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		717D23C5C2085DB32F5C3357 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
@@ -37,14 +41,18 @@
 		B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
 		B4CC36F293704EB2BC59E544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */; };
 		BE150B31D7F0F53A8CA5EF26 /* StepReceiptUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */; };
+		BF9759C715614A8D499A2DBC /* TodayQuickDigest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */; };
 		C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
 		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		DA254D0A49D1F5754D20937D /* DailyStepGoalLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */; };
+		DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
 		E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */; };
+		E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
+		E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
 		F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
@@ -92,6 +100,7 @@
 		1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptUITests.swift; sourceTree = "<group>"; };
 		117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptTheme.swift; sourceTree = "<group>"; };
 		11D4678D07205B15BE59624E /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
+		14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayQuickDigest.swift; sourceTree = "<group>"; };
 		1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptApp.swift; sourceTree = "<group>"; };
 		213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityFormatting.swift; sourceTree = "<group>"; };
 		383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngineTests.swift; sourceTree = "<group>"; };
@@ -101,6 +110,8 @@
 		55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributes.swift; sourceTree = "<group>"; };
 		6277880B45319181EE54747C /* CompetitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionEngine.swift; sourceTree = "<group>"; };
 		63A6EA53FBB377B2AB87EA82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewPreferences.swift; sourceTree = "<group>"; };
+		67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDiagnosticsSummary.swift; sourceTree = "<group>"; };
 		69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitClient.swift; sourceTree = "<group>"; };
 		707E420CC51D70EA4C77BD16 /* StepReceiptUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		77D7B3688BBF71678CEEFABC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -114,9 +125,11 @@
 		959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSummarySync.swift; sourceTree = "<group>"; };
 		99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.entitlements; sourceTree = "<group>"; };
 		A1C02F7D43B39AEA6366E622 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayQuickDigestTests.swift; sourceTree = "<group>"; };
 		BB6E09C0351D4BC1627353D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BFC828839F225D766AD0E781 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngine.swift; sourceTree = "<group>"; };
 		C419C531AB76EA4334533C31 /* CompetitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionView.swift; sourceTree = "<group>"; };
+		C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyUseQOLTests.swift; sourceTree = "<group>"; };
 		C91B022F49B7155BF630F06F /* ActivityModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityModels.swift; sourceTree = "<group>"; };
 		CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.LocalPersonal.entitlements; sourceTree = "<group>"; };
 		D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityService.swift; sourceTree = "<group>"; };
@@ -196,6 +209,7 @@
 				6277880B45319181EE54747C /* CompetitionEngine.swift */,
 				F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */,
 				BFC828839F225D766AD0E781 /* InsightEngine.swift */,
+				14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */,
 				01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */,
 			);
 			name = StepReceiptCore;
@@ -207,6 +221,7 @@
 			children = (
 				DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */,
 				4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */,
+				C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */,
 			);
 			name = StepReceiptAppTests;
 			path = Tests/StepReceiptAppTests;
@@ -227,6 +242,7 @@
 			isa = PBXGroup;
 			children = (
 				383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */,
+				AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */,
 				845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */,
 			);
 			name = StepReceiptCoreTests;
@@ -246,6 +262,8 @@
 			isa = PBXGroup;
 			children = (
 				7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */,
+				67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */,
+				65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */,
 				8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */,
 				959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */,
 				D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */,
@@ -436,6 +454,8 @@
 				C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */,
 				55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */,
 				D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */,
+				E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */,
+				DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */,
 				0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */,
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
@@ -443,10 +463,13 @@
 				B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */,
 				AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */,
 				5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */,
+				2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */,
 				F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */,
 				30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */,
 				E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */,
 				F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */,
+				BF9759C715614A8D499A2DBC /* TodayQuickDigest.swift in Sources */,
+				5FE28FAF33A3F516EEDD5E36 /* TodayQuickDigestTests.swift in Sources */,
 				6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */,
 				7937BD85DBFDD55EAEC28111 /* WorkoutTemplateTests.swift in Sources */,
 			);
@@ -461,7 +484,9 @@
 				C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */,
 				17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */,
 				E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */,
+				58DD12BF3D9F204EFD70FC69 /* AppDiagnosticsSummary.swift in Sources */,
 				FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */,
+				0C19B3E6BD9402131FF0473D /* AppViewPreferences.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
 				1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */,
@@ -477,6 +502,7 @@
 				D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */,
 				F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */,
 				4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */,
+				E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */,
 				165E2C740BA12624FADDA990 /* TodayView.swift in Sources */,
 				F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */,
 				A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */,
@@ -675,7 +701,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -741,7 +767,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 18;
+				CURRENT_PROJECT_VERSION = 19;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

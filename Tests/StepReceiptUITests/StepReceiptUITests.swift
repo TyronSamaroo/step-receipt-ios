@@ -8,6 +8,7 @@ final class StepReceiptUITests: XCTestCase {
         launchWithSampleData(app)
 
         XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 2))
+        XCTAssertTrue(app.buttons["today-quick-digest"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
@@ -27,6 +28,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Copy Code"].exists)
         XCTAssertTrue(app.buttons["Paste Code"].exists)
         XCTAssertTrue(app.buttons["Join"].exists)
+        XCTAssertTrue(app.otherElements["compete-sync-status-row"].exists || app.staticTexts["Sync Status"].exists)
         XCTAssertFalse(app.buttons["Send iCloud Invite"].exists)
         XCTAssertTrue(app.staticTexts["Leaderboard"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Add Check-In"].waitForExistence(timeout: 3))
@@ -61,6 +63,11 @@ final class StepReceiptUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(liveActivitySwitch.waitForExistence(timeout: 3))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Diagnostics"], in: app, timeout: 1, maxSwipes: 3))
+        let copyDiagnostics = app.buttons["copy-diagnostics-button"]
+        XCTAssertTrue(scrollToElement(copyDiagnostics, in: app, timeout: 1, maxSwipes: 2))
+        copyDiagnostics.tap()
+        XCTAssertTrue(app.buttons["Diagnostics copied"].waitForExistence(timeout: 3))
 
         let privacyCopy = app.staticTexts
             .matching(NSPredicate(format: "label CONTAINS 'opt-in household competition totals'"))
@@ -169,8 +176,45 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
-    private func launchWithSampleData(_ app: XCUIApplication) {
-        app.launchArguments = ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
+    func testViewChoicesPersistAfterRelaunch() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        app.tabBars.buttons["Activity"].tap()
+        let modePicker = app.segmentedControls["activity-history-mode-picker"]
+        XCTAssertTrue(modePicker.buttons["Workouts"].waitForExistence(timeout: 3))
+        modePicker.buttons["Workouts"].tap()
+        XCTAssertTrue(app.buttons["activity-workout-filter-outdoorWalk"].waitForExistence(timeout: 3))
+        app.buttons["activity-workout-filter-outdoorWalk"].tap()
+
+        app.tabBars.buttons["Insights"].tap()
+        let scopePicker = app.segmentedControls["insights-scope-picker"]
+        XCTAssertTrue(scopePicker.buttons["Month"].waitForExistence(timeout: 3))
+        scopePicker.buttons["Month"].tap()
+
+        app.terminate()
+        launchWithSampleData(app, resetDefaults: false)
+
+        app.tabBars.buttons["Activity"].tap()
+        let restoredModePicker = app.segmentedControls["activity-history-mode-picker"]
+        XCTAssertTrue(restoredModePicker.buttons["Workouts"].waitForExistence(timeout: 3))
+        XCTAssertTrue(restoredModePicker.buttons["Workouts"].isSelected)
+        let restoredOutdoorFilter = app.buttons["activity-workout-filter-outdoorWalk"]
+        XCTAssertTrue(restoredOutdoorFilter.waitForExistence(timeout: 3))
+        XCTAssertTrue(restoredOutdoorFilter.isSelected)
+
+        app.tabBars.buttons["Insights"].tap()
+        let restoredScopePicker = app.segmentedControls["insights-scope-picker"]
+        XCTAssertTrue(restoredScopePicker.buttons["Month"].waitForExistence(timeout: 3))
+        XCTAssertTrue(restoredScopePicker.buttons["Month"].isSelected)
+    }
+
+    @MainActor
+    private func launchWithSampleData(_ app: XCUIApplication, resetDefaults: Bool = true) {
+        app.launchArguments = resetDefaults
+            ? ["-stepReceiptUITestingResetDefaults", "-stepReceiptUITestingUseSampleData"]
+            : ["-stepReceiptUITestingUseSampleData"]
         app.launch()
 
         if app.buttons["Preview Sample Data"].waitForExistence(timeout: 2) {

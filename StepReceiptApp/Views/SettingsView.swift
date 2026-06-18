@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct SettingsView: View {
     @EnvironmentObject private var repository: ActivityRepository
@@ -9,6 +10,7 @@ struct SettingsView: View {
     @State private var selectedDistanceUnit: DistanceUnit = .miles
     @State private var selectedAppTheme: AppTheme = .light
     @State private var visibleDashboardMetrics = Set(DashboardMetric.allCases)
+    @State private var copiedDiagnostics = false
 
     var body: some View {
         NavigationStack {
@@ -140,6 +142,26 @@ struct SettingsView: View {
                         .foregroundStyle(Color.stepMuted)
                 }
 
+                Section("Diagnostics") {
+                    statusRow("App", appVersionAndBuildText, "app")
+                    statusRow("Apple Health", healthStatusText, StepReceiptSymbol.healthCard)
+                    statusRow("Last Health Refresh", healthRefreshDiagnosticsText, healthRefreshStatusIcon)
+                    statusRow("iCloud", cloudStatusText, StepReceiptSymbol.cloud)
+                    statusRow("Live Activity", repository.liveActivityStatus.title, "iphone.radiowaves.left.and.right")
+
+                    Button {
+                        UIPasteboard.general.string = diagnosticsSummary.text
+                        copiedDiagnostics = true
+                    } label: {
+                        Label(copiedDiagnostics ? "Diagnostics copied" : "Copy Diagnostics", systemImage: "doc.on.doc")
+                    }
+                    .accessibilityIdentifier("copy-diagnostics-button")
+
+                    Text("Diagnostics only copies app and sync status. It does not include raw Health data, activity totals, workouts, routes, or household codes.")
+                        .font(.footnote)
+                        .foregroundStyle(Color.stepMuted)
+                }
+
                 Section("Privacy") {
                     Text("StepReceipt reads HealthKit data on-device and syncs only aggregate daily summary records, preferences, goals, and opt-in household competition totals. Raw samples, hourly buckets, workout details, and source identifiers are not uploaded.")
                         .font(.footnote)
@@ -158,6 +180,22 @@ struct SettingsView: View {
                 visibleDashboardMetrics = Set(repository.preferences.visibleDashboardMetrics)
             }
         }
+    }
+
+    private var diagnosticsSummary: AppDiagnosticsSummary {
+        AppDiagnosticsSummary(
+            appVersion: AppDiagnosticsSummary.appVersion(),
+            appBuild: AppDiagnosticsSummary.appBuild(),
+            appleHealthStatus: healthStatusText,
+            healthRefreshStatus: healthRefreshStatusText,
+            healthLastRefresh: healthLastUpdatedText,
+            iCloudStatus: cloudStatusText,
+            liveActivityStatus: repository.liveActivityStatus.title
+        )
+    }
+
+    private var appVersionAndBuildText: String {
+        "\(AppDiagnosticsSummary.appVersion()) (\(AppDiagnosticsSummary.appBuild()))"
     }
 
     private var healthStatusText: String {
@@ -216,6 +254,14 @@ struct SettingsView: View {
         }
 
         return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
+    private var healthRefreshDiagnosticsText: String {
+        if let healthLastUpdatedText {
+            return "\(healthRefreshStatusText) · \(healthLastUpdatedText)"
+        }
+
+        return healthRefreshStatusText
     }
 
     private var cloudStatusText: String {

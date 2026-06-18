@@ -2,10 +2,40 @@ import SwiftUI
 
 struct ActivityHistoryView: View {
     @EnvironmentObject private var repository: ActivityRepository
-    @State private var selectedMode: ActivityHistoryMode = .days
-    @State private var selectedWorkoutFilter: ActivityWorkoutFilter = .all
-    @State private var selectedDayFilter: DailySummaryFilter = .all
-    @State private var selectedDaySort: DailySummarySort = .newest
+    @AppStorage(AppViewPreferenceKey.activityMode) private var selectedModeRaw = AppViewPreferenceDefault.activityMode
+    @AppStorage(AppViewPreferenceKey.activityWorkoutFilter) private var selectedWorkoutFilterRaw = AppViewPreferenceDefault.activityWorkoutFilter
+    @AppStorage(AppViewPreferenceKey.activityDayFilter) private var selectedDayFilterRaw = AppViewPreferenceDefault.activityDayFilter
+    @AppStorage(AppViewPreferenceKey.activityDaySort) private var selectedDaySortRaw = AppViewPreferenceDefault.activityDaySort
+
+    private var selectedMode: ActivityHistoryMode {
+        ActivityHistoryMode(rawValue: selectedModeRaw) ?? .days
+    }
+
+    private var selectedWorkoutFilter: ActivityWorkoutFilter {
+        ActivityWorkoutFilter(rawValue: selectedWorkoutFilterRaw) ?? .all
+    }
+
+    private var selectedDayFilter: DailySummaryFilter {
+        DailySummaryFilter(rawValue: selectedDayFilterRaw) ?? .all
+    }
+
+    private var selectedDaySort: DailySummarySort {
+        DailySummarySort(rawValue: selectedDaySortRaw) ?? .newest
+    }
+
+    private var selectedModeBinding: Binding<ActivityHistoryMode> {
+        Binding(
+            get: { selectedMode },
+            set: { selectedModeRaw = $0.rawValue }
+        )
+    }
+
+    private var selectedDaySortBinding: Binding<DailySummarySort> {
+        Binding(
+            get: { selectedDaySort },
+            set: { selectedDaySortRaw = $0.rawValue }
+        )
+    }
 
     private var filteredWorkouts: [WorkoutActivity] {
         repository.filteredWorkouts(kind: nil).filter(selectedWorkoutFilter.matches)
@@ -19,12 +49,13 @@ struct ActivityHistoryView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("History", selection: $selectedMode) {
+                    Picker("History", selection: selectedModeBinding) {
                         ForEach(ActivityHistoryMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("activity-history-mode-picker")
 
                     if selectedMode == .days {
                         daysList
@@ -38,6 +69,9 @@ struct ActivityHistoryView: View {
             .background(Color.stepBackground)
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
+            .refreshable {
+                await repository.refresh()
+            }
         }
     }
 
@@ -75,8 +109,9 @@ struct ActivityHistoryView: View {
                 HStack(spacing: 8) {
                     ForEach(DailySummaryFilter.allCases) { filter in
                         FilterChip(title: filter.displayName, isSelected: selectedDayFilter == filter) {
-                            selectedDayFilter = filter
+                            selectedDayFilterRaw = filter.rawValue
                         }
+                        .accessibilityIdentifier("activity-day-filter-\(filter.rawValue)")
                     }
                 }
                 .padding(.vertical, 4)
@@ -87,13 +122,14 @@ struct ActivityHistoryView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                 Spacer()
-                Picker("Sort days", selection: $selectedDaySort) {
+                Picker("Sort days", selection: selectedDaySortBinding) {
                     ForEach(DailySummarySort.allCases) { sort in
                         Text(sort.displayName).tag(sort)
                     }
                 }
                 .pickerStyle(.menu)
                 .tint(Color.stepAccent)
+                .accessibilityIdentifier("activity-day-sort-menu")
             }
         }
         .metricCard()
@@ -129,8 +165,9 @@ struct ActivityHistoryView: View {
             HStack(spacing: 8) {
                 ForEach(ActivityWorkoutFilter.allCases) { filter in
                     FilterChip(title: filter.displayName, isSelected: selectedWorkoutFilter == filter) {
-                        selectedWorkoutFilter = filter
+                        selectedWorkoutFilterRaw = filter.rawValue
                     }
+                    .accessibilityIdentifier("activity-workout-filter-\(filter.rawValue)")
                 }
             }
             .padding(.vertical, 4)
@@ -462,6 +499,7 @@ struct FilterChip: View {
                 .foregroundStyle(isSelected ? .white : Color.stepInk)
                 .clipShape(Capsule())
         }
+        .accessibilityAddTraits(isSelected ? .isSelected : [])
     }
 }
 

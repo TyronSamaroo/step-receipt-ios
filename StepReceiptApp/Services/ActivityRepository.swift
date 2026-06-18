@@ -878,6 +878,7 @@ final class ActivityRepository: ObservableObject {
             workoutTagsKey,
             activityCacheKey
         ].forEach(userDefaults.removeObject)
+        AppViewPreferenceKey.all.forEach(userDefaults.removeObject)
         goals = UserGoals()
         preferences = UserPreferences()
         workoutTags = [:]

@@ -2,9 +2,20 @@ import SwiftUI
 
 struct InsightsView: View {
     @EnvironmentObject private var repository: ActivityRepository
-    @State private var selectedScope: ActivityPeriodScope = .week
+    @AppStorage(AppViewPreferenceKey.insightsScope) private var selectedScopeRaw = AppViewPreferenceDefault.insightsScope
     @State private var periodAnchorDate = Date()
     @State private var shareImage: ShareImage?
+
+    private var selectedScope: ActivityPeriodScope {
+        ActivityPeriodScope(rawValue: selectedScopeRaw) ?? .week
+    }
+
+    private var selectedScopeBinding: Binding<ActivityPeriodScope> {
+        Binding(
+            get: { selectedScope },
+            set: { selectedScopeRaw = $0.rawValue }
+        )
+    }
 
     private var period: PeriodActivitySummary {
         repository.periodSummary(scope: selectedScope, containing: periodAnchorDate)
@@ -14,12 +25,13 @@ struct InsightsView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    Picker("Period", selection: $selectedScope) {
+                    Picker("Period", selection: selectedScopeBinding) {
                         ForEach(ActivityPeriodScope.allCases) { scope in
                             Text(scope.displayName).tag(scope)
                         }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("insights-scope-picker")
 
                     periodNavigator
 
@@ -41,6 +53,9 @@ struct InsightsView: View {
                     }
                 }
                 .padding(16)
+            }
+            .refreshable {
+                await repository.refresh()
             }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)

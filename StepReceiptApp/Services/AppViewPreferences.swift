@@ -1,0 +1,37 @@
+import Foundation
+
+enum AppViewPreferenceKey {
+    static let activityMode = "stepReceipt.activityHistory.mode.v1"
+    static let activityDayFilter = "stepReceipt.activityHistory.dayFilter.v1"
+    static let activityDaySort = "stepReceipt.activityHistory.daySort.v1"
+    static let activityWorkoutFilter = "stepReceipt.activityHistory.workoutFilter.v1"
+    static let insightsScope = "stepReceipt.insights.scope.v1"
+
+    static let all = [
+        activityMode,
+        activityDayFilter,
+        activityDaySort,
+        activityWorkoutFilter,
+        insightsScope
+    ]
+}
+
+enum AppViewPreferenceDefault {
+    static let activityMode = "days"
+    static let activityDayFilter = DailySummaryFilter.all.rawValue
+    static let activityDaySort = DailySummarySort.newest.rawValue
+    static let activityWorkoutFilter = "all"
+    static let insightsScope = ActivityPeriodScope.week.rawValue
+}
+
+struct AppViewPreferenceStore {
+    let userDefaults: UserDefaults
+
+    func string(for key: String, defaultValue: String) -> String {
+        userDefaults.string(forKey: key) ?? defaultValue
+    }
+
+    func set(_ value: String, for key: String) {
+        userDefaults.set(value, forKey: key)
+    }
+}

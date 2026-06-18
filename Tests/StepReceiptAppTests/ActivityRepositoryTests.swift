@@ -56,6 +56,9 @@ struct ActivityRepositoryTests {
         #expect(repository.todaySummary?.workoutMinutes == 45)
         #expect(repository.receipt?.totalSteps ?? 0 >= 3_600)
         #expect(repository.cloudSyncState == .unavailable("Offline test"))
+        #expect(repository.healthRefreshStatus.outcome == .current)
+        #expect(repository.healthRefreshStatus.lastSuccessfulAt != nil)
+        #expect(repository.healthRefreshStatus.issue == nil)
 
         let records = await cloud.syncedRecords()
         #expect(!records.isEmpty)
@@ -272,6 +275,8 @@ struct ActivityRepositoryTests {
         #expect(cachedRepository.workouts.first?.sourceIdentifier == "cached-workout")
         #expect(cachedRepository.receipt?.totalSteps ?? 0 >= 5_200)
         #expect(cachedRepository.lastError?.contains("Apple Health") == true)
+        #expect(cachedRepository.healthRefreshStatus.outcome == .cached)
+        #expect(cachedRepository.healthRefreshStatus.issue?.contains("Apple Health") == true)
     }
 
     @Test
@@ -303,6 +308,9 @@ struct ActivityRepositoryTests {
         #expect(repository.history.contains { calendar.isDate($0.dateStart, inSameDayAs: day) && $0.steps == 3_600 })
         #expect(repository.receipt?.totalSteps == 3_600)
         #expect(repository.lastError?.contains("Daily Apple Health history") == true)
+        #expect(repository.healthRefreshStatus.outcome == .partial)
+        #expect(repository.healthRefreshStatus.lastSuccessfulAt != nil)
+        #expect(repository.healthRefreshStatus.issue?.contains("Daily Apple Health history") == true)
     }
 
     @Test
@@ -333,6 +341,9 @@ struct ActivityRepositoryTests {
         #expect(repository.history.contains { calendar.isDate($0.dateStart, inSameDayAs: day) && $0.steps == 5_700 })
         #expect(repository.receipt?.totalSteps == 5_700)
         #expect(repository.lastError?.contains("Hourly Apple Health activity") == true)
+        #expect(repository.healthRefreshStatus.outcome == .partial)
+        #expect(repository.healthRefreshStatus.lastSuccessfulAt != nil)
+        #expect(repository.healthRefreshStatus.issue?.contains("Hourly Apple Health activity") == true)
     }
 
     @Test

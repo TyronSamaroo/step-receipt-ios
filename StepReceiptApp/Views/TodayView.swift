@@ -13,6 +13,7 @@ struct TodayView: View {
 
                     if let summary = repository.todaySummary {
                         todayHero(summary)
+                        healthSyncStatusCard
                         todayCoach(repository.todayCoachInsights())
                         primaryWorkoutCard(summary)
                         hourlyChart(summary)
@@ -55,14 +56,60 @@ struct TodayView: View {
                     Button {
                         Task { await repository.refresh() }
                     } label: {
-                        Image(systemName: StepReceiptSymbol.refresh)
+                        refreshToolbarIcon
                     }
                     .accessibilityLabel("Refresh")
+                    .disabled(repository.isLoading)
                 }
             }
         }
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
+        }
+    }
+
+    @ViewBuilder
+    private var refreshToolbarIcon: some View {
+        if repository.isLoading {
+            ProgressView()
+                .controlSize(.small)
+        } else {
+            Image(systemName: StepReceiptSymbol.refresh)
+        }
+    }
+
+    @ViewBuilder
+    private var healthSyncStatusCard: some View {
+        if shouldShowHealthSyncStatus {
+            HStack(alignment: .center, spacing: 12) {
+                Image(systemName: healthSyncStatusIcon)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(healthSyncStatusColor)
+                    .frame(width: 34, height: 34)
+                    .background(healthSyncStatusColor.opacity(0.14))
+                    .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(healthSyncStatusTitle)
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                    Text(healthSyncStatusDetail)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Spacer(minLength: 0)
+
+                if repository.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(Color.stepAccent)
+                }
+            }
+            .metricCard()
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel("\(healthSyncStatusTitle). \(healthSyncStatusDetail)")
         }
     }
 
@@ -131,6 +178,114 @@ struct TodayView: View {
         case .authorized:
             ""
         }
+    }
+
+    private var shouldShowHealthSyncStatus: Bool {
+        repository.authorizationState == .authorized || repository.healthRefreshStatus.outcome != .idle || repository.isLoading
+    }
+
+    private var healthSyncStatusTitle: String {
+        if repository.isLoading {
+            return "Apple Health Sync"
+        }
+
+        switch repository.healthRefreshStatus.outcome {
+        case .idle:
+            return "Ready to Refresh"
+        case .refreshing:
+            return "Apple Health Sync"
+        case .current:
+            return "Apple Health Updated"
+        case .partial:
+            return "Partial Health Update"
+        case .cached:
+            return "Showing Saved Data"
+        case .failed:
+            return "Health Refresh Failed"
+        }
+    }
+
+    private var healthSyncStatusDetail: String {
+        if repository.isLoading {
+            return "Refreshing steps, daily history, and workouts now."
+        }
+
+        let status = repository.healthRefreshStatus
+        let timestamp = formattedRefreshTime(status.lastSuccessfulAt ?? status.lastCompletedAt)
+
+        switch status.outcome {
+        case .idle:
+            return "Tap refresh to pull the latest steps from Apple Health."
+        case .refreshing:
+            return "Refreshing steps, daily history, and workouts now."
+        case .current:
+            return "Updated \(timestamp)."
+        case .partial:
+            return "Updated \(timestamp), but \(healthSyncIssueSummary(status.issue))"
+        case .cached:
+            return "Using saved data from this iPhone. Refresh again when Apple Health responds."
+        case .failed:
+            return "Apple Health did not respond. Refresh again after opening Health or unlocking the phone."
+        }
+    }
+
+    private var healthSyncStatusIcon: String {
+        if repository.isLoading {
+            return "arrow.triangle.2.circlepath"
+        }
+
+        switch repository.healthRefreshStatus.outcome {
+        case .idle:
+            return StepReceiptSymbol.refresh
+        case .refreshing:
+            return "arrow.triangle.2.circlepath"
+        case .current:
+            return "checkmark.circle.fill"
+        case .partial:
+            return "exclamationmark.triangle.fill"
+        case .cached:
+            return "externaldrive.fill"
+        case .failed:
+            return "xmark.octagon.fill"
+        }
+    }
+
+    private var healthSyncStatusColor: Color {
+        if repository.isLoading {
+            return Color.stepAccent
+        }
+
+        switch repository.healthRefreshStatus.outcome {
+        case .idle, .refreshing, .current:
+            return Color.stepAccent
+        case .partial, .cached:
+            return Color.stepEnergy
+        case .failed:
+            return Color.stepWarning
+        }
+    }
+
+    private func formattedRefreshTime(_ date: Date?) -> String {
+        guard let date else {
+            return "just now"
+        }
+
+        if Calendar.current.isDateInToday(date) {
+            return date.formatted(date: .omitted, time: .shortened)
+        }
+
+        return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
+    private func healthSyncIssueSummary(_ issue: String?) -> String {
+        guard let issue else {
+            return "one Health read was incomplete."
+        }
+
+        return issue
+            .split(separator: "\n")
+            .first
+            .map(String.init) ?? "one Health read was incomplete."
     }
 
     private var screenTitle: some View {

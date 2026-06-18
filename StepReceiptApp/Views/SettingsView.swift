@@ -96,6 +96,23 @@ struct SettingsView: View {
 
                 Section("Health") {
                     statusRow("Apple Health", healthStatusText, StepReceiptSymbol.healthCard)
+                    statusRow("Data Refresh", healthRefreshStatusText, healthRefreshStatusIcon)
+                    if let lastUpdated = healthLastUpdatedText {
+                        statusRow("Last Updated", lastUpdated, "clock")
+                    }
+                    if let issue = repository.healthRefreshStatus.issue {
+                        Text(issue)
+                            .font(.footnote)
+                            .foregroundStyle(Color.stepWarning)
+                    }
+
+                    Button {
+                        Task { await repository.refresh() }
+                    } label: {
+                        Label(repository.isLoading ? "Refreshing Apple Health" : "Refresh Apple Health", systemImage: StepReceiptSymbol.refresh)
+                    }
+                    .disabled(repository.isLoading || repository.authorizationState == .unavailable)
+
                     Button("Reconnect Health") {
                         Task { await repository.requestHealthAccess() }
                     }
@@ -150,6 +167,55 @@ struct SettingsView: View {
         case .authorized: "Connected"
         case .deniedOrLimited: "Limited or denied"
         }
+    }
+
+    private var healthRefreshStatusText: String {
+        if repository.isLoading {
+            return "Refreshing"
+        }
+
+        return switch repository.healthRefreshStatus.outcome {
+        case .idle: "Ready"
+        case .refreshing: "Refreshing"
+        case .current: "Current"
+        case .partial: "Partial"
+        case .cached: "Saved data"
+        case .failed: "Needs retry"
+        }
+    }
+
+    private var healthRefreshStatusIcon: String {
+        if repository.isLoading {
+            return "arrow.triangle.2.circlepath"
+        }
+
+        return switch repository.healthRefreshStatus.outcome {
+        case .idle:
+            StepReceiptSymbol.refresh
+        case .refreshing:
+            "arrow.triangle.2.circlepath"
+        case .current:
+            "checkmark.circle.fill"
+        case .partial:
+            "exclamationmark.triangle.fill"
+        case .cached:
+            "externaldrive.fill"
+        case .failed:
+            "xmark.octagon.fill"
+        }
+    }
+
+    private var healthLastUpdatedText: String? {
+        let status = repository.healthRefreshStatus
+        guard let date = status.lastSuccessfulAt ?? status.lastCompletedAt else {
+            return nil
+        }
+
+        if Calendar.current.isDateInToday(date) {
+            return date.formatted(date: .omitted, time: .shortened)
+        }
+
+        return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
     }
 
     private var cloudStatusText: String {

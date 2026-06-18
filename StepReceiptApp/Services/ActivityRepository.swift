@@ -63,6 +63,7 @@ final class ActivityRepository: ObservableObject {
         }
     }
     @Published private(set) var liveActivityStatus: DailyStepGoalLiveActivityStatus = .inactive
+    @Published private(set) var healthRefreshStatus = HealthRefreshStatus()
     @Published var isLoading = false
     @Published var lastError: String?
 
@@ -189,6 +190,7 @@ final class ActivityRepository: ObservableObject {
     func refresh() async {
         guard !isLoading else { return }
         isLoading = true
+        healthRefreshStatus = healthRefreshStatus.refreshing(startedAt: Date())
         defer { isLoading = false }
 
         let now = Date()
@@ -216,11 +218,17 @@ final class ActivityRepository: ObservableObject {
             .compactMap { $0 }
 
         guard fetches.today.value != nil || fetches.daily.value != nil || !previousHistory.isEmpty || previousSummary != nil else {
-            if !loadCachedActivityData() {
+            let loadedCache = loadCachedActivityData()
+            if !loadedCache {
                 loadEmptyActivityState()
             }
             authorizationState = .authorized
             lastError = fetchErrors.isEmpty ? nil : fetchErrors.joined(separator: "\n")
+            healthRefreshStatus = healthRefreshStatus.completed(
+                outcome: loadedCache ? .cached : .failed,
+                completedAt: Date(),
+                issue: lastError
+            )
             await updateLiveActivityIfNeeded(with: todaySummary)
             await syncSharedCompetition()
             return
@@ -268,6 +276,12 @@ final class ActivityRepository: ObservableObject {
         activityDataSource = .healthKit
         authorizationState = .authorized
         lastError = fetchErrors.isEmpty ? nil : fetchErrors.joined(separator: "\n")
+        healthRefreshStatus = healthRefreshStatus.completed(
+            outcome: fetchErrors.isEmpty ? .current : .partial,
+            completedAt: Date(),
+            successfulAt: Date(),
+            issue: lastError
+        )
         saveDerivedActivityCache(selectedSummary: todaySummary)
         await updateLiveActivityIfNeeded(with: todaySummary)
 
@@ -379,6 +393,12 @@ final class ActivityRepository: ObservableObject {
                 goals: goals
             )
             lastError = nil
+            healthRefreshStatus = healthRefreshStatus.completed(
+                outcome: .current,
+                completedAt: Date(),
+                successfulAt: Date(),
+                issue: nil
+            )
             if activityDataSource == .healthKit || activityDataSource == .cache {
                 if let todaySummary {
                     history = replacingSummary(todaySummary, in: history)
@@ -390,6 +410,11 @@ final class ActivityRepository: ObservableObject {
             await updateLiveActivityIfNeeded(with: todaySummary)
         } else {
             lastError = hourlyFetch.errorDescription
+            healthRefreshStatus = healthRefreshStatus.completed(
+                outcome: .partial,
+                completedAt: Date(),
+                issue: lastError
+            )
             loadSelectedSummaryFromHistory()
         }
     }
@@ -905,6 +930,11 @@ final class ActivityRepository: ObservableObject {
         receipt = engine.receipt(for: history, goals: goals)
         refreshCompetition()
         activityDataSource = .cache
+        healthRefreshStatus = healthRefreshStatus.completed(
+            outcome: .cached,
+            completedAt: Date(),
+            issue: healthRefreshStatus.issue
+        )
         Task { await updateLiveActivityIfNeeded(with: todaySummary) }
         return true
     }
@@ -1206,6 +1236,48 @@ private enum ActivityDataSource {
     case healthKit
     case cache
     case sample
+}
+
+enum HealthRefreshOutcome: Equatable, Sendable {
+    case idle
+    case refreshing
+    case current
+    case partial
+    case cached
+    case failed
+}
+
+struct HealthRefreshStatus: Equatable, Sendable {
+    var outcome: HealthRefreshOutcome = .idle
+    var startedAt: Date?
+    var lastCompletedAt: Date?
+    var lastSuccessfulAt: Date?
+    var issue: String?
+
+    func refreshing(startedAt: Date) -> HealthRefreshStatus {
+        HealthRefreshStatus(
+            outcome: .refreshing,
+            startedAt: startedAt,
+            lastCompletedAt: lastCompletedAt,
+            lastSuccessfulAt: lastSuccessfulAt,
+            issue: issue
+        )
+    }
+
+    func completed(
+        outcome: HealthRefreshOutcome,
+        completedAt: Date,
+        successfulAt: Date? = nil,
+        issue: String? = nil
+    ) -> HealthRefreshStatus {
+        HealthRefreshStatus(
+            outcome: outcome,
+            startedAt: nil,
+            lastCompletedAt: completedAt,
+            lastSuccessfulAt: successfulAt ?? lastSuccessfulAt,
+            issue: issue
+        )
+    }
 }
 
 private struct HealthFetchResult<Value: Sendable>: Sendable {

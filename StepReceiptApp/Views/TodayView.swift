@@ -14,6 +14,7 @@ struct TodayView: View {
                     if let summary = repository.todaySummary {
                         todayHero(summary)
                         healthSyncStatusCard
+                        todayQuickDigestCard(summary)
                         todayCoach(repository.todayCoachInsights())
                         primaryWorkoutCard(summary)
                         hourlyChart(summary)
@@ -26,6 +27,9 @@ struct TodayView: View {
                     }
                 }
                 .padding(16)
+            }
+            .refreshable {
+                await repository.refresh()
             }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
@@ -66,6 +70,121 @@ struct TodayView: View {
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
         }
+    }
+
+    @ViewBuilder
+    private func todayQuickDigestCard(_ summary: DailyActivitySummary) -> some View {
+        let digest = TodayQuickDigestBuilder.digest(for: summary)
+
+        switch digest.action {
+        case .openLatestWorkout:
+            if let workout = summary.workouts.first {
+                NavigationLink {
+                    WorkoutDetailView(workout: workout)
+                } label: {
+                    todayQuickDigestContent(digest, actionLabel: "Open latest workout", actionIcon: "chevron.right")
+                }
+                .buttonStyle(.plain)
+            } else {
+                todayQuickDigestButton(digest)
+            }
+        case .openTodayDetail:
+            NavigationLink {
+                DaySummaryDetailView(summary: summary)
+            } label: {
+                todayQuickDigestContent(digest, actionLabel: "Open today detail", actionIcon: "chevron.right")
+            }
+            .buttonStyle(.plain)
+        case .refresh:
+            todayQuickDigestButton(digest)
+        }
+    }
+
+    private func todayQuickDigestButton(_ digest: TodayQuickDigest) -> some View {
+        Button {
+            Task { await repository.refresh() }
+        } label: {
+            todayQuickDigestContent(digest, actionLabel: repository.isLoading ? "Refreshing" : "Refresh now", actionIcon: StepReceiptSymbol.refresh)
+        }
+        .buttonStyle(.plain)
+        .disabled(repository.isLoading)
+    }
+
+    private func todayQuickDigestContent(
+        _ digest: TodayQuickDigest,
+        actionLabel: String,
+        actionIcon: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Label("Today at a glance", systemImage: "sparkles")
+                    .font(.headline)
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                HStack(spacing: 5) {
+                    Text(actionLabel)
+                    Image(systemName: actionIcon)
+                }
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.stepAccent)
+            }
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                quickDigestStat(
+                    "Peak hour",
+                    quickDigestPeakHourText(digest),
+                    "clock",
+                    Color.stepDistance
+                )
+                quickDigestStat(
+                    digest.goalReached ? "Goal" : "Left",
+                    digest.goalReached ? "Hit" : "\(digest.remainingSteps.formatted())",
+                    "target",
+                    digest.goalReached ? Color.stepAccent : Color.stepEnergy
+                )
+                quickDigestStat(
+                    "Workout",
+                    "\(digest.workoutCount) · \(ActivityFormatting.formattedMinutes(digest.workoutMinutes))",
+                    StepReceiptSymbol.workout,
+                    Color.stepAccent
+                )
+            }
+        }
+        .metricCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("today-quick-digest")
+    }
+
+    private func quickDigestStat(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 24, height: 24)
+                .background(color.opacity(0.14))
+                .clipShape(Circle())
+
+            Text(value)
+                .font(.subheadline.monospacedDigit().weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.68)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(10)
+        .background(Color.stepSurface.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func quickDigestPeakHourText(_ digest: TodayQuickDigest) -> String {
+        guard let date = digest.peakHourStart, digest.peakHourSteps > 0 else {
+            return "None yet"
+        }
+        return "\(date.formatted(date: .omitted, time: .shortened)) · \(digest.peakHourSteps.formatted())"
     }
 
     @ViewBuilder

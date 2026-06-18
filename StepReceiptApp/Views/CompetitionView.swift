@@ -122,20 +122,9 @@ struct CompetitionView: View {
                 .layoutPriority(1)
 
                 Spacer()
-
-                Text(sharedStatusText)
-                    .font(.caption.weight(.semibold))
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(sharedStatusColor.opacity(0.14))
-                    .clipShape(Capsule())
-                    .foregroundStyle(sharedStatusColor)
             }
 
-            Text(sharedStatusDetail)
-                .font(.caption)
-                .foregroundStyle(sharedStatusDetailColor)
-                .fixedSize(horizontal: false, vertical: true)
+            syncStateRow
 
             TextField("Code", text: $inviteCodeDraft)
                 .textInputAutocapitalization(.characters)
@@ -173,7 +162,7 @@ struct CompetitionView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(.stepAccent)
-                .disabled(SharedCompetitionSettings.normalizedInviteCode(inviteCodeDraft).isEmpty)
+                .disabled(isSharedCompetitionSyncing || SharedCompetitionSettings.normalizedInviteCode(inviteCodeDraft).isEmpty)
             }
             .controlSize(.large)
 
@@ -210,6 +199,7 @@ struct CompetitionView: View {
                 }
                 .buttonStyle(.bordered)
                 .tint(.stepDistance)
+                .disabled(isSharedCompetitionSyncing)
             }
             .controlSize(.large)
 
@@ -231,7 +221,7 @@ struct CompetitionView: View {
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .disabled(!repository.sharedCompetitionSettings.canSync)
+                .disabled(isSharedCompetitionSyncing || !repository.sharedCompetitionSettings.canSync)
 
                 Button(role: .destructive) {
                     Task {
@@ -242,7 +232,7 @@ struct CompetitionView: View {
                         .frame(width: 36, height: 36)
                 }
                 .buttonStyle(.bordered)
-                .disabled(!repository.sharedCompetitionSettings.canSync)
+                .disabled(isSharedCompetitionSyncing || !repository.sharedCompetitionSettings.canSync)
                 .accessibilityLabel("Stop household board")
             }
 
@@ -270,7 +260,7 @@ struct CompetitionView: View {
 
     private func pasteInviteCode() {
         guard let normalized = normalizedInviteCodeFromClipboard() else {
-            clipboardJoinError = "No StrideSlip code found on the clipboard."
+            clipboardJoinError = "No code on clipboard."
             return
         }
         clipboardJoinError = nil
@@ -279,7 +269,7 @@ struct CompetitionView: View {
 
     private func joinFromClipboard() async {
         guard let normalized = normalizedInviteCodeFromClipboard() else {
-            clipboardJoinError = "No StrideSlip code found on the clipboard."
+            clipboardJoinError = "No code on clipboard."
             return
         }
         clipboardJoinError = nil
@@ -294,8 +284,69 @@ struct CompetitionView: View {
     }
 
     private func syncSharedBoardIfNeeded() async {
-        guard repository.sharedCompetitionSettings.canSync else { return }
+        guard repository.sharedCompetitionSettings.canSync, !isSharedCompetitionSyncing else { return }
         await repository.syncSharedCompetition()
+    }
+
+    private var isSharedCompetitionSyncing: Bool {
+        repository.sharedCompetitionSyncState == .syncing
+    }
+
+    private var syncStateRow: some View {
+        HStack(alignment: .center, spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(sharedStatusColor.opacity(0.14))
+                if isSharedCompetitionSyncing {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(sharedStatusColor)
+                } else {
+                    Image(systemName: sharedStatusIcon)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(sharedStatusColor)
+                }
+            }
+            .frame(width: 32, height: 32)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Sync Status")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                Text(sharedStatusText)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+            }
+
+            Spacer(minLength: 6)
+
+            Text(sharedStatusDetail)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(sharedStatusDetailColor)
+                .multilineTextAlignment(.trailing)
+                .lineLimit(2)
+                .minimumScaleFactor(0.82)
+        }
+        .padding(10)
+        .background(Color.stepBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("compete-sync-status-row")
+    }
+
+    private var sharedStatusIcon: String {
+        switch repository.sharedCompetitionSyncState {
+        case .off:
+            return "power"
+        case .idle:
+            return "checkmark.circle"
+        case .syncing:
+            return StepReceiptSymbol.refresh
+        case .synced:
+            return "checkmark.circle.fill"
+        case .unavailable:
+            return "exclamationmark.triangle.fill"
+        }
     }
 
     private var sharedStatusText: String {
@@ -315,12 +366,12 @@ struct CompetitionView: View {
 
     private var sharedStatusDetail: String {
         if repository.sharedCompetitionSettings.canSync && !repository.canPublishSharedCompetitionEntries {
-            return "Board code is saved. Connect Apple Health to publish this phone's daily row."
+            return "Connect Health to publish."
         }
 
         return switch repository.sharedCompetitionSyncState {
         case .off:
-            "Generate or paste a code, set your board name, then sync."
+            "Generate or paste a code."
         case .idle:
             "Ready to sync daily totals."
         case .syncing:
@@ -328,8 +379,24 @@ struct CompetitionView: View {
         case .synced(let date):
             "Last synced \(date.formatted(date: .omitted, time: .shortened))."
         case .unavailable(let reason):
-            reason
+            shortSyncIssue(reason)
         }
+    }
+
+    private func shortSyncIssue(_ reason: String) -> String {
+        if reason.localizedCaseInsensitiveContains("health") {
+            return "Connect Health, then sync."
+        }
+        if reason.localizedCaseInsensitiveContains("icloud") {
+            return "Check iCloud, then retry."
+        }
+        if reason.localizedCaseInsensitiveContains("network") || reason.localizedCaseInsensitiveContains("offline") {
+            return "Network issue. Retry."
+        }
+        return reason
+            .split(separator: ".")
+            .first
+            .map(String.init) ?? "Needs attention."
     }
 
     private var sharedStatusColor: Color {

@@ -6,6 +6,7 @@ struct AppDiagnosticsSummary: Equatable {
     let appleHealthStatus: String
     let healthRefreshStatus: String
     let healthLastRefresh: String?
+    let healthBackgroundUpdates: String
     let iCloudStatus: String
     let liveActivityStatus: String
 
@@ -15,12 +16,13 @@ struct AppDiagnosticsSummary: Equatable {
             "App: \(appVersion) (\(appBuild))",
             "Apple Health: \(appleHealthStatus)",
             "Health Refresh: \(healthRefreshStatus)",
+            "Background Updates: \(healthBackgroundUpdates)",
             "iCloud: \(iCloudStatus)",
             "Live Activity: \(liveActivityStatus)"
         ]
 
         if let healthLastRefresh {
-            lines.insert("Last Health Refresh: \(healthLastRefresh)", at: 4)
+            lines.insert("Last Health Refresh: \(healthLastRefresh)", at: 5)
         }
 
         return lines.joined(separator: "\n")

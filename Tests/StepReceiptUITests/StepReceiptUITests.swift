@@ -58,11 +58,9 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.textFields["Display name"].exists)
         XCTAssertTrue(app.staticTexts["Appearance"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Dark"].exists)
+        XCTAssertTrue(scrollToElement(app.buttons["repair-health-sync-button"], in: app, timeout: 1, maxSwipes: 5))
         let liveActivitySwitch = app.switches["Lock Screen steps"]
-        if !liveActivitySwitch.waitForExistence(timeout: 1) {
-            app.swipeUp()
-        }
-        XCTAssertTrue(liveActivitySwitch.waitForExistence(timeout: 3))
+        XCTAssertTrue(scrollToElement(liveActivitySwitch, in: app, timeout: 1, maxSwipes: 5))
         XCTAssertTrue(scrollToElement(app.staticTexts["Diagnostics"], in: app, timeout: 1, maxSwipes: 3))
         let copyDiagnostics = app.buttons["copy-diagnostics-button"]
         XCTAssertTrue(scrollToElement(copyDiagnostics, in: app, timeout: 1, maxSwipes: 2))

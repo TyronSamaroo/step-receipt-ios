@@ -38,6 +38,7 @@ struct DailyUseQOLTests {
             appleHealthStatus: "Connected",
             healthRefreshStatus: "Current",
             healthLastRefresh: "8:41 PM",
+            healthBackgroundUpdates: "Ready",
             iCloudStatus: "Available",
             liveActivityStatus: "Live Activity on"
         )
@@ -47,6 +48,7 @@ struct DailyUseQOLTests {
         #expect(text.contains("StrideSlip Diagnostics"))
         #expect(text.contains("App: 0.1.0 (19)"))
         #expect(text.contains("Apple Health: Connected"))
+        #expect(text.contains("Background Updates: Ready"))
         #expect(text.contains("Last Health Refresh: 8:41 PM"))
         #expect(text.contains("iCloud: Available"))
         #expect(text.contains("Live Activity: Live Activity on"))

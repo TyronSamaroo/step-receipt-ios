@@ -102,8 +102,14 @@ struct SettingsView: View {
                     if let lastUpdated = healthLastUpdatedText {
                         statusRow("Last Updated", lastUpdated, "clock")
                     }
+                    statusRow("Background Updates", backgroundDeliveryStatusText, backgroundDeliveryStatusIcon)
                     if let issue = repository.healthRefreshStatus.issue {
                         Text(issue)
+                            .font(.footnote)
+                            .foregroundStyle(Color.stepWarning)
+                    }
+                    if let backgroundIssue = backgroundDeliveryIssueText {
+                        Text(backgroundIssue)
                             .font(.footnote)
                             .foregroundStyle(Color.stepWarning)
                     }
@@ -118,6 +124,17 @@ struct SettingsView: View {
                     Button("Reconnect Health") {
                         Task { await repository.requestHealthAccess() }
                     }
+
+                    Button {
+                        Task { await repository.repairHealthSync() }
+                    } label: {
+                        Label(
+                            repository.isRepairingHealthSync ? "Repairing Health Sync" : "Repair Health Sync",
+                            systemImage: "wrench.and.screwdriver.fill"
+                        )
+                    }
+                    .disabled(repository.isRepairingHealthSync || repository.authorizationState == .unavailable)
+                    .accessibilityIdentifier("repair-health-sync-button")
                 }
 
                 Section("iCloud") {
@@ -146,6 +163,7 @@ struct SettingsView: View {
                     statusRow("App", appVersionAndBuildText, "app")
                     statusRow("Apple Health", healthStatusText, StepReceiptSymbol.healthCard)
                     statusRow("Last Health Refresh", healthRefreshDiagnosticsText, healthRefreshStatusIcon)
+                    statusRow("Background Updates", backgroundDeliveryDiagnosticsText, backgroundDeliveryStatusIcon)
                     statusRow("iCloud", cloudStatusText, StepReceiptSymbol.cloud)
                     statusRow("Live Activity", repository.liveActivityStatus.title, "iphone.radiowaves.left.and.right")
 
@@ -189,6 +207,7 @@ struct SettingsView: View {
             appleHealthStatus: healthStatusText,
             healthRefreshStatus: healthRefreshStatusText,
             healthLastRefresh: healthLastUpdatedText,
+            healthBackgroundUpdates: backgroundDeliveryDiagnosticsText,
             iCloudStatus: cloudStatusText,
             liveActivityStatus: repository.liveActivityStatus.title
         )
@@ -243,12 +262,67 @@ struct SettingsView: View {
         }
     }
 
+    private var backgroundDeliveryStatusText: String {
+        switch repository.healthBackgroundDeliveryState {
+        case .notConfigured:
+            "Not configured"
+        case .configuring:
+            "Configuring"
+        case .configured:
+            "Ready"
+        case .unavailable:
+            "Needs repair"
+        }
+    }
+
+    private var backgroundDeliveryStatusIcon: String {
+        switch repository.healthBackgroundDeliveryState {
+        case .notConfigured:
+            "antenna.radiowaves.left.and.right.slash"
+        case .configuring:
+            "arrow.triangle.2.circlepath"
+        case .configured:
+            "antenna.radiowaves.left.and.right"
+        case .unavailable:
+            "exclamationmark.triangle.fill"
+        }
+    }
+
+    private var backgroundDeliveryDiagnosticsText: String {
+        switch repository.healthBackgroundDeliveryState {
+        case .notConfigured:
+            "Not configured"
+        case .configuring:
+            "Configuring"
+        case .configured(let date):
+            "Ready · \(formattedStatusDate(date))"
+        case .unavailable:
+            "Needs repair"
+        }
+    }
+
+    private var backgroundDeliveryIssueText: String? {
+        if case .unavailable(let issue) = repository.healthBackgroundDeliveryState {
+            return issue
+        }
+
+        return nil
+    }
+
     private var healthLastUpdatedText: String? {
         let status = repository.healthRefreshStatus
         guard let date = status.lastSuccessfulAt ?? status.lastCompletedAt else {
             return nil
         }
 
+        if Calendar.current.isDateInToday(date) {
+            return date.formatted(date: .omitted, time: .shortened)
+        }
+
+        return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
+    private func formattedStatusDate(_ date: Date) -> String {
         if Calendar.current.isDateInToday(date) {
             return date.formatted(date: .omitted, time: .shortened)
         }

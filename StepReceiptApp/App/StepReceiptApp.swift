@@ -4,12 +4,20 @@ import SwiftUI
 @MainActor
 struct StepReceiptApp: App {
     @Environment(\.scenePhase) private var scenePhase
-    @StateObject private var repository = Self.makeRepository()
+    @StateObject private var repository: ActivityRepository
+
+    private static let sharedRepository = makeRepository()
 
     init() {
+        _repository = StateObject(wrappedValue: Self.sharedRepository)
+
         #if canImport(UIKit)
         StepReceiptChrome.configure()
         #endif
+
+        Task {
+            await Self.sharedRepository.configureHealthObserversOnLaunch()
+        }
     }
 
     var body: some Scene {

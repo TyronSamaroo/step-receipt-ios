@@ -12,7 +12,7 @@ protocol HealthKitProviding: Sendable {
     var isAvailable: Bool { get }
 
     func requestAuthorization() async throws -> HealthAuthorizationState
-    func startStepCountBackgroundDelivery(
+    func startActivityBackgroundDelivery(
         onDelivery: @escaping @MainActor @Sendable () async -> Void
     ) async throws
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket]
@@ -48,7 +48,7 @@ private struct HealthKitObserverCompletion: @unchecked Sendable {
 final class HealthKitClient: @unchecked Sendable {
     private let store = HKHealthStore()
     private let calendar: Calendar
-    private var stepObserverQuery: HKObserverQuery?
+    private var activityObserverQueries: [String: HKObserverQuery] = [:]
 
     init(calendar: Calendar = .current) {
         self.calendar = calendar
@@ -65,32 +65,31 @@ final class HealthKitClient: @unchecked Sendable {
         return .authorized
     }
 
-    func startStepCountBackgroundDelivery(
+    func startActivityBackgroundDelivery(
         onDelivery: @escaping @MainActor @Sendable () async -> Void
     ) async throws {
         guard isAvailable else { throw HealthKitBackgroundDeliveryError.unavailable }
-        guard let stepType = HKObjectType.quantityType(forIdentifier: .stepCount) else {
-            throw HealthKitBackgroundDeliveryError.stepCountUnavailable
-        }
 
-        if stepObserverQuery == nil {
-            let query = HKObserverQuery(sampleType: stepType, predicate: nil) { _, completionHandler, error in
-                guard error == nil else {
-                    completionHandler()
-                    return
-                }
+        for sampleType in activityBackgroundSampleTypes() {
+            if activityObserverQueries[sampleType.identifier] == nil {
+                let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { _, completionHandler, error in
+                    guard error == nil else {
+                        completionHandler()
+                        return
+                    }
 
-                let completion = HealthKitObserverCompletion(handler: completionHandler)
-                Task {
-                    await onDelivery()
-                    completion()
+                    let completion = HealthKitObserverCompletion(handler: completionHandler)
+                    Task {
+                        await onDelivery()
+                        completion()
+                    }
                 }
+                activityObserverQueries[sampleType.identifier] = query
+                store.execute(query)
             }
-            stepObserverQuery = query
-            store.execute(query)
-        }
 
-        try await enableBackgroundDelivery(for: stepType)
+            try await enableBackgroundDelivery(for: sampleType)
+        }
     }
 
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket] {
@@ -284,6 +283,23 @@ final class HealthKitClient: @unchecked Sendable {
         return types
     }
 
+    private func activityBackgroundSampleTypes() -> [HKSampleType] {
+        var types: [HKSampleType] = [
+            HKObjectType.workoutType()
+        ]
+        for identifier in [
+            HKQuantityTypeIdentifier.stepCount,
+            .distanceWalkingRunning,
+            .activeEnergyBurned,
+            .flightsClimbed
+        ] {
+            if let type = HKQuantityType.quantityType(forIdentifier: identifier) {
+                types.append(type)
+            }
+        }
+        return types
+    }
+
     private func fallbackDuration(for interval: DateComponents) -> TimeInterval {
         if let day = interval.day, day > 0 {
             return 86_400 * Double(day)
@@ -297,7 +313,7 @@ final class HealthKitClient: @unchecked Sendable {
         return 3_600
     }
 
-    private func enableBackgroundDelivery(for type: HKObjectType) async throws {
+    private func enableBackgroundDelivery(for type: HKSampleType) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             store.enableBackgroundDelivery(for: type, frequency: .immediate) { success, error in
                 if let error {

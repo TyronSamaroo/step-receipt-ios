@@ -147,6 +147,215 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testRepairHealthSyncConfiguresBackgroundDeliveryAndRefreshes() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 9, steps: 1_200, distance: 820, energy: 48)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 1_200, distance: 820, energy: 48)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.repairHealthSync()
+
+        #expect(repository.authorizationState == .authorized)
+        #expect(repository.todaySummary?.steps == 1_200)
+        #expect(repository.healthRefreshStatus.outcome == .current)
+        #expect(health.backgroundDeliveryRequestCount == 1)
+        if case .configured = repository.healthBackgroundDeliveryState {
+            #expect(true)
+        } else {
+            #expect(Bool(false), "Expected Health background delivery to be configured")
+        }
+    }
+
+    @Test
+    func testRepairHealthSyncRetriesBackgroundDeliveryAfterFailure() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 9, steps: 900, distance: 650, energy: 34)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 900, distance: 650, energy: 34)
+            ],
+            workouts: [],
+            backgroundDeliveryError: .fetchFailed
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+
+        #expect(health.backgroundDeliveryRequestCount == 1)
+        if case .unavailable(let issue) = repository.healthBackgroundDeliveryState {
+            #expect(issue.contains("Lock Screen auto-update setup failed"))
+        } else {
+            #expect(Bool(false), "Expected failed background delivery setup")
+        }
+
+        health.backgroundDeliveryError = nil
+        await repository.repairHealthSync()
+
+        #expect(health.backgroundDeliveryRequestCount == 2)
+        if case .configured = repository.healthBackgroundDeliveryState {
+            #expect(true)
+        } else {
+            #expect(Bool(false), "Expected repair to reconfigure background delivery")
+        }
+    }
+
+    @Test
+    func testRepairHealthSyncDoesNotDuplicateBackgroundDeliveryWhenReady() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 7, steps: 600, distance: 440, energy: 22)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 600, distance: 440, energy: 22)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.repairHealthSync()
+        await repository.repairHealthSync()
+
+        #expect(health.backgroundDeliveryRequestCount == 1)
+    }
+
+    @Test
+    func testSuspiciousAllZeroHealthReadKeepsSavedData() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let initialRepository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 8, steps: 2_200, distance: 1_550, energy: 82)
+                ],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 2_200, distance: 1_550, energy: 82)
+                ],
+                workouts: []
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await initialRepository.requestHealthAccess()
+
+        let restoredRepository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(
+                hourlyBuckets: [
+                    bucket(day, hour: 8, steps: 0, distance: 0, energy: 0)
+                ],
+                dailyBuckets: [
+                    bucket(day, hour: 0, steps: 0, distance: 0, energy: 0)
+                ],
+                workouts: []
+            ),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await restoredRepository.bootstrap()
+
+        #expect(restoredRepository.todaySummary?.steps == 2_200)
+        #expect(restoredRepository.healthRefreshStatus.outcome == .cached)
+        #expect(restoredRepository.healthRefreshStatus.issue?.contains("no readable activity") == true)
+    }
+
+    @Test
+    func testHealthObserversReconfigureOnNewRepositorySession() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let initialHealth = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 350, distance: 250, energy: 12)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 350, distance: 250, energy: 12)
+            ],
+            workouts: []
+        )
+        let initialRepository = ActivityRepository(
+            healthKit: initialHealth,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await initialRepository.requestHealthAccess()
+
+        let launchHealth = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 350, distance: 250, energy: 12)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 350, distance: 250, energy: 12)
+            ],
+            workouts: []
+        )
+        let launchRepository = ActivityRepository(
+            healthKit: launchHealth,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await launchRepository.configureHealthObserversOnLaunch()
+
+        #expect(initialHealth.backgroundDeliveryRequestCount == 1)
+        #expect(launchHealth.backgroundDeliveryRequestCount == 1)
+        if case .configured = launchRepository.healthBackgroundDeliveryState {
+            #expect(true)
+        } else {
+            #expect(Bool(false), "Expected new launch to re-register Health observers")
+        }
+    }
+
+    @Test
     func testRefreshDeduplicatesSelectedDayBeforeCloudSync() async throws {
         let day = calendar.startOfDay(for: Date())
         let previousDay = try #require(calendar.date(byAdding: .day, value: -1, to: day))
@@ -867,6 +1076,7 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
     var hourlyFetchError: HealthFixtureError? = nil
     var dailyFetchError: HealthFixtureError? = nil
     var workoutFetchError: HealthFixtureError? = nil
+    var backgroundDeliveryError: HealthFixtureError? = nil
     private var backgroundDeliveryHandler: (@MainActor @Sendable () async -> Void)?
     private(set) var backgroundDeliveryRequestCount = 0
 
@@ -879,7 +1089,8 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         fetchError: HealthFixtureError? = nil,
         hourlyFetchError: HealthFixtureError? = nil,
         dailyFetchError: HealthFixtureError? = nil,
-        workoutFetchError: HealthFixtureError? = nil
+        workoutFetchError: HealthFixtureError? = nil,
+        backgroundDeliveryError: HealthFixtureError? = nil
     ) {
         self.isAvailable = isAvailable
         self.authorizationState = authorizationState
@@ -890,16 +1101,20 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         self.hourlyFetchError = hourlyFetchError
         self.dailyFetchError = dailyFetchError
         self.workoutFetchError = workoutFetchError
+        self.backgroundDeliveryError = backgroundDeliveryError
     }
 
     func requestAuthorization() async throws -> HealthAuthorizationState {
         authorizationState
     }
 
-    func startStepCountBackgroundDelivery(
+    func startActivityBackgroundDelivery(
         onDelivery: @escaping @MainActor @Sendable () async -> Void
     ) async throws {
         backgroundDeliveryRequestCount += 1
+        if let backgroundDeliveryError {
+            throw backgroundDeliveryError
+        }
         backgroundDeliveryHandler = onDelivery
     }
 

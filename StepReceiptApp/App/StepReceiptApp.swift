@@ -70,7 +70,9 @@ struct StepReceiptApp: App {
             watchSync: DisabledWatchAggregateSyncService()
         )
         #else
-        ActivityRepository()
+        ActivityRepository(
+            competitionSubscription: LiveCloudKitCompetitionSubscriptionService()
+        )
         #endif
     }
 }

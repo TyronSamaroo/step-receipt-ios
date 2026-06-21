@@ -108,7 +108,7 @@ final class ActivityRepository: ObservableObject {
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
         competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
-        competitionSubscription: any CompetitionSubscriptionManaging = LiveCloudKitCompetitionSubscriptionService(),
+        competitionSubscription: any CompetitionSubscriptionManaging = DisabledCompetitionSubscriptionService(),
         watchSync: any WatchAggregatePublishing = WatchAggregateSyncService.shared,
         liveActivityService: any DailyStepGoalLiveActivityServicing = DailyStepGoalLiveActivityService(),
         calendar: Calendar = .current,

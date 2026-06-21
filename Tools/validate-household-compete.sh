@@ -41,9 +41,10 @@ printf '  4. Deploy CloudKit public schema from Docs/CloudKitCompetitionSchema.m
 printf '  5. Tyron: Compete > Start board > Sync > Invite partner (Messages link).\n'
 printf '  6. Tiffany (Path A): tap stepreceipt://compete/join link > confirm join > Sync.\n'
 printf '  7. Tyron (Path B alt): Invite via iCloud > Tiffany accepts CKShare > confirm join.\n'
-printf '  8. Both leaderboards show 2 members after refresh.\n'
-printf '  9. Compete diagnostics (household sheet or needs-attention card) shows Members: 2.\n'
-printf ' 10. Settings > Copy Diagnostics shows Household Members: 2.\n'
+printf '  8. Sync one phone at a time (Tyron first, then Tiffany) to avoid CloudKit CONFLICT.\n'
+printf '  9. Both leaderboards show 2 members after refresh.\n'
+printf ' 10. Compete diagnostics (household sheet or needs-attention card) shows Members: 2.\n'
+printf ' 11. Settings > Copy Diagnostics shows Household Members: 2.\n'
 
 if [ "$failures" -eq 0 ]; then
   printf '\n[PASS] Automated household compete checks passed.\n'

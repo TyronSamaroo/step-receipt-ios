@@ -67,6 +67,27 @@ struct TodayQuickDigestTests {
         #expect(digest.action == .openLatestWorkout)
     }
 
+    @Test
+    func testMostActiveWindowUsesLongestContiguousBlock() throws {
+        let summary = dailySummary(
+            steps: 8_500,
+            buckets: [
+                bucket(hour: 7, steps: 400),
+                bucket(hour: 8, steps: 900),
+                bucket(hour: 9, steps: 0),
+                bucket(hour: 12, steps: 300),
+                bucket(hour: 13, steps: 350),
+                bucket(hour: 14, steps: 500)
+            ]
+        )
+
+        let digest = TodayQuickDigestBuilder.digest(for: summary)
+
+        #expect(digest.mostActiveWindowStart == bucketStart(hour: 7))
+        #expect(digest.mostActiveWindowEnd == bucket(hour: 8, steps: 900).endDate)
+        #expect(digest.activeEnergyKilocalories == summary.activeEnergyKilocalories)
+    }
+
     private func dailySummary(
         steps: Int,
         buckets: [HealthMetricBucket],

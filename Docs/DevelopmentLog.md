@@ -81,3 +81,25 @@ Re-apply the Heart/Today warm polish set on `codex/heart-today-cardio-polish` af
 - App: week-over-week comparison surfaced via `ActivityRepository.weekComparison(containing:)`; cardio scope preference persisted in `AppViewPreferences`.
 - UI: Insights gained week comparison card, cardio min/max + zone mini bar, and cardio detail scope chips; Today reordered with welcome band, week pulse, cleaner health status behavior, and workout HR range pill; workout detail heart-rate panel now shows avg/min/max plus range + dominant zone.
 - Tests: core and UI tests updated for movement-cardio default, cardio scopes, period comparison coverage, max-HR compare, welcome band, cardio scope chips, and HR min/max visibility.
+
+## 2026-06-21 — Today Layout Refinement (Mockup-Driven)
+
+### Problem
+Today felt cluttered: redundant welcome card, week pulse too low, duplicate metric surfaces, and hourly chart/timetable split.
+
+### Changes
+1. **Weather strip** — top `metricCard()` with temp/feels-like and humidity columns (`today-weather-strip`).
+2. **Hero polish** — accent date line, `X left to Y` goal copy, 4 pills (Distance · Active Burn · Avg HR · Workout), ProgressRing stroke 12pt with existing green→blue→orange gradient.
+3. **Week Pulse** — compact chips directly under hero (Steps + Goal days).
+4. **Day Flow** — merged hourly chart + timetable (`today-day-flow`).
+5. **Workouts** — list with See all → Activity tab via `openActivityTab()`.
+6. **Today at a Glance** — restored bottom 4-column grid with most-active window from `TodayQuickDigestBuilder`.
+
+### Removed from Today scroll
+- `welcomeBand`, `primaryWorkoutCard` (when list shown), `metricGrid`, standalone hourly/timetable cards.
+
+### Key files
+- `StepReceiptApp/Views/TodayView.swift`
+- `Sources/StepReceiptCore/TodayQuickDigest.swift`
+- `StepReceiptApp/Services/ActivityRepository.swift` (`openActivityTab`)
+- `Tests/StepReceiptUITests/StepReceiptUITests.swift`

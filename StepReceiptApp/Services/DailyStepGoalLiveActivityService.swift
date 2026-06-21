@@ -65,13 +65,16 @@ final class DailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing
             return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
+        await endStaleActivities(notMatching: summary.dateStart)
+
+        let updatedAt = Date()
         let content = ActivityContent(
-            state: contentState(for: summary),
-            staleDate: staleDate()
+            state: contentState(for: summary, updatedAt: updatedAt),
+            staleDate: staleDate(from: updatedAt)
         )
 
         do {
-            if let existingActivity = currentActivities.first {
+            if let existingActivity = activity(for: summary.dateStart) {
                 await existingActivity.update(content)
             } else {
                 _ = try Activity.request(

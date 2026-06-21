@@ -102,9 +102,51 @@ struct MetricCardStyle: ViewModifier {
     }
 }
 
+struct CompactMetricCardStyle: ViewModifier {
+    func body(content: Content) -> some View {
+        content
+            .padding(12)
+            .background(Color.stepSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+            .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+    }
+}
+
 extension View {
     func metricCard() -> some View {
         modifier(MetricCardStyle())
+    }
+
+    func compactMetricCard() -> some View {
+        modifier(CompactMetricCardStyle())
+    }
+}
+
+struct CompactMetricTile: View {
+    let title: String
+    let value: String
+    let icon: String
+    var color: Color = .stepAccent
+
+    var body: some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(color)
+                .frame(width: 18, height: 18, alignment: .center)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(title)
+                    .font(.caption2)
+                    .foregroundStyle(Color.stepMuted)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 

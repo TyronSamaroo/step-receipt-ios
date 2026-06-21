@@ -760,73 +760,251 @@ struct PeriodReceiptCard: View {
 struct PeriodHeatMap: View {
     let period: PeriodActivitySummary
 
-    private var columns: [GridItem] {
-        let count = period.scope == .month ? 7 : max(1, period.summaries.count)
-        return Array(repeating: GridItem(.flexible(), spacing: 6), count: count)
+    private let calendar = Calendar.current
+    private let weekdayLetters = ["M", "T", "W", "T", "F", "S", "S"]
+    private let weekColumns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
+
+    private var defaultGoals: UserGoals {
+        period.summaries.first?.goals ?? UserGoals()
+    }
+
+    private var summaryByDay: [Date: DailyActivitySummary] {
+        Dictionary(uniqueKeysWithValues: period.summaries.map { (calendar.startOfDay(for: $0.dateStart), $0) })
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HStack {
+            VStack(alignment: .leading, spacing: 4) {
                 Label(period.scope == .day ? "Daily Timeline" : "Activity Heat Map", systemImage: "square.grid.3x3")
                     .font(.headline)
                     .foregroundStyle(Color.stepInk)
-                Spacer()
-                Text(legendText)
-                    .font(.caption.weight(.bold))
+
+                Text(insightLine)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.85)
+                    .accessibilityIdentifier("insights-heatmap-insight")
             }
+
+            heatMapLegendRow
 
             if period.scope == .day {
                 dayTimeline
-            } else if period.summaries.isEmpty {
+            } else if period.scope == .month {
+                monthHeatGrid
+            } else if calendarDays.isEmpty {
                 Text("No activity in this period yet.")
                     .font(.subheadline)
                     .foregroundStyle(Color.stepMuted)
                     .frame(maxWidth: .infinity, minHeight: 110, alignment: .center)
             } else {
-                LazyVGrid(columns: columns, spacing: 6) {
-                    ForEach(period.summaries) { summary in
-                        PeriodHeatTile(summary: summary)
+                weekHeatGrid
+            }
+        }
+        .metricCard()
+        .accessibilityIdentifier("insights-heatmap-card")
+    }
+
+    private var insightLine: String {
+        switch period.scope {
+        case .day:
+            let steps = period.summaries.first?.steps ?? 0
+            let stepsText = steps >= 10_000 ? String(format: "%.1fk steps", Double(steps) / 1_000) : "\(steps.formatted()) steps"
+            if let peakHour = peakHourLabel(from: period.summaries.flatMap(\.buckets)) {
+                return "\(stepsText) · peak \(peakHour)"
+            }
+            return stepsText
+        case .week, .month:
+            var parts = ["\(period.goalHitDays) goal days"]
+            if period.activeDays > 0 {
+                parts.append("\(period.activeDays) active")
+            }
+            if let peakHour = peakHourLabel(from: period.summaries.flatMap(\.buckets)) {
+                parts.append("peak \(peakHour)")
+            }
+            return parts.joined(separator: " · ")
+        }
+    }
+
+    private var heatMapLegendRow: some View {
+        HStack(spacing: 6) {
+            heatMapLegendChip("Goal hit", color: .stepAccent)
+            heatMapLegendChip("Workout", color: .stepDistance)
+            heatMapLegendChip("Active", color: .stepEnergy)
+            heatMapLegendChip("Quiet", color: .stepAxisGrid)
+        }
+        .padding(10)
+        .background(Color.stepBackground)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Goal hit, workout, active, and quiet day colors")
+        .accessibilityIdentifier("insights-heatmap-legend")
+    }
+
+    private func heatMapLegendChip(_ title: String, color: Color) -> some View {
+        HStack(spacing: 5) {
+            RoundedRectangle(cornerRadius: 3, style: .continuous)
+                .fill(color.opacity(0.85))
+                .frame(width: 10, height: 10)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var calendarDays: [Date] {
+        var days: [Date] = []
+        var current = calendar.startOfDay(for: period.periodStart)
+        let end = calendar.startOfDay(for: period.periodEnd)
+        while current < end {
+            days.append(current)
+            guard let next = calendar.date(byAdding: .day, value: 1, to: current) else { break }
+            current = next
+        }
+        return days
+    }
+
+    private var weekHeatGrid: some View {
+        LazyVGrid(columns: weekColumns, spacing: 6) {
+            ForEach(calendarDays, id: \.timeIntervalSince1970) { day in
+                PeriodHeatTile(
+                    summary: summaryByDay[day] ?? emptySummary(for: day),
+                    showWeekdayLabel: true
+                )
+            }
+        }
+        .accessibilityIdentifier("insights-heatmap-week-grid")
+    }
+
+    private var monthHeatGrid: some View {
+        VStack(spacing: 6) {
+            HStack(spacing: 6) {
+                ForEach(Array(weekdayLetters.enumerated()), id: \.offset) { _, letter in
+                    Text(letter)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.stepMuted)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+            .accessibilityHidden(true)
+
+            LazyVGrid(columns: weekColumns, spacing: 6) {
+                ForEach(Array(monthGridCells.enumerated()), id: \.offset) { _, cell in
+                    if let day = cell {
+                        PeriodHeatTile(
+                            summary: summaryByDay[day] ?? emptySummary(for: day),
+                            showWeekdayLabel: false
+                        )
+                    } else {
+                        Color.clear
+                            .aspectRatio(1, contentMode: .fit)
+                            .accessibilityHidden(true)
                     }
                 }
             }
         }
-        .metricCard()
+        .accessibilityIdentifier("insights-heatmap-month-grid")
     }
 
-    private var legendText: String {
-        switch period.scope {
-        case .day: "by hour"
-        case .week: "\(period.summaries.count) days"
-        case .month: "\(period.summaries.count) days"
-        }
+    private var monthGridCells: [Date?] {
+        let leadingBlanks = mondayFirstWeekdayOffset(for: period.periodStart)
+        var cells: [Date?] = Array(repeating: nil, count: leadingBlanks)
+        cells.append(contentsOf: calendarDays.map(Optional.some))
+        return cells
+    }
+
+    private func mondayFirstWeekdayOffset(for date: Date) -> Int {
+        let weekday = calendar.component(.weekday, from: date)
+        return (weekday + 5) % 7
+    }
+
+    private func emptySummary(for date: Date) -> DailyActivitySummary {
+        DailyActivitySummary(
+            dateStart: date,
+            steps: 0,
+            distanceMeters: 0,
+            activeEnergyKilocalories: 0,
+            flightsClimbed: 0,
+            workoutMinutes: 0,
+            buckets: [],
+            workouts: [],
+            goals: defaultGoals
+        )
     }
 
     @ViewBuilder
     private var dayTimeline: some View {
         if let summary = period.summaries.first, !summary.buckets.isEmpty {
-            VStack(spacing: 7) {
-                ForEach(summary.buckets) { bucket in
-                    HStack(spacing: 10) {
-                        Text(bucket.startDate, format: .dateTime.hour())
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.stepMuted)
-                            .frame(width: 48, alignment: .leading)
+            VStack(alignment: .leading, spacing: 10) {
+                if let peakHour = peakHourLabel(from: summary.buckets) {
+                    HStack(spacing: 8) {
+                        Image(systemName: "clock.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepAccent)
+                            .frame(width: 28, height: 28)
+                            .background(Color.stepAccent.opacity(0.14))
+                            .clipShape(Circle())
 
-                        GeometryReader { proxy in
-                            Capsule()
-                                .fill(Color.stepAccent.opacity(hourOpacity(bucket.steps, goal: summary.goals.stepsPerDay)))
-                                .frame(width: max(4, proxy.size.width * min(1, Double(bucket.steps) / max(1, Double(summary.goals.stepsPerDay) / 8))))
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Peak hour")
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.stepMuted)
+                            Text(peakHour)
+                                .font(.subheadline.weight(.bold))
+                                .foregroundStyle(Color.stepInk)
                         }
-                        .frame(height: 12)
 
-                        Text(bucket.steps.formatted())
-                            .font(.caption.monospacedDigit().weight(.semibold))
-                            .foregroundStyle(Color.stepInk)
-                            .frame(width: 56, alignment: .trailing)
+                        Spacer(minLength: 0)
+
+                        if let peakBucket = summary.buckets.max(by: { $0.steps < $1.steps }) {
+                            Text(peakBucket.steps.formatted())
+                                .font(.caption.monospacedDigit().weight(.bold))
+                                .foregroundStyle(Color.stepAccent)
+                        }
+                    }
+                    .padding(10)
+                    .background(Color.stepBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                    .accessibilityIdentifier("insights-heatmap-peak-hour")
+                }
+
+                LazyVGrid(
+                    columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)],
+                    spacing: 8
+                ) {
+                    ForEach(summary.buckets) { bucket in
+                        HStack(spacing: 6) {
+                            Text(compactHourLabel(for: bucket.startDate))
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.stepMuted)
+                                .frame(width: 26, alignment: .leading)
+
+                            GeometryReader { proxy in
+                                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                                    .fill(Color.stepAccent.opacity(hourOpacity(bucket.steps, goal: summary.goals.stepsPerDay)))
+                                    .frame(
+                                        width: max(
+                                            3,
+                                            proxy.size.width * min(1, Double(bucket.steps) / max(1, Double(summary.goals.stepsPerDay) / 8))
+                                        )
+                                    )
+                            }
+                            .frame(height: 8)
+
+                            Text(shortHourlySteps(bucket.steps))
+                                .font(.caption2.monospacedDigit().weight(.semibold))
+                                .foregroundStyle(Color.stepInk)
+                                .frame(width: 34, alignment: .trailing)
+                                .lineLimit(1)
+                                .minimumScaleFactor(0.7)
+                        }
                     }
                 }
+                .accessibilityIdentifier("insights-heatmap-day-timeline")
             }
         } else {
             Text("No hourly samples for this day.")
@@ -834,6 +1012,28 @@ struct PeriodHeatMap: View {
                 .foregroundStyle(Color.stepMuted)
                 .frame(maxWidth: .infinity, minHeight: 110, alignment: .center)
         }
+    }
+
+    private func peakHourLabel(from buckets: [HealthMetricBucket]) -> String? {
+        guard let peak = buckets.max(by: { $0.steps < $1.steps }), peak.steps > 0 else { return nil }
+        return compactHourLabel(for: peak.startDate)
+    }
+
+    private func compactHourLabel(for date: Date) -> String {
+        let hour = calendar.component(.hour, from: date)
+        switch hour {
+        case 0: return "12a"
+        case 1..<12: return "\(hour)a"
+        case 12: return "12p"
+        default: return "\(hour - 12)p"
+        }
+    }
+
+    private func shortHourlySteps(_ steps: Int) -> String {
+        if steps >= 10_000 {
+            return "\(steps / 1_000)k"
+        }
+        return steps.formatted()
     }
 
     private func hourOpacity(_ steps: Int, goal: Int) -> Double {

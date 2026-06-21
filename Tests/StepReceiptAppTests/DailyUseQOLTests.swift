@@ -15,12 +15,14 @@ struct DailyUseQOLTests {
         #expect(store.string(for: AppViewPreferenceKey.activityDaySort, defaultValue: AppViewPreferenceDefault.activityDaySort) == "newest")
         #expect(store.string(for: AppViewPreferenceKey.activityWorkoutFilter, defaultValue: AppViewPreferenceDefault.activityWorkoutFilter) == "all")
         #expect(store.string(for: AppViewPreferenceKey.insightsScope, defaultValue: AppViewPreferenceDefault.insightsScope) == "week")
+        #expect(store.string(for: AppViewPreferenceKey.insightsTrendFilter, defaultValue: AppViewPreferenceDefault.insightsTrendFilter) == "all")
 
         store.set("workouts", for: AppViewPreferenceKey.activityMode)
         store.set("goalHit", for: AppViewPreferenceKey.activityDayFilter)
         store.set("steps", for: AppViewPreferenceKey.activityDaySort)
         store.set("outdoorWalk", for: AppViewPreferenceKey.activityWorkoutFilter)
         store.set("month", for: AppViewPreferenceKey.insightsScope)
+        store.set("strength", for: AppViewPreferenceKey.insightsTrendFilter)
 
         let restoredStore = AppViewPreferenceStore(userDefaults: defaults)
         #expect(restoredStore.string(for: AppViewPreferenceKey.activityMode, defaultValue: AppViewPreferenceDefault.activityMode) == "workouts")
@@ -28,6 +30,7 @@ struct DailyUseQOLTests {
         #expect(restoredStore.string(for: AppViewPreferenceKey.activityDaySort, defaultValue: AppViewPreferenceDefault.activityDaySort) == "steps")
         #expect(restoredStore.string(for: AppViewPreferenceKey.activityWorkoutFilter, defaultValue: AppViewPreferenceDefault.activityWorkoutFilter) == "outdoorWalk")
         #expect(restoredStore.string(for: AppViewPreferenceKey.insightsScope, defaultValue: AppViewPreferenceDefault.insightsScope) == "month")
+        #expect(restoredStore.string(for: AppViewPreferenceKey.insightsTrendFilter, defaultValue: AppViewPreferenceDefault.insightsTrendFilter) == "strength")
     }
 
     @Test

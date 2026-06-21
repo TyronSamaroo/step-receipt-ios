@@ -158,6 +158,15 @@ else
   warn "working tree has uncommitted changes"
 fi
 
+if command -v swift >/dev/null 2>&1; then
+  printf '\nSwift package tests\n'
+  if swift test --enable-swift-testing >/tmp/stepreceipt-swift-test.log 2>&1; then
+    pass "swift test --enable-swift-testing"
+  else
+    fail "swift test --enable-swift-testing (see /tmp/stepreceipt-swift-test.log)"
+  fi
+fi
+
 if git remote -v | grep -q .; then
   pass "a Git remote is configured"
 else

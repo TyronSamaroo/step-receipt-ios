@@ -928,6 +928,78 @@ struct InsightEngineTests {
         #expect(receipt.currentStepGoalStreakDays == 0)
     }
 
+    @Test
+    func testFilteredPeriodSummaryKeepsOnlyGoalHitDays() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let summaries = [
+            summary("2026-06-09T00:00:00Z", steps: 12_000, goals: goals),
+            summary("2026-06-10T00:00:00Z", steps: 4_000, goals: goals)
+        ]
+        let period = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-10T00:00:00Z"),
+            summaries: summaries,
+            goals: goals
+        )
+        let filtered = engine.filteredPeriodSummary(period, filter: .goalHit, goals: goals)
+        #expect(filtered.summaries.count == 1)
+        #expect(filtered.summaries.first?.steps == 12_000)
+        #expect(filtered.goalHitDays == 1)
+    }
+
+    @Test
+    func testStrengthInsightAggregatesStrengthSessions() throws {
+        let goals = UserGoals()
+        let strength = workout("2026-06-10T08:00:00Z", type: .strengthTraining)
+        let summaries = [
+            summary("2026-06-10T00:00:00Z", steps: 8_000, goals: goals, workouts: [strength])
+        ]
+        let period = engine.periodSummary(
+            scope: .day,
+            containing: try date("2026-06-10T00:00:00Z"),
+            summaries: summaries,
+            goals: goals
+        )
+        #expect(period.strengthInsight.hasStrength)
+        #expect(period.strengthInsight.sessionCount == 1)
+        #expect(period.strengthInsight.bestWorkout?.type == .strengthTraining)
+    }
+
+    @Test
+    func testTodayCoachIncludesStreakAndPeakHourInsights() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let today = summary(
+            "2026-06-12T00:00:00Z",
+            steps: 11_000,
+            goals: goals,
+            workouts: []
+        )
+        let history = [
+            summary("2026-06-10T00:00:00Z", steps: 11_000, goals: goals),
+            summary("2026-06-11T00:00:00Z", steps: 12_000, goals: goals),
+            today
+        ]
+        let todayWithBuckets = DailyActivitySummary(
+            dateStart: today.dateStart,
+            steps: today.steps,
+            distanceMeters: today.distanceMeters,
+            activeEnergyKilocalories: today.activeEnergyKilocalories,
+            flightsClimbed: today.flightsClimbed,
+            workoutMinutes: today.workoutMinutes,
+            buckets: [bucket("2026-06-12T09:00:00Z", steps: 2_400)],
+            workouts: today.workouts,
+            goals: goals
+        )
+        let insights = engine.todayCoachInsights(
+            today: todayWithBuckets,
+            history: history,
+            competitionReceipt: nil,
+            now: try date("2026-06-12T15:00:00Z")
+        )
+        #expect(insights.contains { $0.kind == .streak })
+        #expect(insights.contains { $0.kind == .peakHour })
+    }
+
     private func bucket(
         _ isoStart: String,
         steps: Int = 0,
@@ -989,5 +1061,43 @@ struct InsightEngineTests {
 
     private enum TestDateError: Error {
         case invalidISODate(String)
+    }
+}
+
+struct WorkoutComparisonTests {
+    private let service = WorkoutComparisonService()
+
+    @Test
+    func testLastAndBestSessionSelection() {
+        let workouts = [
+            workout(id: "a", day: 8, energy: 300),
+            workout(id: "b", day: 9, energy: 420),
+            workout(id: "c", day: 10, energy: 360)
+        ]
+        let current = workouts[2]
+        let peers = service.peerWorkouts(for: current, in: workouts)
+        #expect(service.lastSession(before: current, in: peers)?.sourceIdentifier == "b")
+        #expect(service.bestSession(in: peers, excluding: current)?.sourceIdentifier == "b")
+    }
+
+    @Test
+    func testCompareProducesBurnDelta() {
+        let current = workout(id: "current", day: 10, energy: 400)
+        let baseline = workout(id: "baseline", day: 9, energy: 320)
+        let comparison = service.compare(current: current, baseline: baseline)
+        #expect(comparison.deltas.contains { $0.label == "Active burn" })
+        #expect(comparison.deltas.first(where: { $0.label == "Active burn" })?.deltaText.contains("+") == true)
+    }
+
+    private func workout(id: String, day: Int, energy: Double) -> WorkoutActivity {
+        let calendar = Calendar(identifier: .gregorian)
+        let start = calendar.date(from: DateComponents(year: 2026, month: 6, day: day, hour: 8))!
+        return WorkoutActivity(
+            sourceIdentifier: id,
+            type: .strengthTraining,
+            startDate: start,
+            endDate: start.addingTimeInterval(45 * 60),
+            activeEnergyKilocalories: energy
+        )
     }
 }

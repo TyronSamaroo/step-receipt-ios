@@ -24,16 +24,19 @@ struct InsightsView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
-                    Picker("Period", selection: selectedScopeBinding) {
-                        ForEach(ActivityPeriodScope.allCases) { scope in
-                            Text(scope.displayName).tag(scope)
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Picker("Period", selection: selectedScopeBinding) {
+                            ForEach(ActivityPeriodScope.allCases) { scope in
+                                Text(scope.displayName).tag(scope)
+                            }
                         }
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("insights-scope-picker")
+                        .pickerStyle(.segmented)
+                        .accessibilityIdentifier("insights-scope-picker")
 
-                    periodNavigator
+                        periodNavigator
+                    }
+                    .compactMetricCard()
 
                     PeriodReceiptCard(period: period, distanceUnit: repository.preferences.distanceUnit)
 
@@ -88,12 +91,12 @@ struct InsightsView: View {
     }
 
     private var periodNavigator: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: 10) {
             periodButton(systemImage: "chevron.left", label: "Previous period", offset: -1)
 
             VStack(spacing: 2) {
                 Text(periodLabel)
-                    .font(.headline.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.72)
@@ -107,8 +110,8 @@ struct InsightsView: View {
 
             periodButton(systemImage: "chevron.right", label: "Next period", offset: 1)
         }
-        .padding(12)
-        .background(Color.stepSurface)
+        .padding(8)
+        .background(Color.stepBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
@@ -125,9 +128,9 @@ struct InsightsView: View {
             }
         } label: {
             Image(systemName: systemImage)
-                .font(.title3.weight(.bold))
+                .font(.body.weight(.bold))
                 .foregroundStyle(anchor == nil ? Color.stepMuted.opacity(0.45) : Color.stepAccent)
-                .frame(width: 46, height: 46)
+                .frame(width: 36, height: 36)
                 .background(anchor == nil ? Color.stepBackground.opacity(0.7) : Color.stepAccent.opacity(0.14))
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         }
@@ -170,12 +173,13 @@ struct InsightsView: View {
     }
 
     private var periodStats: some View {
-        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-            MetricTile(title: "Daily Avg", value: "\(period.receipt.dailyAverageSteps.formatted())", icon: "calendar")
-            MetricTile(title: "Goal Days", value: "\(period.goalHitDays)/\(max(1, period.summaries.count))", icon: "target")
-            MetricTile(title: "Workouts", value: period.workoutCount.formatted(), icon: StepReceiptSymbol.workout)
-            MetricTile(title: "Streak", value: "\(period.receipt.currentStepGoalStreakDays)d", icon: StepReceiptSymbol.activeEnergy)
+        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+            CompactMetricTile(title: "Daily Avg", value: "\(period.receipt.dailyAverageSteps.formatted())", icon: "calendar")
+            CompactMetricTile(title: "Goal Days", value: "\(period.goalHitDays)/\(max(1, period.summaries.count))", icon: "target")
+            CompactMetricTile(title: "Workouts", value: period.workoutCount.formatted(), icon: StepReceiptSymbol.workout)
+            CompactMetricTile(title: "Streak", value: "\(period.receipt.currentStepGoalStreakDays)d", icon: StepReceiptSymbol.activeEnergy)
         }
+        .compactMetricCard()
     }
 
     @ViewBuilder
@@ -195,10 +199,10 @@ struct InsightsView: View {
             )
 
         if !displayDays.isEmpty {
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .leading, spacing: 8) {
                 HStack {
                     Text(selectedScope == .week ? "Week Detail" : "Top Days")
-                        .font(.headline)
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(Color.stepInk)
                     Spacer()
                     Text("\(period.activeDays) active")
@@ -206,36 +210,38 @@ struct InsightsView: View {
                         .foregroundStyle(Color.stepMuted)
                 }
 
-                VStack(spacing: 10) {
+                VStack(spacing: 6) {
                     ForEach(displayDays, id: \.id) { summary in
                         NavigationLink {
                             DaySummaryDetailView(summary: summary)
                         } label: {
-                            HStack(spacing: 12) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(summary.dateStart, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
-                                        .font(.subheadline.weight(.bold))
-                                        .foregroundStyle(Color.stepInk)
-                                    Text("\(summary.workouts.count) workouts · \(ActivityFormatting.formattedMinutes(summary.workoutMinutes))")
-                                        .font(.caption.weight(.semibold))
-                                        .foregroundStyle(Color.stepMuted)
-                                }
-                                Spacer()
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text(summary.steps.formatted())
-                                        .font(.headline.monospacedDigit().weight(.bold))
-                                        .foregroundStyle(Color.stepInk)
-                                    Text(summary.steps >= summary.goals.stepsPerDay ? "Goal hit" : "Open")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundStyle(summary.steps >= summary.goals.stepsPerDay ? Color.stepAccent : Color.stepMuted)
-                                }
-                                Image(systemName: "chevron.right")
+                            HStack(spacing: 8) {
+                                Text(summary.dateStart, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
                                     .font(.caption.weight(.bold))
+                                    .foregroundStyle(Color.stepInk)
+                                    .frame(minWidth: 72, alignment: .leading)
+
+                                Text("\(summary.workouts.count) workouts · \(ActivityFormatting.formattedMinutes(summary.workoutMinutes))")
+                                    .font(.caption)
+                                    .foregroundStyle(Color.stepMuted)
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.8)
+
+                                Spacer(minLength: 4)
+
+                                Text(summary.steps.formatted())
+                                    .font(.caption.monospacedDigit().weight(.bold))
+                                    .foregroundStyle(Color.stepInk)
+
+                                Text(summary.steps >= summary.goals.stepsPerDay ? "Goal hit" : "Open")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(summary.steps >= summary.goals.stepsPerDay ? Color.stepAccent : Color.stepMuted)
+
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.bold))
                                     .foregroundStyle(Color.stepMuted)
                             }
-                            .padding(12)
-                            .background(Color.stepBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                            .padding(.vertical, 8)
                             .accessibilityElement(children: .combine)
                             .accessibilityLabel("\(summary.dateStart.formatted(date: .abbreviated, time: .omitted)), \(summary.workouts.count) workouts, \(summary.steps.formatted()) steps")
                         }
@@ -244,7 +250,7 @@ struct InsightsView: View {
                     }
                 }
             }
-            .metricCard()
+            .compactMetricCard()
         }
     }
 }
@@ -256,10 +262,10 @@ private struct CardioInsightCard: View {
     private let columns = [GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Label("Cardio", systemImage: "figure.run")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Spacer()
                 Text(insight.hasCardio ? "\(insight.sessionCount) sessions" : "No sessions")
@@ -271,7 +277,7 @@ private struct CardioInsightCard: View {
             }
 
             if insight.hasCardio {
-                LazyVGrid(columns: columns, spacing: 10) {
+                LazyVGrid(columns: columns, spacing: 8) {
                     cardioStat("Minutes", ActivityFormatting.formattedMinutes(insight.totalMinutes), Color.stepAccent)
                     cardioStat("Distance", ActivityFormatting.formattedDistance(from: insight.totalDistanceMeters, unit: distanceUnit), Color.stepDistance)
                     cardioStat("Burn", ActivityFormatting.formattedCalories(insight.totalActiveEnergyKilocalories), Color.stepEnergy)
@@ -279,44 +285,26 @@ private struct CardioInsightCard: View {
                 }
 
                 if let workout = insight.bestWorkout {
-                    Divider()
-                    HStack(spacing: 12) {
+                    HStack(spacing: 6) {
                         Image(systemName: StepReceiptSymbol.workoutIcon(for: workout.type))
-                            .font(.headline)
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(Color.stepAccent)
-                            .frame(width: 36, height: 36)
-                            .background(Color.stepAccent.opacity(0.14))
-                            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Best cardio")
-                                .font(.caption.weight(.bold))
-                                .foregroundStyle(Color.stepMuted)
-                            Text(workout.displayTitle)
-                                .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Color.stepInk)
-                                .lineLimit(1)
-                            Text(workout.startDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
-                                .font(.caption)
-                                .foregroundStyle(Color.stepMuted)
-                        }
-
-                        Spacer()
-
-                        Text(ActivityFormatting.formattedMinutes(workout.durationMinutes))
-                            .font(.subheadline.monospacedDigit().weight(.bold))
-                            .foregroundStyle(Color.stepInk)
+                        Text("Best cardio · \(workout.displayTitle) · \(ActivityFormatting.formattedMinutes(workout.durationMinutes))")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.stepMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
                     }
                 }
             } else {
-                Text("No cardio workouts in this period yet. Walks, runs, cycling, stairs, hiking, swimming, elliptical, and rowing will show here.")
-                    .font(.subheadline)
+                Text("No cardio workouts in this period yet.")
+                    .font(.caption)
                     .foregroundStyle(Color.stepMuted)
                     .fixedSize(horizontal: false, vertical: true)
-                    .frame(maxWidth: .infinity, minHeight: 74, alignment: .center)
+                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
             }
         }
-        .metricCard()
+        .compactMetricCard()
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("insights-cardio-card")
     }
@@ -327,18 +315,18 @@ private struct CardioInsightCard: View {
     }
 
     private func cardioStat(_ title: String, _ value: String, _ color: Color) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 2) {
             Text(value)
-                .font(.headline.weight(.bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(Color.stepInk)
                 .lineLimit(1)
                 .minimumScaleFactor(0.72)
             Text(title)
-                .font(.caption.weight(.semibold))
+                .font(.caption2.weight(.semibold))
                 .foregroundStyle(Color.stepMuted)
         }
-        .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
-        .padding(10)
+        .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+        .padding(8)
         .background(color.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -694,31 +682,31 @@ struct PeriodReceiptCard: View {
     let distanceUnit: DistanceUnit
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text("\(period.scope.displayName.uppercased()) RECEIPT")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Color.stepAccent)
                     Text("\(period.receipt.totalSteps.formatted()) steps")
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.system(size: 28, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
                         .minimumScaleFactor(0.74)
                 }
                 Spacer()
                 Image(systemName: StepReceiptSymbol.receipt)
-                    .font(.system(size: 38))
+                    .font(.system(size: 30))
                     .foregroundStyle(Color.stepAccent)
             }
 
             Text(period.headline)
-                .font(.headline)
+                .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.stepInk)
                 .fixedSize(horizontal: false, vertical: true)
 
             Divider()
 
-            VStack(spacing: 10) {
+            VStack(spacing: 8) {
                 receiptLine("Distance", ActivityFormatting.formattedDistance(from: period.receipt.totalDistanceMeters, unit: distanceUnit))
                 receiptLine("Active burn", ActivityFormatting.formattedCalories(period.receipt.totalActiveEnergyKilocalories))
                 receiptLine("Workout time", ActivityFormatting.formattedMinutes(period.receipt.totalWorkoutMinutes))
@@ -727,19 +715,10 @@ struct PeriodReceiptCard: View {
                     receiptLine("Best day", "\(bestDay.steps.formatted()) steps")
                 }
             }
-
-            Text(periodRangeText)
-                .font(.footnote)
-                .foregroundStyle(Color.stepMuted)
         }
-        .padding(18)
+        .padding(14)
         .background(Color.stepSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-    }
-
-    private var periodRangeText: String {
-        let displayEnd = period.periodEnd.addingTimeInterval(-1)
-        return "\(period.periodStart.formatted(date: .abbreviated, time: .omitted)) - \(displayEnd.formatted(date: .abbreviated, time: .omitted))"
     }
 
     private func receiptLine(_ label: String, _ value: String) -> some View {
@@ -753,7 +732,7 @@ struct PeriodReceiptCard: View {
                 .multilineTextAlignment(.trailing)
                 .lineLimit(2)
         }
-        .font(.subheadline)
+        .font(.caption)
     }
 }
 
@@ -762,7 +741,7 @@ struct PeriodHeatMap: View {
 
     private let calendar = Calendar.current
     private let weekdayLetters = ["M", "T", "W", "T", "F", "S", "S"]
-    private let weekColumns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 7)
+    private let weekColumns = Array(repeating: GridItem(.flexible(), spacing: 4), count: 7)
 
     private var defaultGoals: UserGoals {
         period.summaries.first?.goals ?? UserGoals()
@@ -773,10 +752,10 @@ struct PeriodHeatMap: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 3) {
                 Label(period.scope == .day ? "Daily Timeline" : "Activity Heat Map", systemImage: "square.grid.3x3")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
 
                 Text(insightLine)
@@ -795,14 +774,14 @@ struct PeriodHeatMap: View {
                 monthHeatGrid
             } else if calendarDays.isEmpty {
                 Text("No activity in this period yet.")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Color.stepMuted)
-                    .frame(maxWidth: .infinity, minHeight: 110, alignment: .center)
+                    .frame(maxWidth: .infinity, minHeight: 90, alignment: .center)
             } else {
                 weekHeatGrid
             }
         }
-        .metricCard()
+        .compactMetricCard()
         .accessibilityIdentifier("insights-heatmap-card")
     }
 
@@ -834,7 +813,7 @@ struct PeriodHeatMap: View {
             heatMapLegendChip("Active", color: .stepEnergy)
             heatMapLegendChip("Quiet", color: .stepAxisGrid)
         }
-        .padding(10)
+        .padding(6)
         .background(Color.stepBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
         .accessibilityElement(children: .combine)
@@ -869,7 +848,7 @@ struct PeriodHeatMap: View {
     }
 
     private var weekHeatGrid: some View {
-        LazyVGrid(columns: weekColumns, spacing: 6) {
+        LazyVGrid(columns: weekColumns, spacing: 4) {
             ForEach(calendarDays, id: \.timeIntervalSince1970) { day in
                 PeriodHeatTile(
                     summary: summaryByDay[day] ?? emptySummary(for: day),
@@ -881,8 +860,8 @@ struct PeriodHeatMap: View {
     }
 
     private var monthHeatGrid: some View {
-        VStack(spacing: 6) {
-            HStack(spacing: 6) {
+        VStack(spacing: 4) {
+            HStack(spacing: 4) {
                 ForEach(Array(weekdayLetters.enumerated()), id: \.offset) { _, letter in
                     Text(letter)
                         .font(.caption2.weight(.bold))
@@ -892,7 +871,7 @@ struct PeriodHeatMap: View {
             }
             .accessibilityHidden(true)
 
-            LazyVGrid(columns: weekColumns, spacing: 6) {
+            LazyVGrid(columns: weekColumns, spacing: 4) {
                 ForEach(Array(monthGridCells.enumerated()), id: \.offset) { _, cell in
                     if let day = cell {
                         PeriodHeatTile(
@@ -939,13 +918,13 @@ struct PeriodHeatMap: View {
     @ViewBuilder
     private var dayTimeline: some View {
         if let summary = period.summaries.first, !summary.buckets.isEmpty {
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 if let peakHour = peakHourLabel(from: summary.buckets) {
                     HStack(spacing: 8) {
                         Image(systemName: "clock.fill")
                             .font(.caption.weight(.bold))
                             .foregroundStyle(Color.stepAccent)
-                            .frame(width: 28, height: 28)
+                            .frame(width: 24, height: 24)
                             .background(Color.stepAccent.opacity(0.14))
                             .clipShape(Circle())
 
@@ -954,7 +933,7 @@ struct PeriodHeatMap: View {
                                 .font(.caption2.weight(.bold))
                                 .foregroundStyle(Color.stepMuted)
                             Text(peakHour)
-                                .font(.subheadline.weight(.bold))
+                                .font(.caption.weight(.bold))
                                 .foregroundStyle(Color.stepInk)
                         }
 
@@ -966,7 +945,7 @@ struct PeriodHeatMap: View {
                                 .foregroundStyle(Color.stepAccent)
                         }
                     }
-                    .padding(10)
+                    .padding(8)
                     .background(Color.stepBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                     .accessibilityIdentifier("insights-heatmap-peak-hour")
@@ -1063,7 +1042,7 @@ private struct PeriodHeatTile: View {
     }
 
     var body: some View {
-        VStack(spacing: 4) {
+        VStack(spacing: 2) {
             if showWeekdayLabel {
                 Text(summary.dateStart, format: .dateTime.weekday(.narrow))
                     .font(.caption2.weight(.bold))

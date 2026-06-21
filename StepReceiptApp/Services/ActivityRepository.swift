@@ -74,7 +74,7 @@ final class ActivityRepository: ObservableObject {
     private let healthKit: any HealthKitProviding
     private let cloudKit: any CloudKitSummarySyncing
     private let competitionSync: any SharedCompetitionSyncing
-    private let liveActivityService: DailyStepGoalLiveActivityService
+    private let liveActivityService: any DailyStepGoalLiveActivityServicing
     private let engine: InsightEngine
     private let competitionEngine: CompetitionEngine
     private let calendar: Calendar
@@ -100,7 +100,7 @@ final class ActivityRepository: ObservableObject {
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
         competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
-        liveActivityService: DailyStepGoalLiveActivityService = DailyStepGoalLiveActivityService(),
+        liveActivityService: any DailyStepGoalLiveActivityServicing = DailyStepGoalLiveActivityService(),
         calendar: Calendar = .current,
         userDefaults: UserDefaults = .standard
     ) {

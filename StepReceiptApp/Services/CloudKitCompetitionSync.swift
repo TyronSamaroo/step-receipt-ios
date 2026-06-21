@@ -24,6 +24,8 @@ struct HouseholdCompetitionShare: Identifiable {
 final class CloudKitCompetitionSync: @unchecked Sendable {
     private static let schemaVersion = 1
     private static let maxEntriesPerBoard = 400
+    private static let syncDayWindow = 45
+    private static let saveBatchSize = 25
     private static let entryRecordType = "CompetitionEntry"
     private static let shareZoneName = "HouseholdCompetition"
     private static let boardRecordType = "HouseholdCompetitionBoard"
@@ -47,28 +49,201 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         let groupHash = Self.groupHash(for: normalizedCode)
         let localEntries = mergedEntries(entries)
         let boardRecord = try await loadOrCreatePublicBoardRecord(groupHash: groupHash, inviteCode: normalizedCode)
-        let knownEntryNames = entryRecordNames(from: boardRecord)
         let localEntryNames = localEntries.map { Self.entryRecordName(groupHash: groupHash, entryID: $0.id) }
-        let entryNamesToFetch = Array(Set(knownEntryNames).union(localEntryNames)).sorted()
-        let remoteRecords = try await fetchEntryRecords(recordNames: entryNamesToFetch)
+        let fallbackNames = Array(
+            Set(entryRecordNames(from: boardRecord)).union(localEntryNames)
+        ).sorted()
+        let remoteRecords = try await fetchRecentEntryRecords(
+            groupHash: groupHash,
+            fallbackRecordNames: fallbackNames
+        )
+        var remoteByName = Dictionary(
+            uniqueKeysWithValues: remoteRecords.map { ($0.recordID.recordName, $0) }
+        )
         let remoteEntries = mergedEntries(remoteRecords.compactMap(entry(from:)))
 
-        for entry in localEntries {
-            let recordName = Self.entryRecordName(groupHash: groupHash, entryID: entry.id)
-            let currentRecord = remoteRecords.first { $0.recordID.recordName == recordName }
-            try await saveLocalEntry(entry, groupHash: groupHash, existingRecord: currentRecord)
+        let entriesToSave = localEntries
+            .filter { local in
+                shouldUpload(local, groupHash: groupHash, remoteByName: remoteByName)
+            }
+            .sorted { $0.dayKey > $1.dayKey }
+        try await saveLocalEntries(entriesToSave, groupHash: groupHash, remoteByName: &remoteByName)
+
+        let savedEntryNames = Array(remoteByName.keys).sorted().suffix(Self.maxEntriesPerBoard)
+        do {
+            try await savePublicBoardRecord(
+                boardRecord,
+                groupHash: groupHash,
+                inviteCode: normalizedCode,
+                entryNames: Array(savedEntryNames)
+            )
+        } catch {
+            // Daily rows may already be saved; don't fail the whole sync on board index conflicts.
+            guard !entriesToSave.isEmpty else { throw error }
         }
 
-        let savedEntryNames = Array(Set(entryNamesToFetch).union(localEntryNames)).sorted()
-        try await savePublicBoardRecord(
-            boardRecord,
-            groupHash: groupHash,
-            inviteCode: normalizedCode,
-            entryNames: savedEntryNames
-        )
+        return mergedEntries(remoteEntries + localEntries)
+    }
 
-        let savedEntries = mergedEntries(remoteEntries + localEntries)
-        return savedEntries
+    private func shouldUpload(
+        _ local: CompetitionEntry,
+        groupHash: String,
+        remoteByName: [String: CKRecord]
+    ) -> Bool {
+        let recordName = Self.entryRecordName(groupHash: groupHash, entryID: local.id)
+        guard let existing = remoteByName[recordName], let remote = entry(from: existing) else {
+            return true
+        }
+        if local.updatedAt > remote.updatedAt { return true }
+        return local.steps != remote.steps
+            || local.distanceMeters != remote.distanceMeters
+            || local.activeEnergyKilocalories != remote.activeEnergyKilocalories
+            || local.workoutMinutes != remote.workoutMinutes
+            || local.competitor.displayName != remote.competitor.displayName
+    }
+
+    private func fetchRecentEntryRecords(groupHash: String, fallbackRecordNames: [String]) async throws -> [CKRecord] {
+        do {
+            return try await queryRecentEntryRecords(groupHash: groupHash)
+        } catch {
+            let capped = Array(Set(fallbackRecordNames)).sorted().suffix(Self.maxEntriesPerBoard)
+            return try await fetchEntryRecords(recordNames: Array(capped))
+        }
+    }
+
+    private func queryRecentEntryRecords(groupHash: String) async throws -> [CKRecord] {
+        let cutoffDayKey = Self.recentCutoffDayKey()
+        let predicate = NSPredicate(format: "groupHash == %@ AND dayKey >= %@", groupHash, cutoffDayKey)
+        let query = CKQuery(recordType: Self.entryRecordType, predicate: predicate)
+        query.sortDescriptors = [NSSortDescriptor(key: "dayKey", ascending: false)]
+
+        var records: [CKRecord] = []
+        var cursor: CKQueryOperation.Cursor?
+
+        repeat {
+            let page: ([(CKRecord.ID, Result<CKRecord, Error>)], CKQueryOperation.Cursor?)
+            if let cursor {
+                page = try await database.records(continuingMatchFrom: cursor, desiredKeys: nil)
+            } else {
+                page = try await database.records(
+                    matching: query,
+                    inZoneWith: nil,
+                    desiredKeys: nil,
+                    resultsLimit: Self.maxEntriesPerBoard
+                )
+            }
+            records.append(contentsOf: successfulRecords(from: page.0))
+            cursor = page.1
+        } while cursor != nil && records.count < Self.maxEntriesPerBoard
+
+        return records
+    }
+
+    private static func recentCutoffDayKey() -> String {
+        let cutoff = Calendar.current.date(byAdding: .day, value: -syncDayWindow, to: Date()) ?? Date()
+        return ActivityFormatting.dayKey(for: cutoff)
+    }
+
+    private func saveLocalEntries(
+        _ entries: [CompetitionEntry],
+        groupHash: String,
+        remoteByName: inout [String: CKRecord]
+    ) async throws {
+        guard !entries.isEmpty else { return }
+
+        var recordsToSave: [CKRecord] = []
+        recordsToSave.reserveCapacity(entries.count)
+
+        for entry in entries {
+            let recordName = Self.entryRecordName(groupHash: groupHash, entryID: entry.id)
+            let record = remoteByName[recordName] ?? CKRecord(
+                recordType: Self.entryRecordType,
+                recordID: CKRecord.ID(recordName: recordName)
+            )
+            update(record: record, groupHash: groupHash, entry: entry)
+            recordsToSave.append(record)
+        }
+
+        var startIndex = 0
+        while startIndex < recordsToSave.count {
+            let endIndex = min(startIndex + Self.saveBatchSize, recordsToSave.count)
+            let batch = Array(recordsToSave[startIndex..<endIndex])
+            let saved = try await saveEntryBatch(batch)
+            for record in saved {
+                remoteByName[record.recordID.recordName] = record
+            }
+            startIndex = endIndex
+        }
+    }
+
+    private func saveEntryBatch(_ records: [CKRecord]) async throws -> [CKRecord] {
+        var pending = records
+        var lastError: Error?
+
+        for _ in 0..<3 {
+            guard !pending.isEmpty else { return records }
+
+            do {
+                let result = try await database.modifyRecords(
+                    saving: pending,
+                    deleting: [],
+                    savePolicy: .changedKeys
+                )
+                var saved: [CKRecord] = []
+                var failed: [CKRecord] = []
+
+                for record in pending {
+                    let id = record.recordID
+                    switch result.saveResults[id] {
+                    case .success(let savedRecord):
+                        saved.append(savedRecord)
+                    case .failure(let error):
+                        lastError = error
+                        if let serverRecord = serverChangedRecord(from: error) {
+                            failed.append(serverRecord)
+                        } else if isMissingRecord(error) {
+                            failed.append(CKRecord(recordType: Self.entryRecordType, recordID: id))
+                        } else {
+                            throw CloudSyncError.unavailable(
+                                "Competition entry batch could not be saved. \(Self.friendlySyncMessage(for: error))"
+                            )
+                        }
+                    case nil:
+                        saved.append(record)
+                    }
+                }
+
+                if failed.isEmpty {
+                    return saved
+                }
+                pending = failed
+            } catch let error as CKError where error.code == .partialFailure {
+                lastError = error
+                var failed: [CKRecord] = []
+                for record in pending {
+                    guard let itemError = error.partialErrorsByItemID?[record.recordID] else {
+                        continue
+                    }
+                    if let serverRecord = serverChangedRecord(from: itemError) {
+                        failed.append(serverRecord)
+                    } else if isMissingRecord(itemError) {
+                        failed.append(CKRecord(recordType: Self.entryRecordType, recordID: record.recordID))
+                    } else {
+                        throw CloudSyncError.unavailable(
+                            "Competition entry batch could not be saved. \(Self.friendlySyncMessage(for: itemError))"
+                        )
+                    }
+                }
+                pending = failed
+            } catch {
+                throw CloudSyncError.unavailable(
+                    "Competition entry batch could not be saved. \(Self.friendlySyncMessage(for: error))"
+                )
+            }
+        }
+
+        let detail = lastError.map { Self.friendlySyncMessage(for: $0) } ?? "Unknown iCloud error."
+        throw CloudSyncError.unavailable("Competition entry batch could not be saved after retries. \(detail)")
     }
 
     func prepareHouseholdShare(inviteCode: String, displayName: String) async throws -> HouseholdCompetitionShare {
@@ -285,32 +460,11 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         groupHash: String,
         existingRecord: CKRecord?
     ) async throws {
-        let recordName = Self.entryRecordName(groupHash: groupHash, entryID: entry.id)
-        var record = existingRecord ?? CKRecord(
-            recordType: Self.entryRecordType,
-            recordID: CKRecord.ID(recordName: recordName)
-        )
-
-        for _ in 0..<3 {
-            update(record: record, groupHash: groupHash, entry: entry)
-
-            do {
-                _ = try await database.save(record)
-                return
-            } catch {
-                if let serverRecord = serverChangedRecord(from: error) {
-                    record = serverRecord
-                    continue
-                }
-                if isMissingRecord(error) {
-                    record = CKRecord(recordType: Self.entryRecordType, recordID: CKRecord.ID(recordName: recordName))
-                    continue
-                }
-                throw error
-            }
+        var remoteByName: [String: CKRecord] = [:]
+        if let existingRecord {
+            remoteByName[existingRecord.recordID.recordName] = existingRecord
         }
-
-        throw CloudSyncError.unavailable("Competition entry could not be saved.")
+        try await saveLocalEntries([entry], groupHash: groupHash, remoteByName: &remoteByName)
     }
 
     private func update(record: CKRecord, groupHash: String, entry: CompetitionEntry) {

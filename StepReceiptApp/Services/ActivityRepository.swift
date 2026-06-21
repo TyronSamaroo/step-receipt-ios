@@ -366,15 +366,28 @@ final class ActivityRepository: ObservableObject {
         liveActivityStatus = liveActivityService.status
 
         guard healthKit.isAvailable, hasRequestedHealthAuthorization else {
+            await updateLiveActivityIfNeeded(with: nil)
             return
         }
 
         await configureActivityBackgroundDeliveryIfPossible()
         await refresh()
+        await refreshLiveActivityFromHealthKitIfNeeded()
+    }
 
-        if !calendar.isDateInToday(selectedDate) {
-            await refreshCurrentDayForLiveActivity()
+    func refreshLiveActivityTick() async {
+        liveActivityStatus = liveActivityService.status
+
+        guard preferences.dailyStepGoalLiveActivityEnabled || liveActivityService.status.isActive else {
+            return
         }
+
+        guard healthKit.isAvailable, hasRequestedHealthAuthorization else {
+            await updateLiveActivityIfNeeded(with: nil)
+            return
+        }
+
+        await refreshLiveActivityFromHealthKitIfNeeded()
     }
 
     func filteredWorkouts(kind: ActivityKind?) -> [WorkoutActivity] {

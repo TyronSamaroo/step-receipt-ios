@@ -7,6 +7,7 @@ struct WorkoutDetailView: View {
     let workout: WorkoutActivity
     @State private var shareImage: ShareImage?
     @State private var tagDraft = ""
+    @State private var selectedCompareBaseline: WorkoutActivity?
 
     private var style: WorkoutVisualStyle {
         WorkoutVisualStyle(kind: workout.type)
@@ -35,7 +36,7 @@ struct WorkoutDetailView: View {
                 WorkoutHero(workout: workout, style: style, tag: workoutTag)
                 templatePanel
                 metricGrid
-                sameTypeContextPanel
+                workoutComparePanel
                 HeartRatePanel(workout: workout)
                 WorkoutRoutePanel(workout: workout, style: style)
                 insightPanel
@@ -156,8 +157,80 @@ struct WorkoutDetailView: View {
     }
 
     @ViewBuilder
+    private var workoutComparePanel: some View {
+        let peers = repository.workoutComparisonPeers(for: workout)
+        if !peers.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Compare Sessions", systemImage: "arrow.left.arrow.right")
+                        .font(.subheadline.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                    Spacer()
+                    NavigationLink {
+                        WorkoutCompareView(workout: workout, baseline: selectedCompareBaseline)
+                    } label: {
+                        Text("Open")
+                            .font(.caption.weight(.bold))
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(style.accent)
+                }
+
+                if let last = repository.workoutLastSession(before: workout) {
+                    comparePreviewRow(title: "vs Last", baseline: last)
+                }
+
+                if let best = repository.workoutBestSession(excluding: workout) {
+                    comparePreviewRow(title: "vs Best", baseline: best)
+                }
+
+                NavigationLink {
+                    WorkoutCompareView(workout: workout, baseline: selectedCompareBaseline)
+                } label: {
+                    Label("Pick another session", systemImage: "list.bullet")
+                        .font(.caption.weight(.bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(style.accent)
+            }
+            .compactMetricCard()
+            .accessibilityIdentifier("workout-compare-panel")
+        }
+    }
+
+    private func comparePreviewRow(title: String, baseline: WorkoutActivity) -> some View {
+        let comparison = repository.compareWorkouts(current: workout, baseline: baseline)
+        let headline = comparison.deltas.first(where: { $0.label == "Active burn" })?.deltaText
+            ?? comparison.deltas.first?.deltaText
+            ?? "Compare"
+
+        return NavigationLink {
+            WorkoutCompareView(workout: workout, baseline: baseline)
+        } label: {
+            HStack {
+                Text(title)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                Text(baseline.startDate, format: .dateTime.month(.abbreviated).day())
+                    .font(.caption2)
+                    .foregroundStyle(Color.stepMuted)
+                Spacer()
+                Text(headline)
+                    .font(.caption.monospacedDigit().weight(.bold))
+                    .foregroundStyle(style.accent)
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+            .padding(.vertical, 4)
+        }
+        .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
     private var sameTypeContextPanel: some View {
-        if !sameTypeRecentWorkouts.isEmpty {
+        if false, !sameTypeRecentWorkouts.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 HStack(spacing: 10) {
                     Label("Same Type Context", systemImage: "chart.bar.doc.horizontal")
@@ -758,10 +831,11 @@ struct WorkoutRoutePanel: View {
                 .foregroundStyle(Color.stepInk)
 
             if workout.hasRoute {
-                Map(position: $cameraPosition, interactionModes: []) {
-                    MapPolyline(coordinates: workout.routeCoordinates)
-                        .stroke(style.accent, lineWidth: 4)
-                }
+                WorkoutRouteMapView(
+                    primary: workout,
+                    primaryColor: style.accent,
+                    allowsInteraction: false
+                )
                 .frame(height: 180)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                 .overlay(
@@ -1050,6 +1124,212 @@ enum HeartRateZoneStyle {
 extension HeartRateZoneSummary {
     var color: Color {
         HeartRateZoneStyle.color(forLevel: level)
+    }
+}
+
+struct WorkoutCompareView: View {
+    @EnvironmentObject private var repository: ActivityRepository
+    let workout: WorkoutActivity
+    let baseline: WorkoutActivity?
+    @State private var selectedBaseline: WorkoutActivity?
+    @State private var isPickingBaseline = false
+
+    private var style: WorkoutVisualStyle {
+        WorkoutVisualStyle(kind: workout.type)
+    }
+
+    private var resolvedBaseline: WorkoutActivity? {
+        selectedBaseline ?? baseline ?? repository.workoutLastSession(before: workout)
+    }
+
+    private var comparison: WorkoutSessionComparison? {
+        guard let resolvedBaseline else { return nil }
+        return repository.compareWorkouts(current: workout, baseline: resolvedBaseline)
+    }
+
+    private var pickerCandidates: [WorkoutActivity] {
+        repository.workoutComparisonPeers(for: workout)
+            .filter { $0.sourceIdentifier != workout.sourceIdentifier }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                sessionHeader(workout, title: "This session")
+                if let resolvedBaseline {
+                    sessionHeader(resolvedBaseline, title: "Compared to")
+                } else {
+                    Text("No prior session to compare yet.")
+                        .font(.caption)
+                        .foregroundStyle(Color.stepMuted)
+                        .compactMetricCard()
+                }
+
+                if let comparison {
+                    VStack(spacing: 8) {
+                        ForEach(comparison.deltas, id: \.label) { delta in
+                            HStack {
+                                Text(delta.label)
+                                    .font(.caption.weight(.bold))
+                                    .foregroundStyle(Color.stepMuted)
+                                    .frame(width: 72, alignment: .leading)
+                                Text(delta.currentValue)
+                                    .font(.caption.monospacedDigit().weight(.bold))
+                                Spacer()
+                                Text(delta.baselineValue)
+                                    .font(.caption2)
+                                    .foregroundStyle(Color.stepMuted)
+                                Text(delta.deltaText)
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(style.accent)
+                                    .frame(width: 56, alignment: .trailing)
+                            }
+                        }
+                    }
+                    .compactMetricCard()
+                }
+
+                if let resolvedBaseline, comparison?.canCompareRoutes == true {
+                    WorkoutRouteMapView(
+                        primary: workout,
+                        secondary: resolvedBaseline,
+                        primaryColor: style.accent,
+                        secondaryColor: Color.stepMuted,
+                        allowsInteraction: true
+                    )
+                    .frame(height: 220)
+                    .compactMetricCard()
+                } else {
+                    Text("Route compare is available for outdoor sessions with Health route data.")
+                        .font(.caption)
+                        .foregroundStyle(Color.stepMuted)
+                        .compactMetricCard()
+                }
+
+                Button {
+                    isPickingBaseline = true
+                } label: {
+                    Label("Pick another session", systemImage: "list.bullet")
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(style.accent)
+            }
+            .padding(16)
+        }
+        .background(Color.stepBackground)
+        .navigationTitle("Compare")
+        .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $isPickingBaseline) {
+            NavigationStack {
+                List(pickerCandidates, id: \.sourceIdentifier) { candidate in
+                    Button {
+                        selectedBaseline = candidate
+                        isPickingBaseline = false
+                    } label: {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(repository.workoutTag(for: candidate) ?? candidate.displayTitle)
+                                .font(.subheadline.weight(.bold))
+                            Text(candidate.startDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
+                                .font(.caption)
+                                .foregroundStyle(Color.stepMuted)
+                        }
+                    }
+                }
+                .navigationTitle("Pick Session")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") { isPickingBaseline = false }
+                    }
+                }
+            }
+        }
+        .accessibilityIdentifier("workout-compare-screen")
+    }
+
+    private func sessionHeader(_ session: WorkoutActivity, title: String) -> some View {
+        HStack(spacing: 10) {
+            Image(systemName: StepReceiptSymbol.workoutIcon(for: session.type))
+                .foregroundStyle(style.accent)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                Text(repository.workoutTag(for: session) ?? session.displayTitle)
+                    .font(.subheadline.weight(.bold))
+                Text(session.startDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
+                    .font(.caption)
+                    .foregroundStyle(Color.stepMuted)
+            }
+            Spacer()
+            Text(ActivityFormatting.formattedMinutes(session.durationMinutes))
+                .font(.caption.monospacedDigit().weight(.bold))
+        }
+        .compactMetricCard()
+    }
+}
+
+struct WorkoutRouteMapView: View {
+    let primary: WorkoutActivity
+    let secondary: WorkoutActivity?
+    let primaryColor: Color
+    let secondaryColor: Color
+    var allowsInteraction: Bool = false
+    @State private var cameraPosition: MapCameraPosition
+
+    init(
+        primary: WorkoutActivity,
+        secondary: WorkoutActivity? = nil,
+        primaryColor: Color,
+        secondaryColor: Color = .stepMuted,
+        allowsInteraction: Bool = false
+    ) {
+        self.primary = primary
+        self.secondary = secondary
+        self.primaryColor = primaryColor
+        self.secondaryColor = secondaryColor
+        self.allowsInteraction = allowsInteraction
+        _cameraPosition = State(initialValue: .rect(Self.unionMapRect(primary: primary, secondary: secondary) ?? .world))
+    }
+
+    var body: some View {
+        Map(position: $cameraPosition, interactionModes: allowsInteraction ? [.pan, .zoom] : []) {
+            if let secondary, secondary.hasRoute {
+                MapPolyline(coordinates: secondary.routeCoordinates)
+                    .stroke(secondaryColor.opacity(0.85), lineWidth: 3)
+            }
+            if primary.hasRoute {
+                MapPolyline(coordinates: primary.routeCoordinates)
+                    .stroke(primaryColor, lineWidth: 4)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.stepAxisGrid, lineWidth: 1)
+        )
+        .onChange(of: primary.routePoints.count) { _, _ in
+            cameraPosition = .rect(Self.unionMapRect(primary: primary, secondary: secondary) ?? .world)
+        }
+    }
+
+    private static func unionMapRect(primary: WorkoutActivity, secondary: WorkoutActivity?) -> MKMapRect? {
+        var rects: [MKMapRect] = []
+        if let primaryRect = primary.routeMapRect { rects.append(primaryRect) }
+        if let secondary, let secondaryRect = secondary.routeMapRect { rects.append(secondaryRect) }
+        guard var union = rects.first else { return nil }
+        for rect in rects.dropFirst() {
+            union = union.union(rect)
+        }
+        let paddingX = union.size.width * 0.18
+        let paddingY = union.size.height * 0.18
+        return MKMapRect(
+            x: union.origin.x - paddingX,
+            y: union.origin.y - paddingY,
+            width: union.size.width + paddingX * 2,
+            height: union.size.height + paddingY * 2
+        )
     }
 }
 

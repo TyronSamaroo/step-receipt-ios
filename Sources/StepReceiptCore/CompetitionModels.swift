@@ -247,3 +247,86 @@ public struct CompetitionReceipt: Codable, Equatable, Sendable {
         self.headline = headline
     }
 }
+
+public enum CompeteBoardPhase: String, Codable, Equatable, Sendable {
+    case setup
+    case waitingForPartner
+    case active
+    case needsAttention
+}
+
+public struct HouseholdMember: Codable, Equatable, Identifiable, Sendable {
+    public var id: UUID { competitor.id }
+
+    public let competitor: CompetitorProfile
+    public let lastUpdatedAt: Date
+    public let isCurrentUser: Bool
+
+    public init(competitor: CompetitorProfile, lastUpdatedAt: Date, isCurrentUser: Bool) {
+        self.competitor = competitor
+        self.lastUpdatedAt = lastUpdatedAt
+        self.isCurrentUser = isCurrentUser
+    }
+}
+
+public enum CompetitionBoardPhaseResolver {
+    public static let maxHouseholdMembers = 8
+
+    public static func householdMembers(
+        from entries: [CompetitionEntry],
+        currentUserID: UUID
+    ) -> [HouseholdMember] {
+        var latestByCompetitor: [UUID: CompetitionEntry] = [:]
+        for entry in entries {
+            if let existing = latestByCompetitor[entry.competitor.id], existing.updatedAt >= entry.updatedAt {
+                continue
+            }
+            latestByCompetitor[entry.competitor.id] = entry
+        }
+
+        return latestByCompetitor.values
+            .map { entry in
+                HouseholdMember(
+                    competitor: entry.competitor,
+                    lastUpdatedAt: entry.updatedAt,
+                    isCurrentUser: entry.competitor.id == currentUserID
+                )
+            }
+            .sorted {
+                if $0.isCurrentUser != $1.isCurrentUser {
+                    return $0.isCurrentUser
+                }
+                return $0.competitor.displayName.localizedCaseInsensitiveCompare($1.competitor.displayName) == .orderedAscending
+            }
+    }
+
+    public static func boardPhase(
+        settings: SharedCompetitionSettings,
+        syncNeedsAttention: Bool,
+        canPublishEntries: Bool,
+        householdMemberCount: Int,
+        isShowingSampleBoard: Bool
+    ) -> CompeteBoardPhase {
+        guard settings.canSync else {
+            return .setup
+        }
+
+        if syncNeedsAttention {
+            return .needsAttention
+        }
+
+        if isShowingSampleBoard {
+            return .setup
+        }
+
+        if householdMemberCount >= 2 {
+            return .active
+        }
+
+        if householdMemberCount == 1 {
+            return canPublishEntries ? .waitingForPartner : .needsAttention
+        }
+
+        return .needsAttention
+    }
+}

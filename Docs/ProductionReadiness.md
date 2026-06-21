@@ -36,7 +36,7 @@ StepReceipt is usable on simulator with sample preview data and has a real Healt
 - Confirm CloudKit records contain only private aggregate daily summaries and opt-in household competition totals.
 - Add real CloudKit account/device coverage after the container is configured.
 - Validate household-code competition sync with Tyron and Tiffany Apple IDs before treating wife competition as complete.
-- Deploy/verify the CloudKit development schema for public `CompetitionBoard` records before TestFlight acceptance.
+- Deploy/verify the CloudKit schema for public `HouseholdCompetitionBoard` and `CompetitionEntry` records before TestFlight acceptance (`Docs/CloudKitCompetitionSchema.md`).
 - Complete the TestFlight path in `Docs/TestFlightRunbook.md`, including invite delivery and the optional `Family Beta` external tester group.
 - Decide repository license before presenting the public repo as open source.
 - Decide when to graduate local/manual competition into real friend sharing.

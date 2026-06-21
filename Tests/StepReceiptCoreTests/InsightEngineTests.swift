@@ -1199,4 +1199,42 @@ struct WorkoutComparisonTests {
             activeEnergyKilocalories: energy
         )
     }
+
+    @Test
+    func testCompetitionBoardPhaseResolver() {
+        let settings = SharedCompetitionSettings(isEnabled: true, inviteCode: "FAMILYBETA")
+        let tyron = CompetitorProfile(displayName: "Tyron")
+        let tiffany = CompetitorProfile(displayName: "Tiffany")
+        let entries = [
+            CompetitionEntry(
+                competitor: tyron,
+                dayKey: "2026-06-01",
+                steps: 10_000,
+                distanceMeters: 7_000,
+                activeEnergyKilocalories: 400,
+                workoutMinutes: 45,
+                updatedAt: Date()
+            ),
+            CompetitionEntry(
+                competitor: tiffany,
+                dayKey: "2026-06-01",
+                steps: 9_000,
+                distanceMeters: 6_500,
+                activeEnergyKilocalories: 360,
+                workoutMinutes: 40,
+                updatedAt: Date()
+            )
+        ]
+
+        let members = CompetitionBoardPhaseResolver.householdMembers(from: entries, currentUserID: tyron.id)
+        #expect(members.count == 2)
+        #expect(members.first?.isCurrentUser == true)
+        #expect(CompetitionBoardPhaseResolver.boardPhase(
+            settings: settings,
+            syncNeedsAttention: false,
+            canPublishEntries: true,
+            householdMemberCount: 2,
+            isShowingSampleBoard: false
+        ) == .active)
+    }
 }

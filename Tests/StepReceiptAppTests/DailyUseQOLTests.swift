@@ -43,7 +43,10 @@ struct DailyUseQOLTests {
             healthLastRefresh: "8:41 PM",
             healthBackgroundUpdates: "Ready",
             iCloudStatus: "Available",
-            liveActivityStatus: "Live Activity on"
+            liveActivityStatus: "Live Activity on",
+            competeBoardStatus: "Active",
+            competeMemberCount: 2,
+            competeSyncStatus: "Synced"
         )
 
         let text = summary.text
@@ -54,6 +57,9 @@ struct DailyUseQOLTests {
         #expect(text.contains("Background Updates: Ready"))
         #expect(text.contains("Last Health Refresh: 8:41 PM"))
         #expect(text.contains("iCloud: Available"))
+        #expect(text.contains("Household Board: Active"))
+        #expect(text.contains("Household Members: 2"))
+        #expect(text.contains("Compete Sync: Synced"))
         #expect(text.contains("Live Activity: Live Activity on"))
 
         let lowercased = text.lowercased()

@@ -44,9 +44,12 @@ The script builds bundle id `com.tyronsamaroo.stepreceipt.local` with `StepRecei
    - HealthKit
    - iCloud with CloudKit
 4. Create or confirm the CloudKit container `iCloud.com.tyronsamaroo.stepreceipt`.
-5. In CloudKit Dashboard, confirm the app can create these record types in the development environment:
-   - `DailyActivitySummary` in the private database.
-   - `CompetitionBoard` in the public database. Each board is fetched by deterministic record ID from the hashed household code, so no public query index is required for the wife beta.
+5. In CloudKit Dashboard, confirm these record types exist in **development** and **production** for container `iCloud.com.tyronsamaroo.stepreceipt`:
+   - `DailyActivitySummary` in the **private** database.
+   - `HouseholdCompetitionBoard` in the **public** database (fields: `groupHash`, `schemaVersion`, `inviteCodeHint`, `entryNames`, `privacyBoundary`, `updatedAt`).
+   - `CompetitionEntry` in the **public** database (fields: `groupHash`, `schemaVersion`, `competitorID`, `displayName`, `initials`, `accentHex`, `dayKey`, `steps`, `distanceMeters`, `activeEnergyKilocalories`, `workoutMinutes`, `updatedAt`).
+   - Public database security roles: authenticated iCloud users can create, read, and write both public types. Boards are fetched by deterministic record ID from the hashed household invite code, so no public query index is required.
+   - See `Docs/CloudKitCompetitionSchema.md` for the full field checklist.
 6. If the team ID ever changes, copy the Apple Developer Team ID into `project.yml`:
 
    ```yaml
@@ -175,7 +178,7 @@ Current App Store Connect state as of 2026-06-11:
    - Competition board name is set to `Tiffany` before syncing.
    - Tiffany can use `Join from Clipboard` after copying Tyron's invite message.
    - The same household code shows both Tyron and Tiffany on the competition leaderboard after each phone syncs.
-   - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from `CompetitionBoard.entriesJSON`.
+   - Raw samples, hourly buckets, workouts, source identifiers, and workout details are absent from public `CompetitionEntry` records.
 
 Tiffany's phone does not need to be connected to this Mac for the TestFlight path.
 
@@ -185,7 +188,7 @@ Tiffany's phone does not need to be connected to this Mac for the TestFlight pat
 - [x] `DEVELOPMENT_TEAM` set and committed.
 - [ ] App ID `com.tyronsamaroo.stepreceipt` has HealthKit and CloudKit capabilities.
 - [ ] CloudKit container `iCloud.com.tyronsamaroo.stepreceipt` exists for the selected team.
-- [ ] CloudKit development schema includes private `DailyActivitySummary` and public `CompetitionBoard`.
+- [ ] CloudKit schema includes private `DailyActivitySummary` and public `HouseholdCompetitionBoard` + `CompetitionEntry`.
 - [x] Tyron's iPhone TT runs production bundle `0.1.0 (2)` from Xcode.
 - [x] Tiffany iPhone16 Pro runs production bundle `0.1.0 (2)` from Xcode.
 - [ ] Household-code competition sync shows Tyron and Tiffany aggregate leaderboard rows.

@@ -12,6 +12,10 @@ final class ActivityRepository: ObservableObject {
     @Published var receipt: InsightReceipt?
     @Published var competitionReceipt: CompetitionReceipt?
     @Published private(set) var activityNavigationToken = UUID()
+    @Published private(set) var competeBoardPhase: CompeteBoardPhase = .setup
+    @Published private(set) var householdMembers: [HouseholdMember] = []
+    @Published private(set) var isShowingSampleCompetitionBoard = false
+    @Published private(set) var competeNavigationToken = UUID()
     @Published var competitionMetric: CompetitionMetric = .steps {
         didSet {
             refreshCompetition()
@@ -971,11 +975,54 @@ final class ActivityRepository: ObservableObject {
         } else {
             sharedCompetitionEntries = []
             sharedCompetitionSyncState = .off
+            refreshCompetitionBoardState()
         }
+    }
+
+    func updateSharedCompetitionWithProfile(
+        isEnabled: Bool,
+        inviteCode: String,
+        displayName: String? = nil
+    ) async {
+        if let displayName {
+            updatePreferences(displayName: displayName)
+        }
+        await updateSharedCompetition(isEnabled: isEnabled, inviteCode: inviteCode)
     }
 
     func openActivityTab() {
         activityNavigationToken = UUID()
+    }
+
+    func openCompeteTab() {
+        competeNavigationToken = UUID()
+    }
+
+    var isCloudKitCompetitionAvailable: Bool {
+        competitionSync is CloudKitCompetitionSync
+    }
+
+    var competitionSyncDiagnostics: CompetitionSyncDiagnostics {
+        let inviteCode = sharedCompetitionSettings.inviteCode
+        let groupHash = inviteCode.isEmpty ? nil : CloudKitCompetitionSync.groupHash(for: inviteCode)
+        let syncedAt: Date? = if case .synced(let date) = sharedCompetitionSyncState { date } else { nil }
+        let unavailableReason: String? = if case .unavailable(let reason) = sharedCompetitionSyncState { reason } else { nil }
+
+        return CompetitionSyncDiagnostics(
+            boardEnabled: sharedCompetitionSettings.canSync,
+            inviteCodeHint: inviteCode.isEmpty ? nil : String(inviteCode.suffix(4)),
+            memberCount: householdMembers.count,
+            remoteEntryCount: sharedCompetitionEntries.count,
+            lastSyncState: CompetitionSyncPresentation.statusTitle(for: sharedCompetitionSyncState),
+            lastSyncDetail: unavailableReason ?? CompetitionSyncPresentation.statusDetail(
+                state: sharedCompetitionSyncState,
+                canSync: sharedCompetitionSettings.canSync,
+                canPublishEntries: canPublishSharedCompetitionEntries
+            ),
+            lastSyncedAt: syncedAt,
+            boardRecordHashSuffix: groupHash.map { String($0.suffix(8)) },
+            cloudKitCompetitionAvailable: isCloudKitCompetitionAvailable
+        )
     }
 
     func syncSharedCompetition() async {
@@ -999,7 +1046,7 @@ final class ActivityRepository: ObservableObject {
                 sharedCompetitionSyncState = .synced(Date())
             }
         } catch {
-            sharedCompetitionSyncState = .unavailable(error.localizedDescription)
+            sharedCompetitionSyncState = .unavailable(CloudKitCompetitionSync.friendlySyncMessage(for: error))
             refreshCompetition()
         }
     }
@@ -1054,6 +1101,44 @@ final class ActivityRepository: ObservableObject {
             window: competitionWindow,
             metric: competitionMetric
         )
+        refreshCompetitionBoardState()
+    }
+
+    private func refreshCompetitionBoardState() {
+        let boardEntries = householdCompetitionEntries()
+        householdMembers = CompetitionBoardPhaseResolver.householdMembers(
+            from: boardEntries,
+            currentUserID: currentCompetitorID
+        )
+
+        let localEntries = competitionEngine.entries(
+            from: localCompetitionCheckIns,
+            competitors: localCompetitors
+        )
+        isShowingSampleCompetitionBoard =
+            localEntries.isEmpty &&
+            sharedCompetitionEntries.isEmpty &&
+            activityDataSource == .sample
+
+        let syncNeedsAttention: Bool = {
+            if case .unavailable = sharedCompetitionSyncState { return true }
+            return false
+        }()
+
+        competeBoardPhase = CompetitionBoardPhaseResolver.boardPhase(
+            settings: sharedCompetitionSettings,
+            syncNeedsAttention: syncNeedsAttention,
+            canPublishEntries: canPublishSharedCompetitionEntries,
+            householdMemberCount: householdMembers.count,
+            isShowingSampleBoard: isShowingSampleCompetitionBoard
+        )
+    }
+
+    private func householdCompetitionEntries() -> [CompetitionEntry] {
+        var entriesByID: [String: CompetitionEntry] = [:]
+        merge(sharedCompetitionEntries, into: &entriesByID)
+        merge(currentUserCompetitionEntries(from: history), into: &entriesByID)
+        return Array(entriesByID.values)
     }
 
     private func entriesForSharedCompetitionSync() -> [CompetitionEntry] {

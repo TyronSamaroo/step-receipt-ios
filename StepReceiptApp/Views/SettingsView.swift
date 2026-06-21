@@ -165,6 +165,9 @@ struct SettingsView: View {
                     statusRow("Last Health Refresh", healthRefreshDiagnosticsText, healthRefreshStatusIcon)
                     statusRow("Background Updates", backgroundDeliveryDiagnosticsText, backgroundDeliveryStatusIcon)
                     statusRow("iCloud", cloudStatusText, StepReceiptSymbol.cloud)
+                    statusRow("Household Board", competeBoardStatusText, StepReceiptSymbol.competitionTab)
+                    statusRow("Household Members", "\(repository.householdMembers.count)", "person.2")
+                    statusRow("Compete Sync", competeSyncStatusText, "arrow.triangle.2.circlepath")
                     statusRow("Live Activity", repository.liveActivityStatus.title, "iphone.radiowaves.left.and.right")
 
                     Button {
@@ -201,7 +204,8 @@ struct SettingsView: View {
     }
 
     private var diagnosticsSummary: AppDiagnosticsSummary {
-        AppDiagnosticsSummary(
+        let competeDiagnostics = repository.competitionSyncDiagnostics
+        return AppDiagnosticsSummary(
             appVersion: AppDiagnosticsSummary.appVersion(),
             appBuild: AppDiagnosticsSummary.appBuild(),
             appleHealthStatus: healthStatusText,
@@ -209,8 +213,24 @@ struct SettingsView: View {
             healthLastRefresh: healthLastUpdatedText,
             healthBackgroundUpdates: backgroundDeliveryDiagnosticsText,
             iCloudStatus: cloudStatusText,
-            liveActivityStatus: repository.liveActivityStatus.title
+            liveActivityStatus: repository.liveActivityStatus.title,
+            competeBoardStatus: competeBoardStatusText,
+            competeMemberCount: competeDiagnostics.memberCount,
+            competeSyncStatus: competeDiagnostics.lastSyncState
         )
+    }
+
+    private var competeBoardStatusText: String {
+        switch repository.competeBoardPhase {
+        case .setup: "Not joined"
+        case .waitingForPartner: "Waiting for partner"
+        case .active: "Active"
+        case .needsAttention: "Needs attention"
+        }
+    }
+
+    private var competeSyncStatusText: String {
+        repository.competitionSyncDiagnostics.lastSyncDetail
     }
 
     private var appVersionAndBuildText: String {

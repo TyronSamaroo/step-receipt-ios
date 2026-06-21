@@ -92,6 +92,16 @@ else
   fail "CloudKit container entitlement is missing"
 fi
 
+if [ -f Docs/CloudKitCompetitionSchema.md ]; then
+  pass "CloudKit competition schema doc is present"
+else
+  fail "Docs/CloudKitCompetitionSchema.md is missing"
+fi
+
+if grep -q "LOCAL_NO_CLOUDKIT" Tools/install-local-personal-iphone.sh; then
+  warn "local personal install uses LOCAL_NO_CLOUDKIT; household compete requires production install-production-iphone.sh"
+fi
+
 if grep -q "NSPrivacyAccessedAPICategoryUserDefaults" StepReceiptApp/PrivacyInfo.xcprivacy; then
   pass "UserDefaults required-reason API is declared"
 else

@@ -707,86 +707,81 @@ struct TodayView: View {
     }
 
     private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack(alignment: .center, spacing: 10) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 8) {
                 Image(systemName: weather.displayConditionSymbolName)
-                    .font(.title2)
+                    .font(.system(size: 24))
                     .symbolRenderingMode(.multicolor)
-                    .frame(width: 32, height: 32)
+                    .frame(width: 28, height: 28)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(weather.formattedTemperatureFahrenheit)
-                            .font(.title2.weight(.bold))
-                            .foregroundStyle(Color.stepInk)
-                            .monospacedDigit()
-
-                        if let highLow = weather.formattedHighLowFahrenheit {
-                            Text(highLow)
-                                .font(.caption2.weight(.bold))
-                                .foregroundStyle(Color.stepDistance)
-                        }
-                    }
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(weather.formattedTemperatureFahrenheit)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                        .monospacedDigit()
 
                     Text(weather.displayConditionDescription)
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
+
+                    if let highLow = weather.formattedHighLowFahrenheit {
+                        Text(highLow)
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Color.stepDistance)
+                            .lineLimit(1)
+                    }
                 }
+                .layoutPriority(1)
 
                 Spacer(minLength: 4)
 
-                Image(systemName: "chevron.right")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-            }
+                Text(compactWeatherStatsLine(for: weather))
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
 
-            HStack(spacing: 0) {
-                compactWeatherStat("Feels", weather.displayApparentTemperatureFahrenheit)
-                weatherStatDivider
-                compactWeatherStat("Humidity", weather.formattedHumidity)
-                weatherStatDivider
-                compactWeatherStat("Wind", weather.displayWind)
-                weatherStatDivider
-                compactWeatherStat("UV", weather.displayUVIndex)
+                Image(systemName: "chevron.right")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
             }
 
             if let hint = compactWeatherHint {
                 Text(hint)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepAccent)
-                    .lineLimit(2)
+                    .lineLimit(1)
             }
         }
         .padding(.horizontal, 12)
         .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .metricCard()
+        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: WeatherCardStyle.gradientColors(for: weather),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                .stroke(Color.stepDistance.opacity(0.16), lineWidth: 1)
+        )
+        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(weatherAccessibilityLabel(for: weather))
         .accessibilityHint("Opens detailed weather forecast")
     }
 
-    private var weatherStatDivider: some View {
-        Rectangle()
-            .fill(Color.stepMuted.opacity(0.2))
-            .frame(width: 1, height: 24)
-            .padding(.horizontal, 4)
-    }
-
-    private func compactWeatherStat(_ title: String, _ value: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.caption.weight(.bold))
-                .foregroundStyle(Color.stepInk)
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(title)
-                .font(.system(size: 9, weight: .semibold))
-                .foregroundStyle(Color.stepMuted)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity)
+    private func compactWeatherStatsLine(for weather: DayWeatherSnapshot) -> String {
+        [
+            "Feels \(weather.displayApparentTemperatureFahrenheit)",
+            weather.formattedHumidity,
+            weather.displayWind,
+            "UV \(weather.displayUVIndex)"
+        ].joined(separator: " · ")
     }
 
     private var compactWeatherHint: String? {

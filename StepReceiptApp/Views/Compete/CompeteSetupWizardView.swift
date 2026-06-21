@@ -1,5 +1,4 @@
 import SwiftUI
-import UIKit
 
 enum CompeteSetupMode {
     case create
@@ -50,7 +49,12 @@ struct CompeteSetupWizardView: View {
             }
             .onAppear {
                 profileNameDraft = repository.preferences.displayName
-                if mode == .create, inviteCodeDraft.isEmpty {
+                if mode == .join {
+                    step = 1
+                    if inviteCodeDraft.isEmpty, let clipboardCode = CompeteInviteCodeClipboard.normalizedCodeFromClipboard() {
+                        inviteCodeDraft = clipboardCode
+                    }
+                } else if mode == .create, inviteCodeDraft.isEmpty {
                     inviteCodeDraft = repository.generatedSharedCompetitionInviteCode()
                 } else {
                     inviteCodeDraft = repository.sharedCompetitionSettings.inviteCode
@@ -195,7 +199,7 @@ struct CompeteSetupWizardView: View {
     }
 
     private func pasteInviteCode() {
-        guard let normalized = normalizedInviteCodeFromClipboard() else {
+        guard let normalized = CompeteInviteCodeClipboard.normalizedCodeFromClipboard() else {
             clipboardError = "No code on clipboard."
             return
         }
@@ -204,8 +208,7 @@ struct CompeteSetupWizardView: View {
     }
 
     private func normalizedInviteCodeFromClipboard() -> String? {
-        guard let value = UIPasteboard.general.string else { return nil }
-        return SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first
+        CompeteInviteCodeClipboard.normalizedCodeFromClipboard()
     }
 
     private func syncBoard() async {

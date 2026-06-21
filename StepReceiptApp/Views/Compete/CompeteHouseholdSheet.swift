@@ -53,6 +53,11 @@ struct CompeteHouseholdSheet: View {
     @State private var householdShare: HouseholdCompetitionShare?
     @State private var shareError: String?
     @State private var showLeaveConfirmation = false
+    @State private var partnerCodeDraft = ""
+    @State private var partnerClipboardError: String?
+    @State private var partnerJoinError: String?
+    @State private var showSwitchCodeConfirmation = false
+    @State private var isSwitchingCode = false
 
     var body: some View {
         NavigationStack {
@@ -66,6 +71,7 @@ struct CompeteHouseholdSheet: View {
 
                     membersSection
                     codeSection
+                    joinPartnerSection
                     actionsSection
 
                     if let shareError {
@@ -104,6 +110,22 @@ struct CompeteHouseholdSheet: View {
             } message: {
                 Text("Your phone will stop syncing to this board. You can rejoin later with the same code.")
             }
+            .confirmationDialog(
+                "Switch to partner's board?",
+                isPresented: $showSwitchCodeConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Switch code") {
+                    Task { await switchToPartnerCode() }
+                }
+            } message: {
+                Text("This replaces your current household code and leaves your solo board.")
+            }
+            .onAppear {
+                if partnerCodeDraft.isEmpty, let clipboardCode = CompeteInviteCodeClipboard.normalizedCodeFromClipboard() {
+                    partnerCodeDraft = clipboardCode
+                }
+            }
         }
         .accessibilityIdentifier("compete-household-sheet")
     }
@@ -134,7 +156,7 @@ struct CompeteHouseholdSheet: View {
 
     private var codeSection: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Household code")
+            Text("Your code")
                 .font(.subheadline.weight(.bold))
             Text(repository.sharedCompetitionSettings.inviteCode)
                 .font(.title2.monospaced().weight(.bold))
@@ -143,8 +165,103 @@ struct CompeteHouseholdSheet: View {
                 .padding(12)
                 .background(Color.stepBackground)
                 .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityIdentifier("compete-household-your-code")
         }
         .metricCard()
+    }
+
+    private var joinPartnerSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("Join partner's board")
+                .font(.subheadline.weight(.bold))
+
+            TextField("Partner's code", text: $partnerCodeDraft)
+                .textInputAutocapitalization(.characters)
+                .autocorrectionDisabled()
+                .font(.body.monospaced().weight(.semibold))
+                .padding(12)
+                .background(Color.stepBackground)
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                .accessibilityIdentifier("compete-household-partner-code")
+
+            HStack(spacing: 10) {
+                Button("Paste") {
+                    pastePartnerCode()
+                }
+                .buttonStyle(.bordered)
+                .tint(.stepDistance)
+
+                Button {
+                    if repository.sharedCompetitionSettings.canSync {
+                        showSwitchCodeConfirmation = true
+                    } else {
+                        Task { await switchToPartnerCode() }
+                    }
+                } label: {
+                    if isSwitchingCode {
+                        ProgressView()
+                            .frame(maxWidth: .infinity)
+                    } else {
+                        Text("Switch to this code")
+                            .frame(maxWidth: .infinity)
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.stepAccent)
+                .disabled(switchCodeDisabled || isSwitchingCode)
+                .accessibilityIdentifier("compete-household-switch-code")
+            }
+            .controlSize(.large)
+
+            if let partnerClipboardError {
+                Text(partnerClipboardError)
+                    .font(.caption)
+                    .foregroundStyle(Color.stepWarning)
+            }
+
+            if let partnerJoinError {
+                Text(partnerJoinError)
+                    .font(.caption)
+                    .foregroundStyle(Color.stepWarning)
+            }
+        }
+        .metricCard()
+    }
+
+    private var switchCodeDisabled: Bool {
+        SharedCompetitionSettings.normalizedInviteCode(partnerCodeDraft).isEmpty
+    }
+
+    private func pastePartnerCode() {
+        guard let normalized = CompeteInviteCodeClipboard.normalizedCodeFromClipboard() else {
+            partnerClipboardError = "No code on clipboard."
+            return
+        }
+        partnerClipboardError = nil
+        partnerCodeDraft = normalized
+    }
+
+    private func switchToPartnerCode() async {
+        partnerJoinError = nil
+        isSwitchingCode = true
+        defer { isSwitchingCode = false }
+
+        let displayName = repository.preferences.displayName
+        await repository.updateSharedCompetitionWithProfile(
+            isEnabled: true,
+            inviteCode: partnerCodeDraft,
+            displayName: displayName
+        )
+
+        if case .synced = repository.sharedCompetitionSyncState {
+            return
+        }
+
+        await repository.syncSharedCompetition()
+
+        if case .unavailable(let reason) = repository.sharedCompetitionSyncState {
+            partnerJoinError = CompetitionSyncPresentation.shortIssue(reason)
+        }
     }
 
     private var actionsSection: some View {

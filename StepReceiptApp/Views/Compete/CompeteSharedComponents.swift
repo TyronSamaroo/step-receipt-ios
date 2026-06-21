@@ -1,6 +1,13 @@
 import SwiftUI
 import UIKit
 
+enum CompeteInviteCodeClipboard {
+    static func normalizedCodeFromClipboard() -> String? {
+        guard let value = UIPasteboard.general.string else { return nil }
+        return SharedCompetitionSettings.normalizedInviteCodeCandidates(from: value).first
+    }
+}
+
 struct CompetitionInviteShare: Identifiable {
     let id = UUID()
     let code: String

@@ -85,6 +85,7 @@
 		E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
 		E5A06CBB02370F6044E4E8D4 /* SyncHouseholdBoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE47746608E2C642AF88C37 /* SyncHouseholdBoardIntent.swift */; };
+		E8517401405B48A36B00BBFE /* WeatherCardStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AF7A5DA430DADDEC1AFCC5A /* WeatherCardStyle.swift */; };
 		E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */; };
 		EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
@@ -192,6 +193,7 @@
 		3ABD1F7EC05A558F48BCE9FA /* WeatherDetailSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherDetailSheet.swift; sourceTree = "<group>"; };
 		42A559BD53296F30FB6E3975 /* WeatherAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherAttributionView.swift; sourceTree = "<group>"; };
 		454E46A98159F502B4E02190 /* StepReceiptWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StepReceiptWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4AF7A5DA430DADDEC1AFCC5A /* WeatherCardStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCardStyle.swift; sourceTree = "<group>"; };
 		4D00E52B658C60744BEABEE1 /* StepReceiptWatchExtensionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptWatchExtensionApp.swift; sourceTree = "<group>"; };
 		4DCC0C1304839C961A50B33C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -329,6 +331,7 @@
 				D7AA520E58D9123739472025 /* ShareSheet.swift */,
 				E6DCB0108D22D9887D64D763 /* TodayView.swift */,
 				42A559BD53296F30FB6E3975 /* WeatherAttributionView.swift */,
+				4AF7A5DA430DADDEC1AFCC5A /* WeatherCardStyle.swift */,
 				3ABD1F7EC05A558F48BCE9FA /* WeatherDetailSheet.swift */,
 				11D4678D07205B15BE59624E /* WorkoutDetailView.swift */,
 				F31D9A7FEE3EE026CF636FF5 /* Compete */,
@@ -790,6 +793,7 @@
 				649E665C02516779E71B9687 /* WatchAggregateSnapshot.swift in Sources */,
 				2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */,
 				25D3CB762540ED56086463F7 /* WeatherAttributionView.swift in Sources */,
+				E8517401405B48A36B00BBFE /* WeatherCardStyle.swift in Sources */,
 				206946984273643EDFF08754 /* WeatherDetailSheet.swift in Sources */,
 				5B4F62AE4342985C296FF083 /* WeatherKitClient.swift in Sources */,
 				F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */,

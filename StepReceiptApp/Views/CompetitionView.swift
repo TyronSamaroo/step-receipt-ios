@@ -6,6 +6,7 @@ struct CompetitionView: View {
     @State private var isPresentingHouseholdSheet = false
     @State private var isPresentingCheckIn = false
     @State private var inviteShare: CompetitionInviteShare?
+    @State private var showReplaceBoardConfirmation = false
 
     var body: some View {
         NavigationStack {
@@ -55,6 +56,17 @@ struct CompetitionView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
+                            if repository.sharedCompetitionSettings.canSync {
+                                showReplaceBoardConfirmation = true
+                            } else {
+                                setupMode = .join
+                            }
+                        } label: {
+                            Label("Join with code", systemImage: "person.badge.plus")
+                        }
+                        .accessibilityIdentifier("compete-menu-join-code")
+
+                        Button {
                             isPresentingCheckIn = true
                         } label: {
                             Label("Offline check-in", systemImage: "plus.circle")
@@ -62,6 +74,7 @@ struct CompetitionView: View {
                     } label: {
                         Image(systemName: "ellipsis.circle")
                     }
+                    .accessibilityIdentifier("compete-options-menu")
                     .accessibilityLabel("Compete options")
                 }
             }
@@ -79,6 +92,17 @@ struct CompetitionView: View {
             }
             .sheet(item: $inviteShare) { inviteShare in
                 ShareSheet(items: [inviteShare.message])
+            }
+            .confirmationDialog(
+                "Replace current board?",
+                isPresented: $showReplaceBoardConfirmation,
+                titleVisibility: .visible
+            ) {
+                Button("Join with new code") {
+                    setupMode = .join
+                }
+            } message: {
+                Text("This replaces your current board code. You'll leave your solo board.")
             }
             .task {
                 await syncSharedBoardIfNeeded()

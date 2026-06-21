@@ -9,10 +9,10 @@ final class StepReceiptUITests: XCTestCase {
 
         let weatherStrip = app.otherElements["today-weather-strip"]
         XCTAssertTrue(weatherStrip.waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Feels like"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Humidity"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Wind"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["UV"].waitForExistence(timeout: 3))
+        weatherStrip.tap()
+        XCTAssertTrue(app.otherElements["today-weather-detail"].waitForExistence(timeout: 3))
+        app.buttons["Done"].tap()
+        XCTAssertTrue(weatherStrip.waitForExistence(timeout: 3))
         XCTAssertTrue(app.otherElements["today-day-flow"].waitForExistence(timeout: 3) || app.staticTexts["Day Flow"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.otherElements["today-hero-coach"].waitForExistence(timeout: 3) || app.staticTexts.matching(NSPredicate(format: "label == 'Coach'")).firstMatch.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
@@ -40,6 +40,13 @@ final class StepReceiptUITests: XCTestCase {
             startBoardButton.tap()
             XCTAssertTrue(app.navigationBars["Start Board"].waitForExistence(timeout: 3))
             app.buttons["Close"].tap()
+        }
+
+        if app.otherElements["compete-welcome-screen"].waitForExistence(timeout: 2) {
+            XCTAssertTrue(app.otherElements["compete-welcome-quick-join"].waitForExistence(timeout: 3))
+            XCTAssertTrue(app.textFields["compete-welcome-join-code"].exists)
+            XCTAssertTrue(app.textFields["compete-welcome-join-name"].exists)
+            XCTAssertTrue(app.buttons["compete-welcome-join-submit"].exists)
         }
 
         app.tabBars.buttons["Insights"].tap()
@@ -81,6 +88,29 @@ final class StepReceiptUITests: XCTestCase {
             app.swipeUp()
         }
         XCTAssertTrue(privacyCopy.waitForExistence(timeout: 3))
+    }
+
+    @MainActor
+    func testCompeteWelcomeQuickJoinFields() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        app.tabBars.buttons["Compete"].tap()
+        XCTAssertTrue(app.otherElements["compete-welcome-screen"].waitForExistence(timeout: 5))
+
+        let codeField = app.textFields["compete-welcome-join-code"]
+        let nameField = app.textFields["compete-welcome-join-name"]
+        XCTAssertTrue(codeField.waitForExistence(timeout: 3))
+        XCTAssertTrue(nameField.waitForExistence(timeout: 3))
+
+        codeField.tap()
+        codeField.typeText("SRTEST2026")
+        nameField.tap()
+        nameField.typeText("Partner")
+
+        XCTAssertTrue(app.buttons["compete-welcome-join-submit"].isEnabled)
+        XCTAssertTrue(app.buttons["compete-welcome-join"].exists)
     }
 
     @MainActor

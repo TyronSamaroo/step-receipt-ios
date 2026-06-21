@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct CompeteLeaderboardView: View {
     @EnvironmentObject private var repository: ActivityRepository
@@ -70,6 +71,34 @@ struct CompeteLeaderboardView: View {
                 .font(.subheadline.weight(.semibold))
                 .foregroundStyle(Color.stepMuted)
                 .fixedSize(horizontal: false, vertical: true)
+
+            HStack(spacing: 10) {
+                Text(repository.sharedCompetitionSettings.inviteCode)
+                    .font(.title3.monospaced().weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                    .accessibilityIdentifier("compete-waiting-household-code")
+
+                Spacer(minLength: 0)
+
+                Button {
+                    UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
+                } label: {
+                    Label("Copy", systemImage: "doc.on.doc")
+                        .font(.caption.weight(.bold))
+                }
+                .buttonStyle(.bordered)
+                .tint(.stepDistance)
+                .accessibilityIdentifier("compete-waiting-copy-code")
+            }
+            .padding(12)
+            .background(Color.stepBackground)
+            .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+            Text("Partner: Compete → Join with code → paste this code")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("compete-waiting-partner-instructions")
 
             Button(action: onInvitePartner) {
                 Label("Invite partner", systemImage: "square.and.arrow.up")

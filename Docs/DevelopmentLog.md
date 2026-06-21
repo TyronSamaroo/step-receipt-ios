@@ -2,6 +2,26 @@
 
 A running log of implementation patterns and decisions across StrideSlip / StepReceipt plans. Reference this from future Codex sessions to repeat successful workflows.
 
+## 2026-06-21 — Compact Weather + Compete Join Code
+
+### Goal
+Restore condition-tinted weather on Today in a single ~56pt row; fix partner onboarding with always-available code entry.
+
+### What shipped
+- **Weather:** `WeatherCardStyle` extracted; Today strip is one gradient row (temp + condition + high/low + dot-separated stats); detail sheet unchanged.
+- **Compete quick join:** `CompeteWelcomeView` "Have a code?" section (code, name, paste, join).
+- **Compete menu:** Toolbar "Join with code" with replace-board confirmation when already synced.
+- **Join wizard:** `.join` mode starts at code step; clipboard pre-fill on appear.
+- **Household sheet:** Read-only "Your code" + "Join partner's board" switch flow.
+- **Waiting card:** Inline copyable code + partner instructions.
+
+### Key files
+- `StepReceiptApp/Views/WeatherCardStyle.swift`, `TodayView.swift`
+- `StepReceiptApp/Views/Compete/CompeteWelcomeView.swift`, `CompeteSetupWizardView.swift`, `CompeteHouseholdSheet.swift`, `CompeteLeaderboardView.swift`, `CompetitionView.swift`
+
+### Ship
+- Build 21 sideload to iPhone TT; build 22 after phone approval.
+
 ## 2026-03-21 — Compete Tab Redesign and Household Competition Fix
 
 ### Problem

@@ -15,6 +15,7 @@ struct CompetitionSyncDiagnostics: Equatable {
     let pushRegistrationState: String?
     let subscriptionRegistered: Bool?
     let schemaLikelyMissing: Bool
+    let localEntriesQueued: Int?
 
     init(
         boardEnabled: Bool,
@@ -29,7 +30,8 @@ struct CompetitionSyncDiagnostics: Equatable {
         iCloudAccountStatus: String? = nil,
         pushRegistrationState: String? = nil,
         subscriptionRegistered: Bool? = nil,
-        schemaLikelyMissing: Bool = false
+        schemaLikelyMissing: Bool = false,
+        localEntriesQueued: Int? = nil
     ) {
         self.boardEnabled = boardEnabled
         self.inviteCodeHint = inviteCodeHint
@@ -44,6 +46,7 @@ struct CompetitionSyncDiagnostics: Equatable {
         self.pushRegistrationState = pushRegistrationState
         self.subscriptionRegistered = subscriptionRegistered
         self.schemaLikelyMissing = schemaLikelyMissing
+        self.localEntriesQueued = localEntriesQueued
     }
 
     var textLines: [String] {
@@ -75,6 +78,9 @@ struct CompetitionSyncDiagnostics: Equatable {
         }
         if schemaLikelyMissing {
             lines.append("Schema: likely missing (see Docs/CloudKitCompetitionSchema.md)")
+        }
+        if let localEntriesQueued {
+            lines.append("Local Rows Queued: \(localEntriesQueued)")
         }
         return lines
     }

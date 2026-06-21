@@ -487,24 +487,24 @@ struct TodayView: View {
 
             heroDateControls
 
-            HStack(alignment: .center, spacing: 18) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("\(summary.steps.formatted()) steps")
-                        .font(.system(size: 58, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.stepInk)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.62)
-                        .contentTransition(.numericText())
-                    Text(goalRemainingLine(for: summary))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
+            VStack(alignment: .leading, spacing: 12) {
+                Text("\(summary.steps.formatted()) steps")
+                    .font(.system(size: 58, weight: .bold, design: .rounded))
+                    .foregroundStyle(Color.stepInk)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.62)
+                    .contentTransition(.numericText())
+                    .accessibilityIdentifier("today-hero-steps")
 
-                Spacer(minLength: 0)
+                Text(goalRemainingLine(for: summary))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ProgressRing(progress: summary.stepGoalProgress)
                     .frame(width: 114, height: 114)
+                    .frame(maxWidth: .infinity)
                     .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
             }
 

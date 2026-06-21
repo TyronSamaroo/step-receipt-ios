@@ -82,7 +82,7 @@ struct CompeteDiagnosticsSheet: View {
 
             Button {
                 Task {
-                    await repository.syncSharedCompetition()
+                    await repository.syncSharedCompetition(force: true)
                     await refreshDiagnostics()
                 }
             } label: {

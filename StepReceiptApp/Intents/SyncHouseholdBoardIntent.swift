@@ -17,7 +17,7 @@ struct SyncHouseholdBoardIntent: AppIntent {
             throw StepReceiptIntentError.boardDisabled
         }
 
-        await repository.syncSharedCompetition()
+        await repository.syncSharedCompetition(force: true)
 
         let detail = await MainActor.run {
             CompetitionSyncPresentation.statusTitle(for: repository.sharedCompetitionSyncState)

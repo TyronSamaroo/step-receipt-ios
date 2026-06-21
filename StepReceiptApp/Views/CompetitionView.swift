@@ -35,7 +35,7 @@ struct CompetitionView: View {
                 .padding(repository.competeBoardPhase == .setup ? 0 : 16)
             }
             .refreshable {
-                await syncSharedBoardIfNeeded()
+                await syncSharedBoardIfNeeded(force: true)
             }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
@@ -130,10 +130,10 @@ struct CompetitionView: View {
         inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
     }
 
-    private func syncSharedBoardIfNeeded() async {
+    private func syncSharedBoardIfNeeded(force: Bool = false) async {
         guard repository.sharedCompetitionSettings.canSync,
-              repository.sharedCompetitionSyncState != .syncing else { return }
-        await repository.syncSharedCompetition()
+              repository.sharedCompetitionSyncState != .syncing || force else { return }
+        await repository.syncSharedCompetition(force: force)
     }
 }
 

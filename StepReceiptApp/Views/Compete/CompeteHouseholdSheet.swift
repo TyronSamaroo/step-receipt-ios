@@ -271,7 +271,7 @@ struct CompeteHouseholdSheet: View {
             return
         }
 
-        await repository.syncSharedCompetition()
+        await repository.syncSharedCompetition(force: true)
 
         if case .unavailable(let reason) = repository.sharedCompetitionSyncState {
             partnerJoinError = CompetitionSyncPresentation.shortIssue(reason)
@@ -319,7 +319,7 @@ struct CompeteHouseholdSheet: View {
             .buttonStyle(.bordered)
 
             Button {
-                Task { await repository.syncSharedCompetition() }
+                Task { await repository.syncSharedCompetition(force: true) }
             } label: {
                 Label("Refresh board", systemImage: "arrow.clockwise")
                     .frame(maxWidth: .infinity)

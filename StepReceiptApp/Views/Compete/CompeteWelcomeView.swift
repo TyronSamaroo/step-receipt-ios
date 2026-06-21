@@ -196,7 +196,7 @@ struct CompeteWelcomeView: View {
             return
         }
 
-        await repository.syncSharedCompetition()
+        await repository.syncSharedCompetition(force: true)
 
         if case .unavailable(let reason) = repository.sharedCompetitionSyncState {
             joinError = CompetitionSyncPresentation.shortIssue(reason)

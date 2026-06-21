@@ -10,7 +10,7 @@ final class StepReceiptUITests: XCTestCase {
         let weatherStrip = app.otherElements["today-weather-strip"]
         XCTAssertTrue(weatherStrip.waitForExistence(timeout: 3) || app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Humidity'")).firstMatch.waitForExistence(timeout: 3))
         XCTAssertTrue(app.otherElements["today-day-flow"].waitForExistence(timeout: 3) || app.staticTexts["Day Flow"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["today-hero-coach"].waitForExistence(timeout: 3) || app.staticTexts.matching(NSPredicate(format: "label == 'Coach'")).firstMatch.waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'left to'")).firstMatch
         XCTAssertTrue(stepsLeftText.waitForExistence(timeout: 3))

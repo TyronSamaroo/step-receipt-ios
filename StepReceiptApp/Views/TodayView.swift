@@ -15,10 +15,9 @@ struct TodayView: View {
                     if let summary = repository.todaySummary {
                         weatherStripCard(summary)
                         todayHero(summary)
-                        weekPulseCard
                         dayFlowCard(summary)
                         workoutSection(summary)
-                        todayCoach(repository.todayCoachInsights())
+                        weekPulseCard
                         todayQuickDigestCard(summary)
                         healthSyncStatusCard
                     } else {
@@ -487,11 +486,12 @@ struct TodayView: View {
 
             heroDateControls
 
-            VStack(alignment: .leading, spacing: 12) {
+            VStack(alignment: .center, spacing: 12) {
                 Text("\(summary.steps.formatted()) steps")
                     .font(.system(size: 58, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.stepInk)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: .infinity)
+                    .multilineTextAlignment(.center)
                     .lineLimit(1)
                     .minimumScaleFactor(0.62)
                     .contentTransition(.numericText())
@@ -500,11 +500,12 @@ struct TodayView: View {
                 Text(goalRemainingLine(for: summary))
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity)
                     .fixedSize(horizontal: false, vertical: true)
 
                 ProgressRing(progress: summary.stepGoalProgress)
                     .frame(width: 114, height: 114)
-                    .frame(maxWidth: .infinity)
                     .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
             }
 
@@ -516,10 +517,12 @@ struct TodayView: View {
                     .padding(.vertical, 8)
                     .background(Color.stepAccent.opacity(0.15))
                     .clipShape(Capsule())
+                    .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("today-goal-crushed")
             }
 
             heroMetricsRow(summary)
+            heroCoachFooter(repository.todayCoachInsights())
         }
         .padding(18)
         .background(
@@ -821,19 +824,17 @@ struct TodayView: View {
     }
 
     @ViewBuilder
-    private func todayCoach(_ insights: [TodayCoachInsight]) -> some View {
+    private func heroCoachFooter(_ insights: [TodayCoachInsight]) -> some View {
         if !insights.isEmpty {
             let visible = coachExpanded ? insights : Array(insights.prefix(2))
-            VStack(alignment: .leading, spacing: 12) {
-                HStack {
-                    Label("Today Coach", systemImage: "sparkles")
-                        .font(.headline)
-                        .foregroundStyle(Color.stepInk)
-                    Spacer()
-                    Text("Personal")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.stepAccent)
-                }
+
+            VStack(alignment: .leading, spacing: 10) {
+                Divider()
+                    .padding(.top, 4)
+
+                Label("Coach", systemImage: "sparkles")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
 
                 VStack(spacing: 10) {
                     ForEach(visible) { insight in
@@ -860,7 +861,7 @@ struct TodayView: View {
                     .foregroundStyle(Color.stepAccent)
                 }
             }
-            .metricCard()
+            .accessibilityIdentifier("today-hero-coach")
         }
     }
 

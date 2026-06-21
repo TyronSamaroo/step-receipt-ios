@@ -115,3 +115,31 @@ Stack hero steps block vertically: full-width step headline, goal subtitle, then
 ### Key files
 - `StepReceiptApp/Views/TodayView.swift`
 - `Tests/StepReceiptUITests/StepReceiptUITests.swift`
+
+## 2026-06-21 — Today Hero Balance + Coach Embed
+
+### Problem
+Stacked hero had left-aligned steps with a centered ring (visual imbalance). Week Pulse under hero competed with the briefing; Coach was too low in scroll.
+
+### Fix
+1. Center steps + goal subtitle + ring as one cluster; date controls stay above.
+2. Embed top-2 Coach insights in hero footer (`today-hero-coach`); remove standalone Coach card.
+3. Reorder: Weather → Hero → Day Flow → Workouts → Week Pulse → Glance.
+
+### Key files
+- `StepReceiptApp/Views/TodayView.swift`
+- `Tests/StepReceiptUITests/StepReceiptUITests.swift`
+
+## 2026-06-21 — Today Hero Balance + Coach Embed
+
+### Problem
+Stacked hero had left-aligned steps with a centered ring (visual imbalance). Week Pulse under hero competed with the briefing; Coach was too low in scroll.
+
+### Fix
+1. Center steps + goal subtitle + ring as one cluster; date controls stay above.
+2. Embed top-2 Coach insights in hero footer (`today-hero-coach`); remove standalone Coach card.
+3. Reorder: Weather → Hero → Day Flow → Workouts → Week Pulse → Glance.
+
+### Key files
+- `StepReceiptApp/Views/TodayView.swift`
+- `Tests/StepReceiptUITests/StepReceiptUITests.swift`

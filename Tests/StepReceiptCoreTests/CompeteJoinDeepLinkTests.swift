@@ -1,5 +1,8 @@
 import Foundation
 import Testing
+#if canImport(StepReceiptCore)
+@testable import StepReceiptCore
+#endif
 
 struct CompeteJoinDeepLinkTests {
     @Test

@@ -37,20 +37,23 @@ extension WatchSessionModel: WCSessionDelegate {
         activationDidCompleteWith activationState: WCSessionActivationState,
         error: Error?
     ) {
-        Task { @MainActor in
-            applyContext(session.receivedApplicationContext)
-        }
+        applySnapshot(from: session.receivedApplicationContext)
     }
 
     nonisolated func session(_ session: WCSession, didReceiveApplicationContext applicationContext: [String: Any]) {
-        Task { @MainActor in
-            applyContext(applicationContext)
-        }
+        applySnapshot(from: applicationContext)
     }
 
-    private func applyContext(_ context: [String: Any]) {
-        if let decoded = WatchAggregateSnapshot.decode(from: context) {
-            snapshot = decoded
+    nonisolated private func applySnapshot(from context: [String: Any]) {
+        guard
+            let encoded = context[WatchAggregateSnapshot.contextKey] as? String,
+            let snapshot = WatchAggregateSnapshot.decode(from: encoded)
+        else {
+            return
+        }
+
+        Task { @MainActor in
+            self.snapshot = snapshot
         }
     }
 }

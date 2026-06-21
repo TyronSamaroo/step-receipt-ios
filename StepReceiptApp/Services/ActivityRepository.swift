@@ -635,19 +635,36 @@ final class ActivityRepository: ObservableObject {
     }
 
     private func updateLiveActivityIfNeeded(with summary: DailyActivitySummary?) async {
-        guard
-            let summary,
-            calendar.isDateInToday(summary.dateStart)
-        else {
+        let effectiveSummary: DailyActivitySummary?
+        if let summary, calendar.isDateInToday(summary.dateStart) {
+            effectiveSummary = summary
+        } else {
+            effectiveSummary = liveActivitySummary
+        }
+
+        guard let effectiveSummary else {
             liveActivityStatus = liveActivityService.status
             return
         }
 
         if preferences.dailyStepGoalLiveActivityEnabled {
-            liveActivityStatus = await liveActivityService.start(summary: summary)
+            if liveActivityService.status.isActive {
+                liveActivityStatus = await liveActivityService.update(summary: effectiveSummary)
+            } else {
+                liveActivityStatus = await liveActivityService.start(summary: effectiveSummary)
+            }
         } else {
-            liveActivityStatus = await liveActivityService.updateIfActive(summary: summary)
+            liveActivityStatus = await liveActivityService.updateIfActive(summary: effectiveSummary)
         }
+    }
+
+    private func refreshLiveActivityFromHealthKitIfNeeded() async {
+        guard preferences.dailyStepGoalLiveActivityEnabled || liveActivityService.status.isActive else {
+            liveActivityStatus = liveActivityService.status
+            return
+        }
+
+        await refreshCurrentDayForLiveActivity()
     }
 
     private func configureActivityBackgroundDeliveryIfPossible(force: Bool = false) async {

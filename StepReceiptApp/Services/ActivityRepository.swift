@@ -118,6 +118,7 @@ final class ActivityRepository: ObservableObject {
     private var activityDataSource: ActivityDataSource = .none
     private var hasConfiguredActivityBackgroundDeliveryForSession = false
     private var isRefreshingFromBackgroundDelivery = false
+    private var sharedCompetitionSyncTask: Task<Void, Never>?
 
     private var workoutWeatherSources: [String: WeatherDataSource] = [:]
     private var workoutWeatherBackfills: [String: DayWeatherSnapshot] = [:]
@@ -1186,7 +1187,7 @@ final class ActivityRepository: ObservableObject {
         sharedCompetitionSettings = settings
         if settings.canSync {
             await configureCompetitionPushIfNeeded()
-            await syncSharedCompetition()
+            await syncSharedCompetition(force: true)
         } else {
             sharedCompetitionEntries = []
             sharedCompetitionSyncState = .off
@@ -1257,7 +1258,7 @@ final class ActivityRepository: ObservableObject {
             displayName: trimmedName.isEmpty ? nil : trimmedName
         )
         pendingCompeteJoin = nil
-        await syncSharedCompetition()
+        await syncSharedCompetition(force: true)
     }
 
     func dismissPendingCompeteJoin() {
@@ -1266,7 +1267,7 @@ final class ActivityRepository: ObservableObject {
 
     func handleCompetitionCloudKitNotification() async {
         guard sharedCompetitionSettings.canSync else { return }
-        await syncSharedCompetition()
+        await syncSharedCompetition(force: true)
     }
 
     var isCloudKitCompetitionAvailable: Bool {
@@ -1294,7 +1295,8 @@ final class ActivityRepository: ObservableObject {
             lastSyncedAt: syncedAt,
             boardRecordHashSuffix: groupHash.map { String($0.suffix(8)) },
             cloudKitCompetitionAvailable: isCloudKitCompetitionAvailable,
-            schemaLikelyMissing: CompetitionSyncDiagnostics.schemaLikelyMissing(from: syncDetail)
+            schemaLikelyMissing: CompetitionSyncDiagnostics.schemaLikelyMissing(from: syncDetail),
+            localEntriesQueued: entriesForSharedCompetitionSync().count
         )
     }
 
@@ -1341,7 +1343,8 @@ final class ActivityRepository: ObservableObject {
             iCloudAccountStatus: accountStatus,
             pushRegistrationState: pushState,
             subscriptionRegistered: subscriptionRegistered,
-            schemaLikelyMissing: base.schemaLikelyMissing
+            schemaLikelyMissing: base.schemaLikelyMissing,
+            localEntriesQueued: base.localEntriesQueued
         )
     }
 
@@ -1356,7 +1359,40 @@ final class ActivityRepository: ObservableObject {
         }
     }
 
-    func syncSharedCompetition() async {
+    func syncSharedCompetition(force: Bool = false) async {
+        guard sharedCompetitionSettings.canSync else {
+            sharedCompetitionEntries = []
+            sharedCompetitionSyncState = .off
+            return
+        }
+
+        if !force, shouldDebounceCompetitionSync() {
+            return
+        }
+
+        if let running = sharedCompetitionSyncTask {
+            await running.value
+            return
+        }
+
+        let task = Task { @MainActor in
+            await self.performSharedCompetitionSync()
+        }
+        sharedCompetitionSyncTask = task
+        await task.value
+        sharedCompetitionSyncTask = nil
+    }
+
+    private func shouldDebounceCompetitionSync() -> Bool {
+        if case .syncing = sharedCompetitionSyncState { return true }
+        if case .synced(let date) = sharedCompetitionSyncState,
+           Date().timeIntervalSince(date) < 120 {
+            return true
+        }
+        return false
+    }
+
+    private func performSharedCompetitionSync() async {
         guard sharedCompetitionSettings.canSync else {
             sharedCompetitionEntries = []
             sharedCompetitionSyncState = .off
@@ -1366,10 +1402,23 @@ final class ActivityRepository: ObservableObject {
         let localEntries = entriesForSharedCompetitionSync()
         sharedCompetitionSyncState = .syncing
         do {
-            let remoteEntries = try await competitionSync.sync(
-                entries: localEntries,
-                inviteCode: sharedCompetitionSettings.inviteCode
-            )
+            let remoteEntries = try await withThrowingTaskGroup(of: [CompetitionEntry].self) { group in
+                group.addTask {
+                    try await self.competitionSync.sync(
+                        entries: localEntries,
+                        inviteCode: self.sharedCompetitionSettings.inviteCode
+                    )
+                }
+                group.addTask {
+                    try await Task.sleep(for: .seconds(90))
+                    throw CloudSyncError.unavailable("Compete sync timed out. Check connection and retry.")
+                }
+                guard let result = try await group.next() else {
+                    throw CloudSyncError.unavailable("Compete sync did not return results.")
+                }
+                group.cancelAll()
+                return result
+            }
             sharedCompetitionEntries = deduplicatedCompetitionEntries(remoteEntries)
             if localEntries.isEmpty && sharedCompetitionEntries.isEmpty {
                 sharedCompetitionSyncState = .unavailable("Connect Apple Health before syncing your row to the household board.")
@@ -1522,11 +1571,16 @@ final class ActivityRepository: ObservableObject {
         return Array(entriesByID.values)
     }
 
+    /// Only sync recent daily totals to CloudKit to avoid huge uploads and write conflicts.
+    private static let competeSyncDayLimit = 45
+
     private func entriesForSharedCompetitionSync() -> [CompetitionEntry] {
         guard activityDataSource == .healthKit || activityDataSource == .cache else {
             return []
         }
-        return currentUserCompetitionEntries(from: history)
+        let cutoff = calendar.date(byAdding: .day, value: -Self.competeSyncDayLimit, to: Date()) ?? Date()
+        let recentHistory = history.filter { $0.dateStart >= cutoff }
+        return currentUserCompetitionEntries(from: recentHistory)
     }
 
     private func currentUserCompetitionEntries(from summaries: [DailyActivitySummary]) -> [CompetitionEntry] {

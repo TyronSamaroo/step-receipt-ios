@@ -12,10 +12,6 @@ final class ActivityRepository: ObservableObject {
     @Published var receipt: InsightReceipt?
     @Published var competitionReceipt: CompetitionReceipt?
     @Published private(set) var activityNavigationToken = UUID()
-    @Published private(set) var competeNavigationToken = UUID()
-    @Published private(set) var competeBoardPhase: CompeteBoardPhase = .setup
-    @Published private(set) var householdMembers: [HouseholdMember] = []
-    @Published private(set) var isShowingSampleCompetitionBoard = false
     @Published var competitionMetric: CompetitionMetric = .steps {
         didSet {
             refreshCompetition()

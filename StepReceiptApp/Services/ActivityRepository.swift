@@ -11,6 +11,7 @@ final class ActivityRepository: ObservableObject {
     @Published var dayWeatherDetail: DayWeatherDetail?
     @Published private(set) var isLoadingDayWeather = false
     @Published private(set) var isLoadingWeatherDetail = false
+    @Published private(set) var weatherNeedsLocation = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
     @Published var workouts: [WorkoutActivity] = []
@@ -652,11 +653,20 @@ final class ActivityRepository: ObservableObject {
 
         do {
             await locationProvider.requestWhenInUseAuthorization()
+            let status = await locationProvider.authorizationStatus()
+            weatherNeedsLocation = status == .denied || status == .restricted
+            guard !weatherNeedsLocation else {
+                throw LocationProviderError.denied
+            }
+
             let location = try await locationProvider.currentLocation()
             let detail = try await weatherKit.fetchWeatherDetail(for: date, at: location, calendar: calendar)
             dayWeatherDetail = detail
             dayWeather = detail.snapshot
+            weatherNeedsLocation = false
         } catch {
+            let status = await locationProvider.authorizationStatus()
+            weatherNeedsLocation = status == .denied || status == .restricted
             if dayWeatherDetail == nil, let fallback = fallbackDayWeather(for: date) {
                 dayWeatherDetail = DayWeatherDetail(date: calendar.startOfDay(for: date), snapshot: fallback, hourly: [])
                 dayWeather = fallback
@@ -664,17 +674,39 @@ final class ActivityRepository: ObservableObject {
         }
     }
 
+    func ensureDayWeather() async {
+        let status = await locationProvider.authorizationStatus()
+        weatherNeedsLocation = status == .denied || status == .restricted
+
+        if dayWeather?.source == .weatherKit, !weatherNeedsLocation {
+            return
+        }
+
+        await fetchDayWeather(for: selectedDate)
+    }
+
     private func fetchDayWeather(for date: Date) async {
         isLoadingDayWeather = true
-        dayWeatherDetail = nil
         defer { isLoadingDayWeather = false }
 
         do {
             await locationProvider.requestWhenInUseAuthorization()
+            let status = await locationProvider.authorizationStatus()
+            weatherNeedsLocation = status == .denied || status == .restricted
+            guard !weatherNeedsLocation else {
+                throw LocationProviderError.denied
+            }
+
             let location = try await locationProvider.currentLocation()
             let snapshot = try await weatherKit.fetchDayWeather(for: date, at: location, calendar: calendar)
             dayWeather = snapshot
+            weatherNeedsLocation = false
+        } catch let error as LocationProviderError where error == .denied || error == .restricted {
+            weatherNeedsLocation = true
+            dayWeather = fallbackDayWeather(for: date)
         } catch {
+            let status = await locationProvider.authorizationStatus()
+            weatherNeedsLocation = status == .denied || status == .restricted
             dayWeather = fallbackDayWeather(for: date)
         }
     }
@@ -690,10 +722,17 @@ final class ActivityRepository: ObservableObject {
             return nil
         }
 
+        let temperatureCelsius = workout.weatherTemperatureCelsius ?? 0
+        let humidityPercent = workout.weatherHumidityPercent ?? 0
+        let estimatedFeelsLike = DayWeatherSnapshot.estimatedApparentTemperatureCelsius(
+            temperatureCelsius: temperatureCelsius,
+            humidityPercent: humidityPercent
+        )
+
         return DayWeatherSnapshot(
-            temperatureCelsius: workout.weatherTemperatureCelsius ?? 0,
-            humidityPercent: workout.weatherHumidityPercent ?? 0,
-            apparentTemperatureCelsius: nil,
+            temperatureCelsius: temperatureCelsius,
+            humidityPercent: humidityPercent,
+            apparentTemperatureCelsius: estimatedFeelsLike,
             conditionSymbolName: nil,
             source: .healthKitWorkout
         )

@@ -234,6 +234,31 @@ public struct DayWeatherSnapshot: Equatable, Sendable {
         return directions[index]
     }
 
+    /// Rough heat-index estimate when only temp + humidity exist (e.g. HealthKit workout metadata).
+    public static func estimatedApparentTemperatureCelsius(
+        temperatureCelsius: Double,
+        humidityPercent: Double
+    ) -> Double {
+        let tempF = celsiusToFahrenheit(temperatureCelsius)
+        let humidity = max(0, min(100, humidityPercent))
+
+        guard tempF >= 80, humidity >= 40 else {
+            return temperatureCelsius
+        }
+
+        let heatIndexF = -42.379
+            + 2.04901523 * tempF
+            + 10.14333127 * humidity
+            - 0.22475541 * tempF * humidity
+            - 0.00683783 * tempF * tempF
+            - 0.05481717 * humidity * humidity
+            + 0.00122874 * tempF * tempF * humidity
+            + 0.00085282 * tempF * humidity * humidity
+            - 0.00000199 * tempF * tempF * humidity * humidity
+
+        return (heatIndexF - 32) * 5 / 9
+    }
+
     public static func cacheKey(
         for date: Date,
         latitude: Double,

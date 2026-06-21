@@ -1,5 +1,8 @@
 import Charts
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
@@ -30,6 +33,9 @@ struct TodayView: View {
             }
             .refreshable {
                 await repository.refresh()
+            }
+            .task {
+                await repository.ensureDayWeather()
             }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
@@ -751,6 +757,10 @@ struct TodayView: View {
 
             primaryWeatherStatsRow(weather)
 
+            if repository.weatherNeedsLocation || weather.source == .healthKitWorkout {
+                weatherLocationHint
+            }
+
             if weather.hasSecondaryWeatherStats {
                 secondaryWeatherStatsRow(weather)
             }
@@ -778,6 +788,29 @@ struct TodayView: View {
         .accessibilityElement(children: .combine)
         .accessibilityLabel(weatherAccessibilityLabel(for: weather))
         .accessibilityHint("Opens detailed weather forecast")
+    }
+
+    private var weatherLocationHint: some View {
+        Group {
+            if repository.weatherNeedsLocation {
+                Button {
+                    if let url = URL(string: UIApplication.openSettingsURLString) {
+                        UIApplication.shared.open(url)
+                    }
+                } label: {
+                    Label("Enable Location for wind, UV, and live weather", systemImage: "location.fill")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepAccent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+            } else if repository.dayWeather?.source == .healthKitWorkout {
+                Text("Showing workout weather — enable Location for wind and UV.")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
 
     private func primaryWeatherStatsRow(_ weather: DayWeatherSnapshot) -> some View {

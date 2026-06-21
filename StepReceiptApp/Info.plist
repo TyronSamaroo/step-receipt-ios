@@ -20,6 +20,8 @@
 	<false/>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>StrideSlip uses your location to show local weather on Today and outdoor workout context.</string>
 	<key>NSHealthShareUsageDescription</key>
 	<string>StepReceipt reads steps, distance, active energy, flights climbed, and workouts to show your daily activity timeline and personal insights.</string>
 	<key>NSHealthUpdateUsageDescription</key>

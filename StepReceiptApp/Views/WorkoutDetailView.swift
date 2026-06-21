@@ -403,6 +403,9 @@ struct WorkoutDetailView: View {
             }
             if let weatherText {
                 detailRow("Weather", weatherText, "cloud.sun", Color.stepDistance)
+                if repository.weatherSource(for: workout) == .weatherKit {
+                    detailRow("Weather source", "Apple Weather", "apple.logo", Color.stepMuted)
+                }
             }
             detailRow("Started", workout.startDate.formatted(date: .abbreviated, time: .shortened), "calendar", style.accent)
             detailRow("Ended", workout.endDate.formatted(date: .omitted, time: .shortened), "flag.checkered", style.accent)
@@ -568,13 +571,16 @@ struct WorkoutDetailView: View {
     }
 
     private var weatherText: String? {
-        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" }
+        if let backfill = repository.weatherBackfill(for: workout), repository.weatherSource(for: workout) == .weatherKit {
+            let temperature = "\(Int(DayWeatherSnapshot.celsiusToFahrenheit(backfill.temperatureCelsius).rounded())) F"
+            let humidity = "\(Int(backfill.humidityPercent.rounded()))%"
+            let feelsLike = backfill.formattedApparentTemperatureFahrenheit.map { "Feels like \($0)" }
+            return [temperature, humidity, feelsLike].compactMap { $0 }.joined(separator: "  ")
+        }
+
+        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(DayWeatherSnapshot.celsiusToFahrenheit($0).rounded())) F" }
         let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" }
         return [temperature, humidity].compactMap { $0 }.joined(separator: "  ").nilIfEmpty
-    }
-
-    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
-        celsius * 9 / 5 + 32
     }
 
     private func formattedPace(_ seconds: Double) -> String {
@@ -994,13 +1000,9 @@ struct WorkoutHero: View {
     }
 
     private var weatherChipText: String? {
-        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" }
+        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(DayWeatherSnapshot.celsiusToFahrenheit($0).rounded())) F" }
         let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" }
         return [temperature, humidity].compactMap { $0 }.joined(separator: "  ").nilIfEmpty
-    }
-
-    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
-        celsius * 9 / 5 + 32
     }
 
     private func heroChip(_ title: String, systemImage: String) -> some View {

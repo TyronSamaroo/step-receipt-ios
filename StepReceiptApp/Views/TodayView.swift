@@ -1,10 +1,14 @@
 import Charts
 import SwiftUI
+#if canImport(UIKit)
+import UIKit
+#endif
 
 struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var shareImage: ShareImage?
     @State private var coachExpanded = false
+    @State private var isWeatherDetailPresented = false
 
     var body: some View {
         NavigationStack {
@@ -13,7 +17,7 @@ struct TodayView: View {
                     healthConnectionCard
 
                     if let summary = repository.todaySummary {
-                        weatherStripCard(summary)
+                        weatherStripCard
                         todayHero(summary)
                         dayFlowCard(summary)
                         workoutSection(summary)
@@ -29,6 +33,9 @@ struct TodayView: View {
             }
             .refreshable {
                 await repository.refresh()
+            }
+            .task {
+                await repository.ensureDayWeather()
             }
             .safeAreaPadding(.bottom, 84)
             .background(Color.stepBackground)
@@ -68,6 +75,10 @@ struct TodayView: View {
         }
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
+        }
+        .sheet(isPresented: $isWeatherDetailPresented) {
+            WeatherDetailSheet(date: repository.selectedDate)
+                .environmentObject(repository)
         }
     }
 
@@ -670,51 +681,144 @@ struct TodayView: View {
     }
 
     @ViewBuilder
-    private func weatherStripCard(_ summary: DailyActivitySummary) -> some View {
-        if let weather = weatherSummary(for: summary) {
-            HStack(spacing: 0) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(weather.temperature)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(Color.stepInk)
-                    if let feelsLike = feelsLikeTemperature(from: weather.temperature) {
-                        Text("Feels like \(feelsLike)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.stepMuted)
-                    }
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Rectangle()
-                    .fill(Color.stepMuted.opacity(0.18))
-                    .frame(width: 1)
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(weather.humidity, systemImage: "water.waves")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color.stepDistance)
-                    Text("Humidity")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepMuted)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
+    private var weatherStripCard: some View {
+        if repository.isLoadingDayWeather, repository.dayWeather == nil {
+            HStack(spacing: 10) {
+                ProgressView()
+                    .controlSize(.small)
+                Text("Loading weather…")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                Spacer()
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .metricCard()
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Weather \(weather.temperature), humidity \(weather.humidity)")
+            .accessibilityIdentifier("today-weather-strip")
+        } else if let weather = repository.dayWeather {
+            Button {
+                isWeatherDetailPresented = true
+            } label: {
+                weatherCardContent(weather)
+            }
+            .buttonStyle(.plain)
             .accessibilityIdentifier("today-weather-strip")
         }
     }
 
-    private func feelsLikeTemperature(from temperature: String) -> String? {
-        let parts = temperature.split(separator: " ")
-        guard let value = parts.first.flatMap({ Int($0) }) else { return nil }
-        if parts.count > 1 {
-            return "\(value + 3) \(parts.dropFirst().joined(separator: " "))"
+    private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 10) {
+                Image(systemName: weather.displayConditionSymbolName)
+                    .font(.title2)
+                    .symbolRenderingMode(.multicolor)
+                    .frame(width: 32, height: 32)
+
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(weather.formattedTemperatureFahrenheit)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(Color.stepInk)
+                            .monospacedDigit()
+
+                        if let highLow = weather.formattedHighLowFahrenheit {
+                            Text(highLow)
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.stepDistance)
+                        }
+                    }
+
+                    Text(weather.displayConditionDescription)
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+            }
+
+            HStack(spacing: 0) {
+                compactWeatherStat("Feels", weather.displayApparentTemperatureFahrenheit)
+                weatherStatDivider
+                compactWeatherStat("Humidity", weather.formattedHumidity)
+                weatherStatDivider
+                compactWeatherStat("Wind", weather.displayWind)
+                weatherStatDivider
+                compactWeatherStat("UV", weather.displayUVIndex)
+            }
+
+            if let hint = compactWeatherHint {
+                Text(hint)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepAccent)
+                    .lineLimit(2)
+            }
         }
-        return "\(value + 3) F"
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .metricCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(weatherAccessibilityLabel(for: weather))
+        .accessibilityHint("Opens detailed weather forecast")
+    }
+
+    private var weatherStatDivider: some View {
+        Rectangle()
+            .fill(Color.stepMuted.opacity(0.2))
+            .frame(width: 1, height: 24)
+            .padding(.horizontal, 4)
+    }
+
+    private func compactWeatherStat(_ title: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
+            Text(value)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color.stepMuted)
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var compactWeatherHint: String? {
+        if repository.weatherKitJWTAuthFailed {
+            return "WeatherKit setup needed — tap for details"
+        }
+        if repository.weatherNeedsLocation {
+            return "Enable Location for live wind and UV"
+        }
+        if repository.weatherKitUnavailable {
+            return "Live weather unavailable — tap to retry"
+        }
+        if repository.dayWeather?.source == .healthKitWorkout {
+            return "Workout weather only — tap for full forecast"
+        }
+        return nil
+    }
+
+    private func weatherAccessibilityLabel(for weather: DayWeatherSnapshot) -> String {
+        var parts = [
+            "Weather",
+            weather.formattedTemperatureFahrenheitWithUnit,
+            weather.displayConditionDescription,
+            "feels like \(weather.displayApparentTemperatureFahrenheit)",
+            "humidity \(weather.formattedHumidity)",
+            "wind \(weather.displayWind)",
+            "UV \(weather.displayUVIndex)"
+        ]
+        if let highLow = weather.formattedHighLowFahrenheit {
+            parts.append(highLow)
+        }
+        return parts.joined(separator: ", ")
     }
 
     @ViewBuilder
@@ -1131,22 +1235,6 @@ struct TodayView: View {
         }
         .metricCard()
         .accessibilityIdentifier("today-workouts-section")
-    }
-
-    private func weatherSummary(for summary: DailyActivitySummary) -> (temperature: String, humidity: String, source: String)? {
-        guard let workout = summary.workouts.first(where: {
-            $0.weatherTemperatureCelsius != nil || $0.weatherHumidityPercent != nil
-        }) else {
-            return nil
-        }
-
-        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(celsiusToFahrenheit($0).rounded())) F" } ?? "-- F"
-        let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" } ?? "--%"
-        return (temperature, humidity, workout.displayTitle)
-    }
-
-    private func celsiusToFahrenheit(_ celsius: Double) -> Double {
-        celsius * 9 / 5 + 32
     }
 
     private var canMoveForward: Bool {

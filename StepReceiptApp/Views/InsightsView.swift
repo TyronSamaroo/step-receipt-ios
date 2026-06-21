@@ -843,6 +843,7 @@ struct PeriodHeatMap: View {
 
 private struct PeriodHeatTile: View {
     let summary: DailyActivitySummary
+    var showWeekdayLabel = false
 
     private var progress: Double {
         min(1, Double(summary.steps) / Double(max(1, summary.goals.stepsPerDay)))
@@ -862,10 +863,17 @@ private struct PeriodHeatTile: View {
     }
 
     var body: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 4) {
+            if showWeekdayLabel {
+                Text(summary.dateStart, format: .dateTime.weekday(.narrow))
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                    .textCase(.uppercase)
+            }
+
             Text(summary.dateStart, format: .dateTime.day())
                 .font(.caption2.weight(.bold))
-                .foregroundStyle(Color.stepMuted)
+                .foregroundStyle(summary.hasActivityData ? Color.stepInk : Color.stepMuted)
 
             RoundedRectangle(cornerRadius: 6, style: .continuous)
                 .fill(color.opacity(summary.hasActivityData ? 0.22 + progress * 0.72 : 0.32))
@@ -881,15 +889,24 @@ private struct PeriodHeatTile: View {
 
             Text(shortSteps)
                 .font(.caption2.monospacedDigit().weight(.semibold))
-                .foregroundStyle(Color.stepInk)
+                .foregroundStyle(summary.hasActivityData ? Color.stepInk : Color.stepMuted.opacity(0.7))
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(summary.dateStart.formatted(date: .abbreviated, time: .omitted)), \(summary.steps.formatted()) steps")
+        .accessibilityLabel(tileAccessibilityLabel)
+    }
+
+    private var tileAccessibilityLabel: String {
+        let dateLabel = summary.dateStart.formatted(date: .abbreviated, time: .omitted)
+        if summary.hasActivityData {
+            return "\(dateLabel), \(summary.steps.formatted()) steps"
+        }
+        return "\(dateLabel), no activity"
     }
 
     private var shortSteps: String {
+        guard summary.hasActivityData else { return "—" }
         if summary.steps >= 10_000 {
             return "\(summary.steps / 1_000)k"
         }

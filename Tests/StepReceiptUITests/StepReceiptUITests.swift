@@ -51,7 +51,8 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["WEEK RECEIPT"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Activity Heat Map"].exists)
         XCTAssertTrue(scrollToElement(app.staticTexts["Cardio"], in: app, timeout: 3, maxSwipes: 3))
-        XCTAssertTrue(app.staticTexts["Best cardio"].exists)
+        let bestCardio = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Best cardio'")).firstMatch
+        XCTAssertTrue(bestCardio.waitForExistence(timeout: 3))
 
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Profile"].waitForExistence(timeout: 3))

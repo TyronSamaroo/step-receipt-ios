@@ -28,6 +28,7 @@
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		3812333BC7EA105F28F0E9DD /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
+		3C921883901061F079C8FD41 /* CompeteJoinDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */; };
 		3FF770570A45E75F4359399C /* DayWeatherSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B16BA2972BEB05E04E8839 /* DayWeatherSnapshotTests.swift */; };
 		41F0FD952ACDEDD690DC4C9F /* CompetitionPushRegistration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2559010F6CDB9CB983F639EF /* CompetitionPushRegistration.swift */; };
 		46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */; };
@@ -45,6 +46,7 @@
 		5FE28FAF33A3F516EEDD5E36 /* TodayQuickDigestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */; };
 		610B65E52530B8D2AA8CC3D1 /* StepReceiptLiveActivityWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		649E665C02516779E71B9687 /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
+		6AEEE230E86658777B7CFF9F /* CompeteJoinDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */; };
 		6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		717D23C5C2085DB32F5C3357 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
 		71D9E00A68D89060557EFE14 /* WeatherKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 770ADADCC23BE9B63604D0D4 /* WeatherKitClient.swift */; };
@@ -54,6 +56,7 @@
 		7A48CE932643DAB1B19B2E44 /* CompeteLeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */; };
 		7A902CF5A1B15459BC2EBBAC /* CoreLocation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 12362F0A4CC4AA2903348839 /* CoreLocation.framework */; };
 		7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCCA4BE75DE26E667433C90 /* InsightsView.swift */; };
+		826C7C86868B0795B44C4776 /* CompeteJoinDeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F357340DDD9DDF45F237C8 /* CompeteJoinDeepLinkTests.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
 		8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
@@ -67,6 +70,7 @@
 		A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		A8B9F177B44AD91C4F7A82D0 /* StepReceiptAppIntentsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A3763D40898922FBC0B3DAE /* StepReceiptAppIntentsSupport.swift */; };
 		AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
+		AD30D97DA4A28DBC18B924C9 /* CompeteJoinConfirmationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25C738F9EFA337A11DF91517 /* CompeteJoinConfirmationSheet.swift */; };
 		ADF4CF6DD945852EFB2BD455 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
 		AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */; };
 		B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
@@ -80,6 +84,7 @@
 		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		DA254D0A49D1F5754D20937D /* DailyStepGoalLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */; };
 		DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
+		DC70F02B7D2CAE247B84CF37 /* CompeteDiagnosticsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8CFC434133058F80C65C14F7 /* CompeteDiagnosticsSheet.swift */; };
 		E116F1E7EDDBB86ADA4E2B05 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */; };
 		E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
@@ -90,6 +95,7 @@
 		EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
 		ED92C447C5403E50B5038FFE /* StepReceiptWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 454E46A98159F502B4E02190 /* StepReceiptWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EE1B261341D0D51090BE6FF5 /* CloudKitCompetitionShareExtractionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 272FF1A898D4D0ACEC7AAD0B /* CloudKitCompetitionShareExtractionTests.swift */; };
 		F01091AA2982319451277810 /* DayWeatherSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6E7D6D146F0D0C00E3D4DB /* DayWeatherSnapshot.swift */; };
 		F0DD436648182B71394BD0E8 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374F92C33B4292C4AA9C5A30 /* LocationProvider.swift */; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
@@ -174,6 +180,7 @@
 /* Begin PBXFileReference section */
 		01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplate.swift; sourceTree = "<group>"; };
 		03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSharedComponents.swift; sourceTree = "<group>"; };
+		057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteJoinDeepLink.swift; sourceTree = "<group>"; };
 		0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionSyncDiagnostics.swift; sourceTree = "<group>"; };
 		0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteLeaderboardView.swift; sourceTree = "<group>"; };
 		1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptUITests.swift; sourceTree = "<group>"; };
@@ -185,7 +192,9 @@
 		213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityFormatting.swift; sourceTree = "<group>"; };
 		21E353CDC9BA092CAC3B26CD /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		2559010F6CDB9CB983F639EF /* CompetitionPushRegistration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionPushRegistration.swift; sourceTree = "<group>"; };
+		25C738F9EFA337A11DF91517 /* CompeteJoinConfirmationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteJoinConfirmationSheet.swift; sourceTree = "<group>"; };
 		26B16BA2972BEB05E04E8839 /* DayWeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWeatherSnapshotTests.swift; sourceTree = "<group>"; };
+		272FF1A898D4D0ACEC7AAD0B /* CloudKitCompetitionShareExtractionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionShareExtractionTests.swift; sourceTree = "<group>"; };
 		314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshot.swift; sourceTree = "<group>"; };
 		374F92C33B4292C4AA9C5A30 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngineTests.swift; sourceTree = "<group>"; };
@@ -198,6 +207,7 @@
 		4DCC0C1304839C961A50B33C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributesTests.swift; sourceTree = "<group>"; };
+		50F357340DDD9DDF45F237C8 /* CompeteJoinDeepLinkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteJoinDeepLinkTests.swift; sourceTree = "<group>"; };
 		55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributes.swift; sourceTree = "<group>"; };
 		58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshotTests.swift; sourceTree = "<group>"; };
 		5FB0CC2E1A04C1B20AE95BDB /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
@@ -217,6 +227,7 @@
 		845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplateTests.swift; sourceTree = "<group>"; };
 		8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityWidget.swift; sourceTree = "<group>"; };
 		8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSync.swift; sourceTree = "<group>"; };
+		8CFC434133058F80C65C14F7 /* CompeteDiagnosticsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteDiagnosticsSheet.swift; sourceTree = "<group>"; };
 		8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSetupWizardView.swift; sourceTree = "<group>"; };
 		959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSummarySync.swift; sourceTree = "<group>"; };
 		997B289667C39587ECC74D74 /* StepReceiptShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptShortcuts.swift; sourceTree = "<group>"; };
@@ -344,6 +355,7 @@
 			children = (
 				213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */,
 				C91B022F49B7155BF630F06F /* ActivityModels.swift */,
+				057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */,
 				6277880B45319181EE54747C /* CompetitionEngine.swift */,
 				F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */,
 				9F6E7D6D146F0D0C00E3D4DB /* DayWeatherSnapshot.swift */,
@@ -359,6 +371,7 @@
 			isa = PBXGroup;
 			children = (
 				DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */,
+				272FF1A898D4D0ACEC7AAD0B /* CloudKitCompetitionShareExtractionTests.swift */,
 				B76BCFD5BECADB9D310BDF14 /* CompetitionSubscriptionTests.swift */,
 				4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */,
 				C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */,
@@ -392,6 +405,7 @@
 		A385142CBBD07E9ABFDEE00C /* StepReceiptCoreTests */ = {
 			isa = PBXGroup;
 			children = (
+				50F357340DDD9DDF45F237C8 /* CompeteJoinDeepLinkTests.swift */,
 				26B16BA2972BEB05E04E8839 /* DayWeatherSnapshotTests.swift */,
 				383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */,
 				AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */,
@@ -481,7 +495,9 @@
 		F31D9A7FEE3EE026CF636FF5 /* Compete */ = {
 			isa = PBXGroup;
 			children = (
+				8CFC434133058F80C65C14F7 /* CompeteDiagnosticsSheet.swift */,
 				E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */,
+				25C738F9EFA337A11DF91517 /* CompeteJoinConfirmationSheet.swift */,
 				0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */,
 				8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */,
 				03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */,
@@ -715,9 +731,12 @@
 				D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */,
 				E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */,
 				DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */,
+				EE1B261341D0D51090BE6FF5 /* CloudKitCompetitionShareExtractionTests.swift in Sources */,
 				5686141750B012E8FB96943B /* CloudKitCompetitionSubscriptionService.swift in Sources */,
 				0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */,
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
+				3C921883901061F079C8FD41 /* CompeteJoinDeepLink.swift in Sources */,
+				826C7C86868B0795B44C4776 /* CompeteJoinDeepLinkTests.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
 				99189156B46A09BC765E61FF /* CompetitionPushRegistration.swift in Sources */,
@@ -760,7 +779,10 @@
 				72F3120A804D6813A348B52A /* CloudKitCompetitionSubscriptionService.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
+				DC70F02B7D2CAE247B84CF37 /* CompeteDiagnosticsSheet.swift in Sources */,
 				46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */,
+				AD30D97DA4A28DBC18B924C9 /* CompeteJoinConfirmationSheet.swift in Sources */,
+				6AEEE230E86658777B7CFF9F /* CompeteJoinDeepLink.swift in Sources */,
 				7A48CE932643DAB1B19B2E44 /* CompeteLeaderboardView.swift in Sources */,
 				511A2C1B7A6F6C041A3D643D /* CompeteSetupWizardView.swift in Sources */,
 				D269C71AC24C4C5963A909ED /* CompeteSharedComponents.swift in Sources */,
@@ -1050,7 +1072,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1129,7 +1151,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 21;
+				CURRENT_PROJECT_VERSION = 22;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

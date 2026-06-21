@@ -58,6 +58,8 @@ struct CompeteHouseholdSheet: View {
     @State private var partnerJoinError: String?
     @State private var showSwitchCodeConfirmation = false
     @State private var isSwitchingCode = false
+    @State private var showDiagnostics = false
+    @State private var ckSharePrepared = false
 
     var body: some View {
         NavigationStack {
@@ -86,9 +88,21 @@ struct CompeteHouseholdSheet: View {
             .navigationTitle("Household")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        showDiagnostics = true
+                    } label: {
+                        Image(systemName: "stethoscope")
+                    }
+                    .accessibilityLabel("Compete diagnostics")
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
                 }
+            }
+            .sheet(isPresented: $showDiagnostics) {
+                CompeteDiagnosticsSheet()
+                    .environmentObject(repository)
             }
             .sheet(item: $inviteShare) { inviteShare in
                 ShareSheet(items: [inviteShare.message])
@@ -269,19 +283,12 @@ struct CompeteHouseholdSheet: View {
             Button {
                 inviteShare = CompetitionInviteShare(code: repository.sharedCompetitionSettings.inviteCode)
             } label: {
-                Label("Share code", systemImage: "square.and.arrow.up")
+                Label("Invite partner", systemImage: "square.and.arrow.up")
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
             .tint(.stepAccent)
-
-            Button {
-                UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
-            } label: {
-                Label("Copy code", systemImage: "doc.on.doc")
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.bordered)
+            .accessibilityIdentifier("compete-invite-partner-primary")
 
             if repository.isCloudKitCompetitionAvailable {
                 Button {
@@ -293,7 +300,23 @@ struct CompeteHouseholdSheet: View {
                 .buttonStyle(.bordered)
                 .tint(.stepDistance)
                 .accessibilityIdentifier("compete-icloud-invite")
+
+                if ckSharePrepared {
+                    Text("Partner must accept the invite in Messages, then StrideSlip opens to confirm joining.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
             }
+
+            Button {
+                UIPasteboard.general.string = repository.sharedCompetitionSettings.inviteCode
+            } label: {
+                Label("Copy code", systemImage: "doc.on.doc")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
 
             Button {
                 Task { await repository.syncSharedCompetition() }
@@ -319,6 +342,7 @@ struct CompeteHouseholdSheet: View {
         shareError = nil
         do {
             householdShare = try await repository.prepareHouseholdCompetitionShare()
+            ckSharePrepared = true
         } catch {
             shareError = CloudKitCompetitionSync.friendlySyncMessage(for: error)
         }

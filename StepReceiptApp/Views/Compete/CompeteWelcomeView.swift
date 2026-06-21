@@ -11,10 +11,20 @@ struct CompeteWelcomeView: View {
     @State private var clipboardError: String?
     @State private var joinError: String?
     @State private var isJoining = false
+    @State private var iCloudUnavailable = false
 
     var body: some View {
         VStack(spacing: 24) {
             Spacer(minLength: 12)
+
+            if iCloudUnavailable {
+                CompeteAttentionCard(
+                    title: "Sign in to iCloud",
+                    detail: "Household boards sync through iCloud. Open Settings → Apple Account → iCloud, then return to Compete.",
+                    systemImage: "icloud.slash"
+                )
+                .padding(.horizontal, 8)
+            }
 
             VStack(spacing: 14) {
                 Image(systemName: StepReceiptSymbol.competitionTab)
@@ -81,6 +91,11 @@ struct CompeteWelcomeView: View {
             }
             if inviteCodeDraft.isEmpty, let clipboardCode = CompeteInviteCodeClipboard.normalizedCodeFromClipboard() {
                 inviteCodeDraft = clipboardCode
+            }
+        }
+        .task {
+            if repository.isCloudKitCompetitionAvailable {
+                iCloudUnavailable = !(await repository.checkICloudAvailableForCompete())
             }
         }
     }

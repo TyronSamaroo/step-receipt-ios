@@ -94,7 +94,7 @@ struct DayWeatherSnapshotTests {
         let date = calendar.date(from: DateComponents(year: 2026, month: 6, day: 21, hour: 12))!
 
         let keyA = DayWeatherSnapshot.cacheKey(for: date, latitude: 37.7749, longitude: -122.4194, calendar: calendar)
-        let keyB = DayWeatherSnapshot.cacheKey(for: date, latitude: 37.7751, longitude: -122.4196, calendar: calendar)
+        let keyB = DayWeatherSnapshot.cacheKey(for: date, latitude: 37.77495, longitude: -122.41945, calendar: calendar)
         let keyC = DayWeatherSnapshot.cacheKey(for: date, latitude: 37.78, longitude: -122.42, calendar: calendar)
 
         #expect(keyA == keyB)

@@ -1,3 +1,4 @@
+import CloudKit
 import Foundation
 
 struct CompetitionSyncDiagnostics: Equatable {
@@ -10,6 +11,40 @@ struct CompetitionSyncDiagnostics: Equatable {
     let lastSyncedAt: Date?
     let boardRecordHashSuffix: String?
     let cloudKitCompetitionAvailable: Bool
+    let iCloudAccountStatus: String?
+    let pushRegistrationState: String?
+    let subscriptionRegistered: Bool?
+    let schemaLikelyMissing: Bool
+
+    init(
+        boardEnabled: Bool,
+        inviteCodeHint: String?,
+        memberCount: Int,
+        remoteEntryCount: Int,
+        lastSyncState: String,
+        lastSyncDetail: String,
+        lastSyncedAt: Date?,
+        boardRecordHashSuffix: String?,
+        cloudKitCompetitionAvailable: Bool,
+        iCloudAccountStatus: String? = nil,
+        pushRegistrationState: String? = nil,
+        subscriptionRegistered: Bool? = nil,
+        schemaLikelyMissing: Bool = false
+    ) {
+        self.boardEnabled = boardEnabled
+        self.inviteCodeHint = inviteCodeHint
+        self.memberCount = memberCount
+        self.remoteEntryCount = remoteEntryCount
+        self.lastSyncState = lastSyncState
+        self.lastSyncDetail = lastSyncDetail
+        self.lastSyncedAt = lastSyncedAt
+        self.boardRecordHashSuffix = boardRecordHashSuffix
+        self.cloudKitCompetitionAvailable = cloudKitCompetitionAvailable
+        self.iCloudAccountStatus = iCloudAccountStatus
+        self.pushRegistrationState = pushRegistrationState
+        self.subscriptionRegistered = subscriptionRegistered
+        self.schemaLikelyMissing = schemaLikelyMissing
+    }
 
     var textLines: [String] {
         var lines = [
@@ -29,7 +64,26 @@ struct CompetitionSyncDiagnostics: Equatable {
         if let boardRecordHashSuffix {
             lines.append("Board Hash: ...\(boardRecordHashSuffix)")
         }
+        if let iCloudAccountStatus {
+            lines.append("iCloud: \(iCloudAccountStatus)")
+        }
+        if let pushRegistrationState {
+            lines.append("Push: \(pushRegistrationState)")
+        }
+        if let subscriptionRegistered {
+            lines.append("Subscription: \(subscriptionRegistered ? "registered" : "missing")")
+        }
+        if schemaLikelyMissing {
+            lines.append("Schema: likely missing (see Docs/CloudKitCompetitionSchema.md)")
+        }
         return lines
+    }
+
+    static func schemaLikelyMissing(from syncDetail: String) -> Bool {
+        let lowered = syncDetail.lowercased()
+        return lowered.contains("schema")
+            || lowered.contains("unknown item")
+            || lowered.contains("incomplete")
     }
 }
 
@@ -85,5 +139,16 @@ enum CompetitionSyncPresentation {
             .split(separator: ".")
             .first
             .map(String.init) ?? "Needs attention."
+    }
+
+    static func iCloudAccountStatusLabel(_ status: CKAccountStatus) -> String {
+        switch status {
+        case .available: "signed in"
+        case .noAccount: "not signed in"
+        case .restricted: "restricted"
+        case .couldNotDetermine: "unknown"
+        case .temporarilyUnavailable: "temporarily unavailable"
+        @unknown default: "unknown"
+        }
     }
 }

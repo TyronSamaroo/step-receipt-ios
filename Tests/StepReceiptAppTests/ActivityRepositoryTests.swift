@@ -1002,6 +1002,31 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testConfirmPendingCompeteJoinUpdatesSettings() async throws {
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: FakeHealthKitProvider(hourlyBuckets: [], dailyBuckets: [], workouts: []),
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        repository.handleCompeteJoinDeepLink(code: "SRPENDING1")
+        #expect(repository.pendingCompeteJoin?.inviteCode == "SRPENDING1")
+        #expect(repository.pendingCompeteJoin?.source == .deepLink)
+
+        await repository.confirmPendingCompeteJoin(displayName: "Tiffany")
+
+        #expect(repository.pendingCompeteJoin == nil)
+        #expect(repository.sharedCompetitionSettings.inviteCode == "SRPENDING1")
+        #expect(repository.preferences.displayName == "Tiffany")
+        #expect(repository.sharedCompetitionSettings.canSync)
+    }
+
+    @Test
     func testSharedCompetitionProfileUpdatePersistsDisplayName() async throws {
         let day = calendar.startOfDay(for: Date())
         let suiteName = defaultsSuiteName()

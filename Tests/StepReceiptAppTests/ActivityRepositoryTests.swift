@@ -1066,6 +1066,56 @@ struct ActivityRepositoryTests {
     }
 }
 
+private final class FakeDailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing, @unchecked Sendable {
+    private(set) var startCallCount = 0
+    private(set) var updateCallCount = 0
+    private(set) var updateIfActiveCallCount = 0
+    private(set) var endCallCount = 0
+    private(set) var lastSummary: DailyActivitySummary?
+    private var isActive = false
+    private var lastUpdatedAt = Date()
+
+    var status: DailyStepGoalLiveActivityStatus {
+        isActive ? .active(updatedAt: lastUpdatedAt) : .inactive
+    }
+
+    func resetCallCounts() {
+        startCallCount = 0
+        updateCallCount = 0
+        updateIfActiveCallCount = 0
+        endCallCount = 0
+    }
+
+    func start(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        startCallCount += 1
+        lastSummary = summary
+        isActive = true
+        lastUpdatedAt = Date()
+        return status
+    }
+
+    func updateIfActive(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        updateIfActiveCallCount += 1
+        guard isActive else { return status }
+        return await update(summary: summary)
+    }
+
+    func update(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        updateCallCount += 1
+        lastSummary = summary
+        if isActive {
+            lastUpdatedAt = Date()
+        }
+        return status
+    }
+
+    func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus {
+        endCallCount += 1
+        isActive = false
+        return status
+    }
+}
+
 private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendable {
     var isAvailable = true
     var authorizationState: HealthAuthorizationState = .authorized

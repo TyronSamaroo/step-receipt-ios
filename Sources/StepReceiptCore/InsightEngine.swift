@@ -388,12 +388,13 @@ public struct InsightEngine: Sendable {
         }
     }
 
-    private func cardioInsight(
+    public func cardioInsight(
         from summaries: [DailyActivitySummary],
+        scope: CardioSessionScope = .movement,
         heartRateZoneConfiguration: HeartRateZoneConfiguration
     ) -> CardioPeriodInsight {
         var workoutsBySource: [String: WorkoutActivity] = [:]
-        for workout in summaries.flatMap(\.workouts) where workout.type.isCardioMovement {
+        for workout in summaries.flatMap(\.workouts) where scope.matches(workout) {
             workoutsBySource[workout.sourceIdentifier] = workout
         }
 
@@ -407,6 +408,8 @@ public struct InsightEngine: Sendable {
         let averageHeartRate = heartRateSamples.isEmpty
             ? nil
             : heartRateSamples.reduce(0) { $0 + $1.beatsPerMinute } / Double(heartRateSamples.count)
+        let minHeartRate = heartRateSamples.map(\.beatsPerMinute).min()
+        let maxHeartRate = heartRateSamples.map(\.beatsPerMinute).max()
 
         let bestWorkout = cardioWorkouts.max { lhs, rhs in
             let lhsEnergy = lhs.activeEnergyKilocalories ?? 0
@@ -434,9 +437,88 @@ public struct InsightEngine: Sendable {
             totalDistanceMeters: cardioWorkouts.reduce(0) { $0 + ($1.distanceMeters ?? 0) },
             totalActiveEnergyKilocalories: cardioWorkouts.reduce(0) { $0 + ($1.activeEnergyKilocalories ?? 0) },
             averageHeartRateBPM: averageHeartRate,
+            minHeartRateBPM: minHeartRate,
+            maxHeartRateBPM: maxHeartRate,
             bestWorkout: bestWorkout,
             zoneSummaries: zoneSummaries
         )
+    }
+
+    public func periodComparison(
+        current: PeriodActivitySummary,
+        prior: PeriodActivitySummary,
+        goals: UserGoals
+    ) -> PeriodComparisonInsight? {
+        var metrics: [PeriodComparisonMetric] = []
+
+        if let metric = gatedMetric(
+            title: "Average Steps",
+            currentValue: current.receipt.dailyAverageSteps,
+            priorValue: prior.receipt.dailyAverageSteps,
+            format: { "\($0.formatted())" },
+            delta: signedInteger(current.receipt.dailyAverageSteps - prior.receipt.dailyAverageSteps),
+            improvement: current.receipt.dailyAverageSteps > prior.receipt.dailyAverageSteps
+        ) {
+            metrics.append(metric)
+        }
+
+        if let metric = gatedMetric(
+            title: "Goal Days",
+            currentValue: current.goalHitDays,
+            priorValue: prior.goalHitDays,
+            format: { "\($0)/7" },
+            delta: signedInteger(current.goalHitDays - prior.goalHitDays),
+            improvement: current.goalHitDays > prior.goalHitDays
+        ) {
+            metrics.append(metric)
+        }
+
+        if let metric = gatedMetric(
+            title: "Workout Minutes",
+            currentValue: current.receipt.totalWorkoutMinutes,
+            priorValue: prior.receipt.totalWorkoutMinutes,
+            format: { ActivityFormatting.formattedMinutes($0) },
+            delta: signedMinutes(current.receipt.totalWorkoutMinutes - prior.receipt.totalWorkoutMinutes),
+            improvement: current.receipt.totalWorkoutMinutes > prior.receipt.totalWorkoutMinutes
+        ) {
+            metrics.append(metric)
+        }
+
+        if let metric = gatedMetric(
+            title: "Cardio Minutes",
+            currentValue: current.cardioInsight.totalMinutes,
+            priorValue: prior.cardioInsight.totalMinutes,
+            format: { ActivityFormatting.formattedMinutes($0) },
+            delta: signedMinutes(current.cardioInsight.totalMinutes - prior.cardioInsight.totalMinutes),
+            improvement: current.cardioInsight.totalMinutes > prior.cardioInsight.totalMinutes
+        ) {
+            metrics.append(metric)
+        }
+
+        if let metric = gatedMetric(
+            title: "Distance",
+            currentValue: current.receipt.totalDistanceMeters,
+            priorValue: prior.receipt.totalDistanceMeters,
+            format: { String(format: "%.2f km", $0 / 1_000) },
+            delta: signedDistance(current.receipt.totalDistanceMeters - prior.receipt.totalDistanceMeters),
+            improvement: current.receipt.totalDistanceMeters > prior.receipt.totalDistanceMeters
+        ) {
+            metrics.append(metric)
+        }
+
+        if let metric = gatedMetric(
+            title: "Active Burn",
+            currentValue: current.receipt.totalActiveEnergyKilocalories,
+            priorValue: prior.receipt.totalActiveEnergyKilocalories,
+            format: { ActivityFormatting.formattedCalories($0) },
+            delta: signedCalories(current.receipt.totalActiveEnergyKilocalories - prior.receipt.totalActiveEnergyKilocalories),
+            improvement: current.receipt.totalActiveEnergyKilocalories > prior.receipt.totalActiveEnergyKilocalories
+        ) {
+            metrics.append(metric)
+        }
+
+        guard !metrics.isEmpty else { return nil }
+        return PeriodComparisonInsight(metrics: metrics)
     }
 
     private func strengthInsight(
@@ -789,6 +871,65 @@ public struct InsightEngine: Sendable {
         }
         return "Behind goal pace: prioritize an easy walk block."
     }
+
+    private func gatedMetric<T: BinaryInteger>(
+        title: String,
+        currentValue: T,
+        priorValue: T,
+        format: (T) -> String,
+        delta: String,
+        improvement: Bool?
+    ) -> PeriodComparisonMetric? {
+        guard priorValue > 0 else { return nil }
+        return PeriodComparisonMetric(
+            title: title,
+            currentValue: format(currentValue),
+            priorValue: format(priorValue),
+            deltaText: delta,
+            isImprovement: improvement
+        )
+    }
+
+    private func gatedMetric(
+        title: String,
+        currentValue: Double,
+        priorValue: Double,
+        format: (Double) -> String,
+        delta: String,
+        improvement: Bool?
+    ) -> PeriodComparisonMetric? {
+        guard priorValue > 0 else { return nil }
+        return PeriodComparisonMetric(
+            title: title,
+            currentValue: format(currentValue),
+            priorValue: format(priorValue),
+            deltaText: delta,
+            isImprovement: improvement
+        )
+    }
+
+    private func signedInteger(_ value: Int) -> String {
+        if value == 0 { return "Even" }
+        return value > 0 ? "+\(value)" : "\(value)"
+    }
+
+    private func signedMinutes(_ value: Double) -> String {
+        let rounded = Int(value.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)m" : "\(rounded)m"
+    }
+
+    private func signedCalories(_ value: Double) -> String {
+        let rounded = Int(value.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)" : "\(rounded)"
+    }
+
+    private func signedDistance(_ meters: Double) -> String {
+        let rounded = Int(meters.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)m" : "\(rounded)m"
+    }
 }
 
 public struct WorkoutComparisonService: Sendable {
@@ -867,6 +1008,15 @@ public struct WorkoutComparisonService: Sendable {
                 currentValue: "\(Int(currentHR.rounded())) bpm",
                 baselineValue: "\(Int(baselineHR.rounded())) bpm",
                 deltaText: signedInteger(Int(currentHR.rounded()) - Int(baselineHR.rounded())) + " bpm"
+            ))
+        }
+
+        if let currentMaxHR = current.maxHeartRateBPM, let baselineMaxHR = baseline.maxHeartRateBPM {
+            deltas.append(WorkoutComparisonDelta(
+                label: "Max HR",
+                currentValue: "\(Int(currentMaxHR.rounded())) bpm",
+                baselineValue: "\(Int(baselineMaxHR.rounded())) bpm",
+                deltaText: signedInteger(Int(currentMaxHR.rounded()) - Int(baselineMaxHR.rounded())) + " bpm"
             ))
         }
 

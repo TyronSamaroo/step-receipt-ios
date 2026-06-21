@@ -678,6 +678,10 @@ struct HeartRatePanel: View {
         return 0...maxValue
     }
 
+    private var dominantZone: HeartRateZoneSummary? {
+        workout.dominantHeartRateZone(using: repository.preferences.heartRateZoneConfiguration)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
             Label("Heart Rate", systemImage: "heart.fill")
@@ -696,9 +700,25 @@ struct HeartRatePanel: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
             } else {
-                HStack(spacing: 44) {
+                HStack(spacing: 18) {
                     heartRateStat("Average", workout.averageHeartRateBPM)
+                    heartRateStat("Min", workout.minHeartRateBPM)
                     heartRateStat("Max", workout.maxHeartRateBPM)
+                }
+
+                HStack(spacing: 10) {
+                    if let range = workout.heartRateRangeBPM {
+                        Label("Range \(Int(range.rounded())) bpm", systemImage: "heart.text.square")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepInk)
+                            .accessibilityIdentifier("workout-heart-rate-range")
+                    }
+                    if let dominantZone {
+                        Label("Dominant \(dominantZone.title)", systemImage: "heart.fill")
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(dominantZone.color)
+                            .accessibilityIdentifier("workout-heart-rate-dominant-zone")
+                    }
                 }
 
                 heartRateChart

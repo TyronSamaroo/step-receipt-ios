@@ -39,6 +39,10 @@ public enum ActivityKind: String, Codable, CaseIterable, Equatable, Identifiable
             false
         }
     }
+
+    public var isMovementCardio: Bool {
+        isCardioMovement && self != .stairClimbing
+    }
 }
 
 public struct HealthMetricBucket: Codable, Equatable, Identifiable, Sendable {
@@ -198,6 +202,29 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
 
     public var maxHeartRateBPM: Double? {
         heartRateSamples.map(\.beatsPerMinute).max()
+    }
+
+    public var minHeartRateBPM: Double? {
+        heartRateSamples.map(\.beatsPerMinute).min()
+    }
+
+    public var heartRateRangeBPM: Double? {
+        guard let minHeartRateBPM, let maxHeartRateBPM else { return nil }
+        return max(0, maxHeartRateBPM - minHeartRateBPM)
+    }
+
+    public var isMovementCardio: Bool {
+        type.isMovementCardio
+    }
+
+    public func dominantHeartRateZone(using configuration: HeartRateZoneConfiguration) -> HeartRateZoneSummary? {
+        let zones = configuration.zoneSummaries(for: self)
+        guard let dominant = zones.max(by: { $0.durationSeconds < $1.durationSeconds }),
+              dominant.durationSeconds > 0
+        else {
+            return nil
+        }
+        return dominant
     }
 
     public var hasRoute: Bool {
@@ -576,6 +603,29 @@ public enum DailySummaryFilter: String, Codable, CaseIterable, Equatable, Identi
     }
 }
 
+public enum CardioSessionScope: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case movement
+    case includeStairs
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .movement: "Movement"
+        case .includeStairs: "Include Stairs"
+        }
+    }
+
+    public func matches(_ workout: WorkoutActivity) -> Bool {
+        switch self {
+        case .movement:
+            workout.isMovementCardio
+        case .includeStairs:
+            workout.type.isCardioMovement
+        }
+    }
+}
+
 public enum InsightsTrendFilter: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
     case all
     case goalHit
@@ -855,6 +905,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
     public let totalDistanceMeters: Double
     public let totalActiveEnergyKilocalories: Double
     public let averageHeartRateBPM: Double?
+    public let minHeartRateBPM: Double?
+    public let maxHeartRateBPM: Double?
     public let bestWorkout: WorkoutActivity?
     public let zoneSummaries: [HeartRateZoneSummary]
 
@@ -864,6 +916,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
         totalDistanceMeters: Double = 0,
         totalActiveEnergyKilocalories: Double = 0,
         averageHeartRateBPM: Double? = nil,
+        minHeartRateBPM: Double? = nil,
+        maxHeartRateBPM: Double? = nil,
         bestWorkout: WorkoutActivity? = nil,
         zoneSummaries: [HeartRateZoneSummary] = HeartRateZoneConfiguration.default.zoneSummaries(for: [])
     ) {
@@ -872,6 +926,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
         self.totalDistanceMeters = max(0, totalDistanceMeters)
         self.totalActiveEnergyKilocalories = max(0, totalActiveEnergyKilocalories)
         self.averageHeartRateBPM = averageHeartRateBPM.map { max(0, $0) }
+        self.minHeartRateBPM = minHeartRateBPM.map { max(0, $0) }
+        self.maxHeartRateBPM = maxHeartRateBPM.map { max(0, $0) }
         self.bestWorkout = bestWorkout
         self.zoneSummaries = zoneSummaries.sorted { $0.level < $1.level }
     }
@@ -890,6 +946,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
         case totalDistanceMeters
         case totalActiveEnergyKilocalories
         case averageHeartRateBPM
+        case minHeartRateBPM
+        case maxHeartRateBPM
         case bestWorkout
         case zoneSummaries
     }
@@ -902,6 +960,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
             totalDistanceMeters: try container.decodeIfPresent(Double.self, forKey: .totalDistanceMeters) ?? 0,
             totalActiveEnergyKilocalories: try container.decodeIfPresent(Double.self, forKey: .totalActiveEnergyKilocalories) ?? 0,
             averageHeartRateBPM: try container.decodeIfPresent(Double.self, forKey: .averageHeartRateBPM),
+            minHeartRateBPM: try container.decodeIfPresent(Double.self, forKey: .minHeartRateBPM),
+            maxHeartRateBPM: try container.decodeIfPresent(Double.self, forKey: .maxHeartRateBPM),
             bestWorkout: try container.decodeIfPresent(WorkoutActivity.self, forKey: .bestWorkout),
             zoneSummaries: try container.decodeIfPresent([HeartRateZoneSummary].self, forKey: .zoneSummaries) ?? HeartRateZoneConfiguration.default.zoneSummaries(for: [])
         )
@@ -914,6 +974,8 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
         try container.encode(totalDistanceMeters, forKey: .totalDistanceMeters)
         try container.encode(totalActiveEnergyKilocalories, forKey: .totalActiveEnergyKilocalories)
         try container.encodeIfPresent(averageHeartRateBPM, forKey: .averageHeartRateBPM)
+        try container.encodeIfPresent(minHeartRateBPM, forKey: .minHeartRateBPM)
+        try container.encodeIfPresent(maxHeartRateBPM, forKey: .maxHeartRateBPM)
         try container.encodeIfPresent(bestWorkout, forKey: .bestWorkout)
         try container.encode(zoneSummaries, forKey: .zoneSummaries)
     }
@@ -954,6 +1016,42 @@ public struct StrengthPeriodInsight: Codable, Equatable, Sendable {
 
     public var totalZoneSeconds: TimeInterval {
         zoneSummaries.reduce(0) { $0 + $1.durationSeconds }
+    }
+}
+
+public struct PeriodComparisonMetric: Codable, Equatable, Sendable, Identifiable {
+    public var id: String { title }
+
+    public let title: String
+    public let currentValue: String
+    public let priorValue: String
+    public let deltaText: String
+    public let isImprovement: Bool?
+
+    public init(
+        title: String,
+        currentValue: String,
+        priorValue: String,
+        deltaText: String,
+        isImprovement: Bool?
+    ) {
+        self.title = title
+        self.currentValue = currentValue
+        self.priorValue = priorValue
+        self.deltaText = deltaText
+        self.isImprovement = isImprovement
+    }
+}
+
+public struct PeriodComparisonInsight: Codable, Equatable, Sendable {
+    public let metrics: [PeriodComparisonMetric]
+
+    public init(metrics: [PeriodComparisonMetric]) {
+        self.metrics = metrics
+    }
+
+    public var hasMetrics: Bool {
+        !metrics.isEmpty
     }
 }
 

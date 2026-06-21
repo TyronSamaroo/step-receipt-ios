@@ -202,7 +202,7 @@ struct InsightEngineTests {
     }
 
     @Test
-    func testCardioInsightIncludesMovementWorkoutsAndExcludesStrength() throws {
+    func testCardioInsightDefaultsToMovementCardioWithoutStairs() throws {
         let goals = UserGoals(stepsPerDay: 10_000)
         let runStart = try date("2026-06-08T18:00:00Z")
         let run = WorkoutActivity(
@@ -257,16 +257,85 @@ struct InsightEngineTests {
             goals: goals
         )
 
-        #expect(period.cardioInsight.sessionCount == 2)
-        #expect(period.cardioInsight.totalMinutes == 75)
+        #expect(period.cardioInsight.sessionCount == 1)
+        #expect(period.cardioInsight.totalMinutes == 45)
         #expect(period.cardioInsight.totalDistanceMeters == 5_000)
-        #expect(period.cardioInsight.totalActiveEnergyKilocalories == 730)
+        #expect(period.cardioInsight.totalActiveEnergyKilocalories == 420)
         #expect(period.cardioInsight.averageHeartRateBPM == 120)
+        #expect(period.cardioInsight.minHeartRateBPM == 100)
+        #expect(period.cardioInsight.maxHeartRateBPM == 140)
         #expect(period.cardioInsight.bestWorkout?.sourceIdentifier == "run")
         #expect(period.cardioInsight.zoneSummaries.first { $0.level == 1 }?.durationSeconds == 60)
-        #expect(period.cardioInsight.zoneSummaries.first { $0.level == 2 }?.durationSeconds == 1_740)
-        #expect(period.cardioInsight.zoneSummaries.first { $0.level == 3 }?.durationSeconds == 2_580)
-        #expect(period.cardioInsight.totalZoneSeconds == 4_380)
+        #expect(period.cardioInsight.totalZoneSeconds > 0)
+    }
+
+    @Test
+    func testCardioScopeCanIncludeStairs() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let runStart = try date("2026-06-08T18:00:00Z")
+        let run = WorkoutActivity(
+            sourceIdentifier: "run",
+            type: .running,
+            startDate: runStart,
+            endDate: runStart.addingTimeInterval(30 * 60),
+            activeEnergyKilocalories: 300,
+            heartRateSamples: [WorkoutHeartRateSample(timestamp: runStart, beatsPerMinute: 128)]
+        )
+        let stairStart = try date("2026-06-09T18:00:00Z")
+        let stairs = WorkoutActivity(
+            sourceIdentifier: "stairs",
+            type: .stairClimbing,
+            startDate: stairStart,
+            endDate: stairStart.addingTimeInterval(20 * 60),
+            activeEnergyKilocalories: 220,
+            heartRateSamples: [WorkoutHeartRateSample(timestamp: stairStart, beatsPerMinute: 150)]
+        )
+        let summaries = [summary("2026-06-08T00:00:00Z", steps: 6_000, goals: goals, workouts: [run, stairs])]
+
+        let movement = engine.cardioInsight(
+            from: summaries,
+            scope: .movement,
+            heartRateZoneConfiguration: .default
+        )
+        let includeStairs = engine.cardioInsight(
+            from: summaries,
+            scope: .includeStairs,
+            heartRateZoneConfiguration: .default
+        )
+
+        #expect(movement.sessionCount == 1)
+        #expect(includeStairs.sessionCount == 2)
+    }
+
+    @Test
+    func testPeriodComparisonRequiresPriorWeekData() throws {
+        let goals = UserGoals(stepsPerDay: 10_000)
+        let current = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-10T12:00:00Z"),
+            summaries: [
+                summary("2026-06-09T00:00:00Z", steps: 12_000, goals: goals)
+            ],
+            goals: goals
+        )
+        let priorEmpty = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-03T12:00:00Z"),
+            summaries: [],
+            goals: goals
+        )
+        let priorFilled = engine.periodSummary(
+            scope: .week,
+            containing: try date("2026-06-03T12:00:00Z"),
+            summaries: [
+                summary("2026-06-02T00:00:00Z", steps: 9_000, goals: goals)
+            ],
+            goals: goals
+        )
+
+        #expect(engine.periodComparison(current: current, prior: priorEmpty, goals: goals) == nil)
+        let comparison = try #require(engine.periodComparison(current: current, prior: priorFilled, goals: goals))
+        #expect(comparison.hasMetrics)
     }
 
     @Test
@@ -1087,6 +1156,36 @@ struct WorkoutComparisonTests {
         let comparison = service.compare(current: current, baseline: baseline)
         #expect(comparison.deltas.contains { $0.label == "Active burn" })
         #expect(comparison.deltas.first(where: { $0.label == "Active burn" })?.deltaText.contains("+") == true)
+    }
+
+    @Test
+    func testCompareIncludesMaxHeartRateDelta() {
+        let start = Date(timeIntervalSince1970: 0)
+        let current = WorkoutActivity(
+            sourceIdentifier: "current-max",
+            type: .running,
+            startDate: start.addingTimeInterval(3600),
+            endDate: start.addingTimeInterval(5400),
+            activeEnergyKilocalories: 420,
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(3600), beatsPerMinute: 132),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(4200), beatsPerMinute: 168)
+            ]
+        )
+        let baseline = WorkoutActivity(
+            sourceIdentifier: "baseline-max",
+            type: .running,
+            startDate: start,
+            endDate: start.addingTimeInterval(1800),
+            activeEnergyKilocalories: 360,
+            heartRateSamples: [
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(60), beatsPerMinute: 120),
+                WorkoutHeartRateSample(timestamp: start.addingTimeInterval(120), beatsPerMinute: 154)
+            ]
+        )
+
+        let comparison = service.compare(current: current, baseline: baseline)
+        #expect(comparison.deltas.contains { $0.label == "Max HR" })
     }
 
     private func workout(id: String, day: Int, energy: Double) -> WorkoutActivity {

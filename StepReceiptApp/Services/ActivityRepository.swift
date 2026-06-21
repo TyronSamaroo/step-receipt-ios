@@ -1069,7 +1069,9 @@ final class ActivityRepository: ObservableObject {
 
     private func configureCompetitionPushIfNeeded() async {
         guard sharedCompetitionSettings.canSync else { return }
+        #if canImport(UIKit)
         await CompetitionPushRegistration.registerIfNeeded(boardEnabled: true)
+        #endif
     }
 
     private func registerCompetitionSubscriptionIfNeeded() async {

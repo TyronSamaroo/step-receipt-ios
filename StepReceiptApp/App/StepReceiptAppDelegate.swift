@@ -36,11 +36,3 @@ final class StepReceiptAppDelegate: NSObject, UIApplicationDelegate {
         }
     }
 }
-
-enum CompetitionPushRegistration {
-    @MainActor
-    static func registerIfNeeded(boardEnabled: Bool) {
-        guard boardEnabled else { return }
-        UIApplication.shared.registerForRemoteNotifications()
-    }
-}

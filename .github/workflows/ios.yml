@@ -62,6 +62,7 @@ jobs:
             StepReceiptApp/Services/*.swift \
             StepReceiptApp/Intents/*.swift \
             StepReceiptApp/Views/*.swift \
+            StepReceiptApp/Views/Compete/*.swift \
             StepReceiptLiveActivityShared/*.swift \
             StepReceiptWatchShared/*.swift
 

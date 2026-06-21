@@ -757,7 +757,7 @@ struct TodayView: View {
 
             primaryWeatherStatsRow(weather)
 
-            if repository.weatherNeedsLocation || repository.weatherKitUnavailable || weather.source == .healthKitWorkout {
+            if repository.weatherNeedsLocation || repository.weatherKitUnavailable || repository.weatherKitJWTAuthFailed || weather.source == .healthKitWorkout {
                 weatherLocationHint
             }
 
@@ -792,7 +792,25 @@ struct TodayView: View {
 
     private var weatherLocationHint: some View {
         Group {
-            if repository.weatherNeedsLocation {
+            if repository.weatherKitJWTAuthFailed {
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("WeatherKit auth failed on this device.")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                    Text("In Apple Developer → Identifiers → com.tyronsamaroo.stepreceipt, enable WeatherKit under both Capabilities and App Services. Then delete StrideSlip, reinstall, and restart your iPhone.")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                    Button {
+                        Task { await repository.ensureDayWeather() }
+                    } label: {
+                        Label("Retry WeatherKit", systemImage: "arrow.clockwise")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.stepAccent)
+                    }
+                    .buttonStyle(.plain)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            } else if repository.weatherNeedsLocation {
                 Button {
                     if let url = URL(string: UIApplication.openSettingsURLString) {
                         UIApplication.shared.open(url)

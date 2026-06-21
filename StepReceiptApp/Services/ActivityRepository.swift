@@ -13,6 +13,7 @@ final class ActivityRepository: ObservableObject {
     @Published private(set) var isLoadingWeatherDetail = false
     @Published private(set) var weatherNeedsLocation = false
     @Published private(set) var weatherKitUnavailable = false
+    @Published private(set) var weatherKitJWTAuthFailed = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
     @Published var workouts: [WorkoutActivity] = []
@@ -694,6 +695,7 @@ final class ActivityRepository: ObservableObject {
             await locationProvider.requestWhenInUseAuthorization()
             let status = await locationProvider.authorizationStatus()
             weatherNeedsLocation = status == .denied || status == .restricted
+
             guard !weatherNeedsLocation else {
                 throw LocationProviderError.denied
             }
@@ -708,23 +710,36 @@ final class ActivityRepository: ObservableObject {
             )
             weatherNeedsLocation = false
             weatherKitUnavailable = false
+            weatherKitJWTAuthFailed = false
         } catch let error as LocationProviderError where error == .denied || error == .restricted {
             weatherNeedsLocation = true
             weatherKitUnavailable = false
+            weatherKitJWTAuthFailed = false
             dayWeather = fallbackDayWeather(for: date)
         } catch {
             let status = await locationProvider.authorizationStatus()
             weatherNeedsLocation = status == .denied || status == .restricted
             if weatherNeedsLocation {
                 weatherKitUnavailable = false
+                weatherKitJWTAuthFailed = false
                 dayWeather = fallbackDayWeather(for: date)
             } else {
                 weatherKitUnavailable = true
+                weatherKitJWTAuthFailed = Self.isWeatherKitJWTAuthError(error)
                 if dayWeather?.source != .weatherKit {
                     dayWeather = fallbackDayWeather(for: date)
                 }
             }
         }
+    }
+
+    private static func isWeatherKitJWTAuthError(_ error: Error) -> Bool {
+        let description = String(describing: error)
+        if description.contains("WDSJWTAuthenticatorServiceListener") {
+            return true
+        }
+        let nsError = error as NSError
+        return nsError.domain.contains("WDSJWTAuthenticatorServiceListener")
     }
 
     private func fallbackDayWeather(for date: Date) -> DayWeatherSnapshot? {

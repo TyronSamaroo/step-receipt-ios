@@ -14,6 +14,10 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'left to'")).firstMatch
         XCTAssertTrue(stepsLeftText.waitForExistence(timeout: 3))
+        let stepsHeadline = app.staticTexts.matching(
+            NSPredicate(format: "label ENDSWITH 'steps' AND NOT label CONTAINS '...'")
+        ).firstMatch
+        XCTAssertTrue(stepsHeadline.waitForExistence(timeout: 3))
         XCTAssertTrue(scrollToElement(app.otherElements["today-quick-digest"], in: app, timeout: 5, maxSwipes: 6))
 
         app.tabBars.buttons["Activity"].tap()

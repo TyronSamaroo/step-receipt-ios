@@ -103,3 +103,15 @@ Today felt cluttered: redundant welcome card, week pulse too low, duplicate metr
 - `Sources/StepReceiptCore/TodayQuickDigest.swift`
 - `StepReceiptApp/Services/ActivityRepository.swift` (`openActivityTab`)
 - `Tests/StepReceiptUITests/StepReceiptUITests.swift`
+
+## 2026-06-21 — Today Hero Steps Layout Fix
+
+### Problem
+PR #12 put `"3,463 steps"` at 58pt beside the 114pt ring in an `HStack`, causing truncation (`3,463 st...`) and a right-aligned ring.
+
+### Fix
+Stack hero steps block vertically: full-width step headline, goal subtitle, then centered `ProgressRing` on its own row. UI test asserts step label ends with `steps` and has no ellipsis.
+
+### Key files
+- `StepReceiptApp/Views/TodayView.swift`
+- `Tests/StepReceiptUITests/StepReceiptUITests.swift`

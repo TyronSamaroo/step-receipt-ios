@@ -22,6 +22,8 @@ targets:
       - StepReceiptLiveActivityShared
       - StepReceiptWatchShared
     dependencies:
+      - sdk: WeatherKit.framework
+      - sdk: CoreLocation.framework
       - target: StepReceiptLiveActivityWidget
         embed: true
       - target: StepReceiptWatch

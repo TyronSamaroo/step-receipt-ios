@@ -71,6 +71,8 @@ struct StepReceiptApp: App {
         )
         #else
         ActivityRepository(
+            weatherKit: LiveWeatherKitClient(),
+            locationProvider: LiveLocationProvider(),
             competitionSubscription: LiveCloudKitCompetitionSubscriptionService()
         )
         #endif

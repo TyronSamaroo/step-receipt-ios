@@ -231,6 +231,32 @@ public struct WorkoutActivity: Codable, Equatable, Identifiable, Sendable {
         routePoints.count >= 2
     }
 
+    public func withWeatherBackfill(from snapshot: DayWeatherSnapshot) -> WorkoutActivity {
+        guard weatherTemperatureCelsius == nil, weatherHumidityPercent == nil else {
+            return self
+        }
+
+        return WorkoutActivity(
+            id: id,
+            sourceIdentifier: sourceIdentifier,
+            type: type,
+            title: title,
+            startDate: startDate,
+            endDate: endDate,
+            durationMinutes: durationMinutes,
+            distanceMeters: distanceMeters,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            totalEnergyKilocalories: totalEnergyKilocalories,
+            steps: steps,
+            sourceName: sourceName,
+            environment: environment,
+            weatherTemperatureCelsius: snapshot.temperatureCelsius,
+            weatherHumidityPercent: snapshot.humidityPercent,
+            heartRateSamples: heartRateSamples,
+            routePoints: routePoints
+        )
+    }
+
     public func replacingDerivedHealthData(
         steps: Int? = nil,
         heartRateSamples: [WorkoutHeartRateSample]? = nil,

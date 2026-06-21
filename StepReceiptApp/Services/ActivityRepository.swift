@@ -1,4 +1,5 @@
 import Combine
+import CoreLocation
 import Foundation
 
 @MainActor
@@ -6,6 +7,8 @@ final class ActivityRepository: ObservableObject {
     @Published var authorizationState: HealthAuthorizationState = .notDetermined
     @Published var cloudSyncState: CloudSyncState = .unknown
     @Published var selectedDate: Date = Date()
+    @Published var dayWeather: DayWeatherSnapshot?
+    @Published private(set) var isLoadingDayWeather = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
     @Published var workouts: [WorkoutActivity] = []
@@ -78,6 +81,8 @@ final class ActivityRepository: ObservableObject {
 
     private let healthKit: any HealthKitProviding
     private let cloudKit: any CloudKitSummarySyncing
+    private let weatherKit: any WeatherKitProviding
+    private let locationProvider: any LocationProviding
     private let competitionSync: any SharedCompetitionSyncing
     private let competitionSubscription: any CompetitionSubscriptionManaging
     private let watchSync: any WatchAggregatePublishing
@@ -104,9 +109,14 @@ final class ActivityRepository: ObservableObject {
     private var hasConfiguredActivityBackgroundDeliveryForSession = false
     private var isRefreshingFromBackgroundDelivery = false
 
+    private var workoutWeatherSources: [String: WeatherDataSource] = [:]
+    private var workoutWeatherBackfills: [String: DayWeatherSnapshot] = [:]
+
     init(
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
+        weatherKit: any WeatherKitProviding = DisabledWeatherKitClient(),
+        locationProvider: any LocationProviding = DisabledLocationProvider(),
         competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
         competitionSubscription: any CompetitionSubscriptionManaging = DisabledCompetitionSubscriptionService(),
         watchSync: any WatchAggregatePublishing = WatchAggregateSyncService.shared,
@@ -117,6 +127,8 @@ final class ActivityRepository: ObservableObject {
         let activityCalendar = Self.mondayFirstCalendar(calendar)
         self.healthKit = healthKit
         self.cloudKit = cloudKit
+        self.weatherKit = weatherKit
+        self.locationProvider = locationProvider
         self.competitionSync = competitionSync
         self.competitionSubscription = competitionSubscription
         self.watchSync = watchSync
@@ -373,6 +385,17 @@ final class ActivityRepository: ObservableObject {
 
         await syncAggregateSummaries(selectedSummary: todaySummary)
         await syncSharedCompetition()
+        await fetchDayWeather(for: selectedDate)
+        workouts = await backfillOutdoorWorkoutWeather(workouts)
+        if let todaySummary {
+            self.todaySummary = engine.aggregateDay(
+                containing: selectedDate,
+                buckets: todaySummary.buckets,
+                workouts: workouts,
+                goals: goals
+            )
+            history = replacingSummary(self.todaySummary!, in: history)
+        }
     }
 
     func refreshAfterAppBecameActive() async {
@@ -599,6 +622,90 @@ final class ActivityRepository: ObservableObject {
             )
             loadSelectedSummaryFromHistory()
         }
+
+        await fetchDayWeather(for: selectedDate)
+    }
+
+    func weatherSource(for workout: WorkoutActivity) -> WeatherDataSource? {
+        if workoutWeatherSources[workout.sourceIdentifier] == .weatherKit {
+            return .weatherKit
+        }
+        if workout.weatherTemperatureCelsius != nil || workout.weatherHumidityPercent != nil {
+            return .healthKitWorkout
+        }
+        return nil
+    }
+
+    func weatherBackfill(for workout: WorkoutActivity) -> DayWeatherSnapshot? {
+        workoutWeatherBackfills[workout.sourceIdentifier]
+    }
+
+    private func fetchDayWeather(for date: Date) async {
+        isLoadingDayWeather = true
+        defer { isLoadingDayWeather = false }
+
+        do {
+            await locationProvider.requestWhenInUseAuthorization()
+            let location = try await locationProvider.currentLocation()
+            let snapshot = try await weatherKit.fetchDayWeather(for: date, at: location, calendar: calendar)
+            dayWeather = snapshot
+        } catch {
+            dayWeather = fallbackDayWeather(for: date)
+        }
+    }
+
+    private func fallbackDayWeather(for date: Date) -> DayWeatherSnapshot? {
+        guard let summary = todaySummary, calendar.isDate(summary.dateStart, inSameDayAs: date) else {
+            return nil
+        }
+
+        guard let workout = summary.workouts.first(where: {
+            $0.weatherTemperatureCelsius != nil || $0.weatherHumidityPercent != nil
+        }) else {
+            return nil
+        }
+
+        return DayWeatherSnapshot(
+            temperatureCelsius: workout.weatherTemperatureCelsius ?? 0,
+            humidityPercent: workout.weatherHumidityPercent ?? 0,
+            apparentTemperatureCelsius: nil,
+            conditionSymbolName: nil,
+            source: .healthKitWorkout
+        )
+    }
+
+    private func backfillOutdoorWorkoutWeather(_ workouts: [WorkoutActivity]) async -> [WorkoutActivity] {
+        var enriched = workouts
+        var backfills: [String: DayWeatherSnapshot] = [:]
+        var sources: [String: WeatherDataSource] = workoutWeatherSources
+
+        for (index, workout) in workouts.enumerated() {
+            guard workout.weatherTemperatureCelsius == nil,
+                  workout.weatherHumidityPercent == nil,
+                  workout.environment != .indoor,
+                  workout.hasRoute,
+                  let firstPoint = workout.routePoints.first
+            else {
+                if workout.weatherTemperatureCelsius != nil || workout.weatherHumidityPercent != nil {
+                    sources[workout.sourceIdentifier] = .healthKitWorkout
+                }
+                continue
+            }
+
+            let location = CLLocation(latitude: firstPoint.latitude, longitude: firstPoint.longitude)
+            do {
+                let snapshot = try await weatherKit.fetchWorkoutWeather(at: location, around: workout.startDate)
+                enriched[index] = workout.withWeatherBackfill(from: snapshot)
+                backfills[workout.sourceIdentifier] = snapshot
+                sources[workout.sourceIdentifier] = .weatherKit
+            } catch {
+                continue
+            }
+        }
+
+        workoutWeatherBackfills = backfills
+        workoutWeatherSources = sources
+        return enriched
     }
 
     func updateGoals(steps: Int, workoutMinutes: Int, activeEnergy: Int?) {

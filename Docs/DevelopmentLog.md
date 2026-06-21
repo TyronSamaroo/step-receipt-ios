@@ -116,6 +116,34 @@ Stack hero steps block vertically: full-width step headline, goal subtitle, then
 - `StepReceiptApp/Views/TodayView.swift`
 - `Tests/StepReceiptUITests/StepReceiptUITests.swift`
 
+## 2026-06-21 — WeatherKit Integration
+
+### Goal
+Show local weather on Today without requiring outdoor workouts; backfill missing workout weather from route + historical hourly data; replace fake “feels like +3°F” with real WeatherKit `apparentTemperature`.
+
+### Manual setup (required before device test)
+Enable **WeatherKit** on App ID `com.tyronsamaroo.stepreceipt` in Apple Developer → Identifiers → App Services + Capabilities. Regenerate provisioning profiles (or build with `-allowProvisioningUpdates`).
+
+### Patterns used
+1. **Live / Disabled clients** — `LiveWeatherKitClient` + `DisabledWeatherKitClient`, `LiveLocationProvider` + `DisabledLocationProvider` (tests default to disabled; app wires live in `StepReceiptApp.swift`).
+2. **Core model** — `DayWeatherSnapshot` in StepReceiptCore with °F helpers and cache key bucketing.
+3. **Repository injection** — `fetchDayWeather(for:)` on `refresh()` / `selectDate()`; `backfillOutdoorWorkoutWeather` after HealthKit fetch; HealthKit metadata wins when present.
+4. **Attribution** — `WeatherAttributionView` when source is WeatherKit.
+
+### Key files
+- `Sources/StepReceiptCore/DayWeatherSnapshot.swift`
+- `StepReceiptApp/Services/WeatherKitClient.swift`, `LocationProvider.swift`
+- `StepReceiptApp/Services/ActivityRepository.swift` (`dayWeather`, backfill)
+- `StepReceiptApp/Views/TodayView.swift`, `WorkoutDetailView.swift`, `WeatherAttributionView.swift`
+- `StepReceiptApp/StepReceipt.entitlements`, `Info.plist`, `project.yml`
+- `Tests/StepReceiptCoreTests/DayWeatherSnapshotTests.swift`
+
+### Ship checklist
+- Enable WeatherKit on App ID (portal)
+- `xcodegen generate` after `project.yml` change
+- StepReceiptTests + StepReceiptUITests green
+- Release build on device with location permission
+
 ## 2026-06-21 — CloudKit Subscriptions, App Intents, and Watch Companion
 
 ### Goal
@@ -160,3 +188,31 @@ Stacked hero had left-aligned steps with a centered ring (visual imbalance). Wee
 ### Key files
 - `StepReceiptApp/Views/TodayView.swift`
 - `Tests/StepReceiptUITests/StepReceiptUITests.swift`
+
+## 2026-06-21 — WeatherKit Integration
+
+### Goal
+Show local weather on Today without requiring outdoor workouts; backfill missing workout weather from route + historical hourly data; replace fake “feels like +3°F” with real WeatherKit `apparentTemperature`.
+
+### Manual setup (required before device test)
+Enable **WeatherKit** on App ID `com.tyronsamaroo.stepreceipt` in Apple Developer → Identifiers → App Services + Capabilities. Regenerate provisioning profiles (or build with `-allowProvisioningUpdates`).
+
+### Patterns used
+1. **Live / Disabled clients** — `LiveWeatherKitClient` + `DisabledWeatherKitClient`, `LiveLocationProvider` + `DisabledLocationProvider` (tests default to disabled; app wires live in `StepReceiptApp.swift`).
+2. **Core model** — `DayWeatherSnapshot` in StepReceiptCore with °F helpers and cache key bucketing.
+3. **Repository injection** — `fetchDayWeather(for:)` on `refresh()` / `selectDate()`; `backfillOutdoorWorkoutWeather` after HealthKit fetch; HealthKit metadata wins when present.
+4. **Attribution** — `WeatherAttributionView` when source is WeatherKit.
+
+### Key files
+- `Sources/StepReceiptCore/DayWeatherSnapshot.swift`
+- `StepReceiptApp/Services/WeatherKitClient.swift`, `LocationProvider.swift`
+- `StepReceiptApp/Services/ActivityRepository.swift` (`dayWeather`, backfill)
+- `StepReceiptApp/Views/TodayView.swift`, `WorkoutDetailView.swift`, `WeatherAttributionView.swift`
+- `StepReceiptApp/StepReceipt.entitlements`, `Info.plist`, `project.yml`
+- `Tests/StepReceiptCoreTests/DayWeatherSnapshotTests.swift`
+
+### Ship checklist
+- Enable WeatherKit on App ID (portal)
+- `xcodegen generate` after `project.yml` change
+- StepReceiptTests + StepReceiptUITests green
+- Release build on device with location permission

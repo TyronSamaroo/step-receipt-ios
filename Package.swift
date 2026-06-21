@@ -21,7 +21,8 @@ let package = Package(
         ),
         .testTarget(
             name: "StepReceiptCoreTests",
-            dependencies: ["StepReceiptCore"]
+            dependencies: ["StepReceiptCore"],
+            path: "Tests/StepReceiptCoreTests"
         )
     ]
 )

@@ -683,14 +683,16 @@ struct TodayView: View {
     @ViewBuilder
     private var weatherStripCard: some View {
         if repository.isLoadingDayWeather, repository.dayWeather == nil {
-            HStack(spacing: 12) {
+            HStack(spacing: 10) {
                 ProgressView()
                     .controlSize(.small)
-                Text("Loading local weather…")
-                    .font(.subheadline.weight(.semibold))
+                Text("Loading weather…")
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                 Spacer()
             }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
             .metricCard()
             .accessibilityIdentifier("today-weather-strip")
         } else if let weather = repository.dayWeather {
@@ -705,213 +707,102 @@ struct TodayView: View {
     }
 
     private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack(alignment: .top, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .center, spacing: 10) {
                 Image(systemName: weather.displayConditionSymbolName)
-                    .font(.system(size: 44))
+                    .font(.title2)
                     .symbolRenderingMode(.multicolor)
-                    .frame(width: 52, height: 52)
+                    .frame(width: 32, height: 32)
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(weather.formattedTemperatureFahrenheit)
-                        .font(.system(size: 36, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.stepInk)
-                        .monospacedDigit()
+                VStack(alignment: .leading, spacing: 1) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(weather.formattedTemperatureFahrenheit)
+                            .font(.title2.weight(.bold))
+                            .foregroundStyle(Color.stepInk)
+                            .monospacedDigit()
+
+                        if let highLow = weather.formattedHighLowFahrenheit {
+                            Text(highLow)
+                                .font(.caption2.weight(.bold))
+                                .foregroundStyle(Color.stepDistance)
+                        }
+                    }
 
                     Text(weather.displayConditionDescription)
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.stepInk.opacity(0.72))
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.85)
-
-                    if let highLow = weather.formattedHighLowFahrenheit {
-                        Text(highLow)
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.stepDistance)
-                    }
                 }
 
-                Spacer(minLength: 0)
+                Spacer(minLength: 4)
 
-                VStack(alignment: .trailing, spacing: 2) {
-                    if weather.source == .healthKitWorkout {
-                        Text("Workout")
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(Color.stepMuted)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(Color.stepSurface.opacity(0.82))
-                            .clipShape(Capsule())
-                    }
-
-                    HStack(spacing: 3) {
-                        Text("Details")
-                            .font(.caption.weight(.bold))
-                        Image(systemName: "chevron.right")
-                            .font(.caption2.weight(.bold))
-                    }
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepAccent)
-                    .padding(.top, weather.source == .healthKitWorkout ? 4 : 0)
-                }
             }
 
-            primaryWeatherStatsRow(weather)
-
-            if repository.weatherNeedsLocation || repository.weatherKitUnavailable || repository.weatherKitJWTAuthFailed || weather.source == .healthKitWorkout {
-                weatherLocationHint
+            HStack(spacing: 0) {
+                compactWeatherStat("Feels", weather.displayApparentTemperatureFahrenheit)
+                weatherStatDivider
+                compactWeatherStat("Humidity", weather.formattedHumidity)
+                weatherStatDivider
+                compactWeatherStat("Wind", weather.displayWind)
+                weatherStatDivider
+                compactWeatherStat("UV", weather.displayUVIndex)
             }
 
-            if weather.hasSecondaryWeatherStats {
-                secondaryWeatherStatsRow(weather)
-            }
-
-            if weather.source == .weatherKit {
-                WeatherAttributionView()
-                    .padding(.top, 2)
+            if let hint = compactWeatherHint {
+                Text(hint)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepAccent)
+                    .lineLimit(2)
             }
         }
-        .padding(14)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: WeatherCardStyle.gradientColors(for: weather),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 8, style: .continuous)
-                .stroke(Color.stepDistance.opacity(0.14), lineWidth: 1)
-        )
-        .shadow(color: Color.stepDistance.opacity(0.08), radius: 14, x: 0, y: 8)
+        .metricCard()
         .accessibilityElement(children: .combine)
         .accessibilityLabel(weatherAccessibilityLabel(for: weather))
         .accessibilityHint("Opens detailed weather forecast")
     }
 
-    private var weatherLocationHint: some View {
-        Group {
-            if repository.weatherKitJWTAuthFailed {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("WeatherKit auth failed on this device.")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Color.stepInk)
-                    Text("In Apple Developer → Identifiers → com.tyronsamaroo.stepreceipt, enable WeatherKit under both Capabilities and App Services. Then delete StrideSlip, reinstall, and restart your iPhone.")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepMuted)
-                    Button {
-                        Task { await repository.ensureDayWeather() }
-                    } label: {
-                        Label("Retry WeatherKit", systemImage: "arrow.clockwise")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.stepAccent)
-                    }
-                    .buttonStyle(.plain)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-            } else if repository.weatherNeedsLocation {
-                Button {
-                    if let url = URL(string: UIApplication.openSettingsURLString) {
-                        UIApplication.shared.open(url)
-                    }
-                } label: {
-                    Label("Enable Location for wind, UV, and live weather", systemImage: "location.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepAccent)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-            } else if repository.weatherKitUnavailable {
-                Button {
-                    Task { await repository.ensureDayWeather() }
-                } label: {
-                    Label("Live weather unavailable — tap to retry for wind and UV", systemImage: "arrow.clockwise")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepAccent)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .buttonStyle(.plain)
-            } else if repository.dayWeather?.source == .healthKitWorkout {
-                Text("Limited workout weather — wind and UV need live WeatherKit data.")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.stepMuted)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-        }
+    private var weatherStatDivider: some View {
+        Rectangle()
+            .fill(Color.stepMuted.opacity(0.2))
+            .frame(width: 1, height: 24)
+            .padding(.horizontal, 4)
     }
 
-    private func primaryWeatherStatsRow(_ weather: DayWeatherSnapshot) -> some View {
-        HStack(spacing: 6) {
-            weatherMiniStat(
-                "Feels like",
-                weather.displayApparentTemperatureFahrenheit,
-                "thermometer.medium",
-                Color.stepEnergy
-            )
-            weatherMiniStat("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance)
-            weatherMiniStat("Wind", weather.displayWind, "wind", Color.stepAccent)
-            weatherMiniStat("UV", weather.displayUVIndex, "sun.max", Color.stepWarning)
-        }
-    }
-
-    @ViewBuilder
-    private func secondaryWeatherStatsRow(_ weather: DayWeatherSnapshot) -> some View {
-        HStack(spacing: 6) {
-            if weather.formattedDewPointFahrenheit != nil {
-                weatherMiniStat(
-                    "Dew point",
-                    weather.displayDewPointFahrenheit,
-                    "drop.fill",
-                    Color.stepDistance
-                )
-            }
-            if weather.formattedVisibilityMiles != nil {
-                weatherMiniStat(
-                    "Visibility",
-                    weather.displayVisibilityMiles,
-                    "eye",
-                    Color.stepMuted
-                )
-            }
-            if weather.formattedPrecipitationChance != nil {
-                weatherMiniStat(
-                    "Precip.",
-                    weather.displayPrecipitationChance,
-                    "cloud.rain",
-                    Color.stepAccent
-                )
-            }
-        }
-    }
-
-    private func weatherMiniStat(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        VStack(spacing: 4) {
-            Image(systemName: icon)
-                .font(.caption2.weight(.bold))
-                .foregroundStyle(color)
-                .frame(width: 20, height: 20)
-                .background(color.opacity(0.16))
-                .clipShape(Circle())
-
+    private func compactWeatherStat(_ title: String, _ value: String) -> some View {
+        VStack(spacing: 2) {
             Text(value)
-                .font(.caption2.weight(.bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(Color.stepInk)
                 .lineLimit(1)
-                .minimumScaleFactor(0.65)
-                .multilineTextAlignment(.center)
-
+                .minimumScaleFactor(0.7)
             Text(title)
                 .font(.system(size: 9, weight: .semibold))
                 .foregroundStyle(Color.stepMuted)
                 .lineLimit(1)
-                .minimumScaleFactor(0.7)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 8)
-        .padding(.horizontal, 2)
-        .background(Color.stepSurface.opacity(0.88))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private var compactWeatherHint: String? {
+        if repository.weatherKitJWTAuthFailed {
+            return "WeatherKit setup needed — tap for details"
+        }
+        if repository.weatherNeedsLocation {
+            return "Enable Location for live wind and UV"
+        }
+        if repository.weatherKitUnavailable {
+            return "Live weather unavailable — tap to retry"
+        }
+        if repository.dayWeather?.source == .healthKitWorkout {
+            return "Workout weather only — tap for full forecast"
+        }
+        return nil
     }
 
     private func weatherAccessibilityLabel(for weather: DayWeatherSnapshot) -> String {

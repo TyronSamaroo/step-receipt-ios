@@ -76,6 +76,7 @@ final class ActivityRepository: ObservableObject {
     private let competitionSync: any SharedCompetitionSyncing
     private let liveActivityService: any DailyStepGoalLiveActivityServicing
     private let engine: InsightEngine
+    private let workoutComparisonService: WorkoutComparisonService
     private let competitionEngine: CompetitionEngine
     private let calendar: Calendar
     private let userDefaults: UserDefaults
@@ -112,6 +113,7 @@ final class ActivityRepository: ObservableObject {
         self.calendar = activityCalendar
         self.userDefaults = userDefaults
         self.engine = InsightEngine(calendar: activityCalendar)
+        self.workoutComparisonService = WorkoutComparisonService(calendar: activityCalendar)
         self.competitionEngine = CompetitionEngine(calendar: activityCalendar)
         self.goals = Self.loadGoals(key: goalsKey, userDefaults: userDefaults)
         self.preferences = Self.loadPreferences(
@@ -433,6 +435,50 @@ final class ActivityRepository: ObservableObject {
             now: now,
             heartRateZoneConfiguration: preferences.heartRateZoneConfiguration
         )
+    }
+
+    func filteredPeriodSummary(
+        scope: ActivityPeriodScope,
+        containing date: Date,
+        filter: InsightsTrendFilter,
+        now: Date = Date()
+    ) -> PeriodActivitySummary {
+        let base = periodSummary(scope: scope, containing: date, now: now)
+        return engine.filteredPeriodSummary(
+            base,
+            filter: filter,
+            goals: goals,
+            heartRateZoneConfiguration: preferences.heartRateZoneConfiguration,
+            now: now
+        )
+    }
+
+    func workoutComparisonPeers(for workout: WorkoutActivity) -> [WorkoutActivity] {
+        workoutComparisonService.peerWorkouts(
+            for: workout,
+            in: workouts,
+            tagProvider: { [weak self] candidate in
+                self?.workoutTag(for: candidate)
+            }
+        )
+    }
+
+    func workoutLastSession(before workout: WorkoutActivity) -> WorkoutActivity? {
+        workoutComparisonService.lastSession(
+            before: workout,
+            in: workoutComparisonPeers(for: workout)
+        )
+    }
+
+    func workoutBestSession(excluding workout: WorkoutActivity) -> WorkoutActivity? {
+        workoutComparisonService.bestSession(
+            in: workoutComparisonPeers(for: workout),
+            excluding: workout
+        )
+    }
+
+    func compareWorkouts(current: WorkoutActivity, baseline: WorkoutActivity) -> WorkoutSessionComparison {
+        workoutComparisonService.compare(current: current, baseline: baseline)
     }
 
     func adjacentInsightPeriodAnchor(scope: ActivityPeriodScope, containing date: Date, offset: Int, now: Date = Date()) -> Date? {

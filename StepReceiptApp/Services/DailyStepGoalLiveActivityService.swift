@@ -34,7 +34,16 @@ enum DailyStepGoalLiveActivityStatus: Equatable {
     }
 }
 
-final class DailyStepGoalLiveActivityService: @unchecked Sendable {
+protocol DailyStepGoalLiveActivityServicing: Sendable {
+    var status: DailyStepGoalLiveActivityStatus { get }
+
+    func start(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func updateIfActive(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func update(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus
+}
+
+final class DailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing, @unchecked Sendable {
     private var currentActivities: [Activity<DailyStepGoalAttributes>] {
         Activity<DailyStepGoalAttributes>.activities
     }

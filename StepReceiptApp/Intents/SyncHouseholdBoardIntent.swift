@@ -1,10 +1,10 @@
-import AppIntents
+@preconcurrency import AppIntents
 import Foundation
 
 struct SyncHouseholdBoardIntent: AppIntent {
-    static var title: LocalizedStringResource = "Sync Household Board"
-    static var description = IntentDescription("Syncs your household compete leaderboard when a board is active.")
-    static var openAppWhenRun: Bool = false
+    static let title: LocalizedStringResource = "Sync Household Board"
+    static let description = IntentDescription("Syncs your household compete leaderboard when a board is active.")
+    static let openAppWhenRun = false
 
     func perform() async throws -> some IntentResult & ProvidesDialog {
         let repository = await MainActor.run { StepReceiptAppIntentsSupport.repository }

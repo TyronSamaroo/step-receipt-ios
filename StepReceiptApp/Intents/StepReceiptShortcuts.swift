@@ -1,4 +1,4 @@
-import AppIntents
+@preconcurrency import AppIntents
 
 struct StepReceiptShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {

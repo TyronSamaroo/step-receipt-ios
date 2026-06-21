@@ -1,10 +1,10 @@
-import AppIntents
+@preconcurrency import AppIntents
 import Foundation
 import SwiftUI
 
 struct TodayStepsEntity: AppEntity, Identifiable {
-    static var typeDisplayRepresentation = TypeDisplayRepresentation(name: "Today's Steps")
-    static var defaultQuery = TodayStepsEntityQuery()
+    static let typeDisplayRepresentation = TypeDisplayRepresentation(name: "Today's Steps")
+    static let defaultQuery = TodayStepsEntityQuery()
 
     var id: String { "today-steps" }
     var steps: Int
@@ -48,9 +48,9 @@ struct TodayStepsEntityQuery: EntityQuery {
 }
 
 struct GetTodayStepsIntent: AppIntent {
-    static var title: LocalizedStringResource = "Get Today's Steps"
-    static var description = IntentDescription("Returns today's step count and goal progress.")
-    static var openAppWhenRun: Bool = false
+    static let title: LocalizedStringResource = "Get Today's Steps"
+    static let description = IntentDescription("Returns today's step count and goal progress.")
+    static let openAppWhenRun = false
 
     func perform() async throws -> some IntentResult & ReturnsValue<TodayStepsEntity> & ProvidesDialog & ShowsSnippetView {
         let entity = await MainActor.run { () -> TodayStepsEntity in

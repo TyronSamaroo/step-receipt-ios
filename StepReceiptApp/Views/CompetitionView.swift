@@ -12,7 +12,7 @@ struct CompetitionView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     controls
                     householdBoard
 
@@ -112,7 +112,7 @@ struct CompetitionView: View {
 
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Household Board")
-                        .font(.headline)
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(Color.stepInk)
                     Text("Use one shared code on both phones. Only daily totals sync.")
                         .font(.caption)
@@ -425,7 +425,7 @@ struct CompetitionView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Leaderboard")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                 Spacer()
                 Text(receipt.window.displayName)
                     .font(.caption.weight(.semibold))
@@ -443,7 +443,7 @@ struct CompetitionView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Friend Check-Ins")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                 Spacer()
                 Text("\(repository.localCompetitionCheckIns.count)")
                     .font(.caption.weight(.semibold))

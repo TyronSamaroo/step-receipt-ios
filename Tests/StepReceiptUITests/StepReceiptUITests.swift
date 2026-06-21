@@ -7,8 +7,9 @@ final class StepReceiptUITests: XCTestCase {
         let app = XCUIApplication()
         launchWithSampleData(app)
 
-        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 2))
-        XCTAssertTrue(app.buttons["today-quick-digest"].waitForExistence(timeout: 3))
+        let welcomeBandText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'welcome back'")).firstMatch
+        XCTAssertTrue(welcomeBandText.waitForExistence(timeout: 3))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 5))
         XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
         let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
@@ -51,8 +52,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["WEEK RECEIPT"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Activity Heat Map"].exists)
         XCTAssertTrue(scrollToElement(app.staticTexts["Cardio"], in: app, timeout: 3, maxSwipes: 3))
-        let bestCardio = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Best cardio'")).firstMatch
-        XCTAssertTrue(bestCardio.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["insights-cardio-card"].waitForExistence(timeout: 3))
         XCTAssertTrue(scrollToElement(app.buttons["insights-strength-card"], in: app, timeout: 3, maxSwipes: 2))
 
         app.tabBars.buttons["Settings"].tap()
@@ -118,6 +118,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(scrollToElement(app.staticTexts["Weather"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(scrollToElement(app.staticTexts["Heart Rate"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Average"].exists)
+        XCTAssertTrue(scrollToElement(app.staticTexts["Min"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Max"].exists)
         XCTAssertTrue(scrollToElement(app.staticTexts["Zone 1"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Zone 5"].exists)
@@ -142,6 +143,12 @@ final class StepReceiptUITests: XCTestCase {
         cardioCard.tap()
 
         XCTAssertTrue(app.navigationBars["Cardio Detail"].waitForExistence(timeout: 3))
+        let movementScope = app.buttons["cardio-detail-scope-movement"]
+        XCTAssertTrue(scrollToElement(movementScope, in: app, timeout: 2, maxSwipes: 2))
+        movementScope.tap()
+        let includeStairsScope = app.buttons["cardio-detail-scope-includeStairs"]
+        XCTAssertTrue(includeStairsScope.waitForExistence(timeout: 2))
+        includeStairsScope.tap()
         XCTAssertTrue(app.staticTexts["Zone 1"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Zone 5"].exists)
         XCTAssertTrue(app.buttons["edit-heart-rate-zones-button"].exists)

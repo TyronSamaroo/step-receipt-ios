@@ -453,6 +453,41 @@ final class ActivityRepository: ObservableObject {
         )
     }
 
+    func cardioInsight(
+        scope: ActivityPeriodScope,
+        containing date: Date,
+        filter: InsightsTrendFilter,
+        sessionScope: CardioSessionScope,
+        now: Date = Date()
+    ) -> CardioPeriodInsight {
+        let period = filteredPeriodSummary(
+            scope: scope,
+            containing: date,
+            filter: filter,
+            now: now
+        )
+        return engine.cardioInsight(
+            from: period.summaries,
+            scope: sessionScope,
+            heartRateZoneConfiguration: preferences.heartRateZoneConfiguration
+        )
+    }
+
+    func weekComparison(containing date: Date, now: Date = Date()) -> PeriodComparisonInsight? {
+        guard let priorAnchor = adjacentInsightPeriodAnchor(
+            scope: .week,
+            containing: date,
+            offset: -1,
+            now: now
+        ) else {
+            return nil
+        }
+
+        let current = periodSummary(scope: .week, containing: date, now: now)
+        let prior = periodSummary(scope: .week, containing: priorAnchor, now: now)
+        return engine.periodComparison(current: current, prior: prior, goals: goals)
+    }
+
     func workoutComparisonPeers(for workout: WorkoutActivity) -> [WorkoutActivity] {
         workoutComparisonService.peerWorkouts(
             for: workout,

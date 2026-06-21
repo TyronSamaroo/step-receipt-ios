@@ -14,10 +14,11 @@ struct TodayView: View {
 
                     if let summary = repository.todaySummary {
                         todayHero(summary)
-                        healthSyncStatusCard
-                        todayQuickDigestCard(summary)
+                        welcomeBand(summary)
                         todayCoach(repository.todayCoachInsights())
+                        weekPulseCard
                         primaryWorkoutCard(summary)
+                        healthSyncStatusCard
                         hourlyChart(summary)
                         metricGrid(summary)
                         workoutSection(summary)
@@ -301,7 +302,15 @@ struct TodayView: View {
     }
 
     private var shouldShowHealthSyncStatus: Bool {
-        repository.authorizationState == .authorized || repository.healthRefreshStatus.outcome != .idle || repository.isLoading
+        if repository.isLoading {
+            return true
+        }
+        switch repository.healthRefreshStatus.outcome {
+        case .refreshing, .partial, .cached, .failed:
+            return true
+        case .idle, .current:
+            return false
+        }
     }
 
     private var healthSyncStatusTitle: String {
@@ -311,7 +320,7 @@ struct TodayView: View {
 
         switch repository.healthRefreshStatus.outcome {
         case .idle:
-            return "Ready to Refresh"
+            return "Apple Health Sync"
         case .refreshing:
             return "Apple Health Sync"
         case .current:
@@ -500,6 +509,17 @@ struct TodayView: View {
                 ProgressRing(progress: summary.stepGoalProgress)
                     .frame(width: 114, height: 114)
                     .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
+            }
+
+            if summary.stepGoalProgress >= 1 {
+                Label("Goal crushed", systemImage: "party.popper.fill")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 8)
+                    .background(Color.stepAccent.opacity(0.15))
+                    .clipShape(Capsule())
+                    .accessibilityIdentifier("today-goal-crushed")
             }
 
             ViewThatFits(in: .horizontal) {
@@ -771,6 +791,14 @@ struct TodayView: View {
                         if workout.type.isCardioMovement, let distance = workout.distanceMeters, distance > 0 {
                             workoutHeroMetric("Distance", ActivityFormatting.formattedDistance(from: distance, unit: repository.preferences.distanceUnit), StepReceiptSymbol.distance, Color.stepDistance)
                         }
+                        if let minHeartRate = workout.minHeartRateBPM, let maxHeartRate = workout.maxHeartRateBPM {
+                            workoutHeroMetric(
+                                "HR Range",
+                                "\(Int(minHeartRate.rounded()))-\(Int(maxHeartRate.rounded())) bpm",
+                                "heart",
+                                Color.stepWarning
+                            )
+                        }
                     }
 
                     NavigationLink {
@@ -828,6 +856,51 @@ struct TodayView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color.stepSurface.opacity(0.72))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func welcomeBand(_ summary: DailyActivitySummary) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Hey \(repository.preferences.displayName), welcome back.")
+                .font(.headline.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+            Text("Coach is tuned for today. \(goalStatusText(for: summary))")
+                .font(.caption.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .metricCard()
+        .accessibilityIdentifier("today-welcome-band")
+    }
+
+    @ViewBuilder
+    private var weekPulseCard: some View {
+        if let comparison = repository.weekComparison(containing: repository.selectedDate), !comparison.metrics.isEmpty {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Label("Week Pulse", systemImage: "waveform.path.ecg")
+                        .font(.headline)
+                        .foregroundStyle(Color.stepInk)
+                    Spacer()
+                    Text("vs prior week")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepMuted)
+                }
+
+                ForEach(comparison.metrics.prefix(3)) { metric in
+                    HStack {
+                        Text(metric.title)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepMuted)
+                        Spacer()
+                        Text(metric.deltaText)
+                            .font(.caption.monospacedDigit().weight(.bold))
+                            .foregroundStyle((metric.isImprovement ?? false) ? Color.stepAccent : Color.stepWarning)
+                    }
+                }
+            }
+            .metricCard()
+            .accessibilityIdentifier("today-week-pulse")
+        }
     }
 
     @ViewBuilder

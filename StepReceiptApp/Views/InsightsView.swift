@@ -37,6 +37,11 @@ struct InsightsView: View {
         )
     }
 
+    private var weekComparison: PeriodComparisonInsight? {
+        guard selectedScope == .week, selectedTrendFilter == .all else { return nil }
+        return repository.weekComparison(containing: periodAnchorDate)
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -66,6 +71,10 @@ struct InsightsView: View {
                         .compactMetricCard()
                     } else {
                     PeriodReceiptCard(period: period, distanceUnit: repository.preferences.distanceUnit)
+
+                    if let weekComparison {
+                        WeekComparisonCard(comparison: weekComparison)
+                    }
 
                     PeriodHeatMap(period: period)
 
@@ -308,7 +317,7 @@ private struct CardioInsightCard: View {
     let insight: CardioPeriodInsight
     let distanceUnit: DistanceUnit
 
-    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+    private let columns = [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -331,6 +340,13 @@ private struct CardioInsightCard: View {
                     cardioStat("Distance", ActivityFormatting.formattedDistance(from: insight.totalDistanceMeters, unit: distanceUnit), Color.stepDistance)
                     cardioStat("Burn", ActivityFormatting.formattedCalories(insight.totalActiveEnergyKilocalories), Color.stepEnergy)
                     cardioStat("Avg HR", averageHeartRateText, Color.stepWarning)
+                    cardioStat("Min HR", minimumHeartRateText, Color.stepMuted)
+                    cardioStat("Max HR", maximumHeartRateText, Color.stepWarning)
+                }
+
+                if insight.totalZoneSeconds > 0 {
+                    zoneMiniBar
+                        .accessibilityIdentifier("insights-cardio-zone-mini-bar")
                 }
 
                 if let workout = insight.bestWorkout {
@@ -363,6 +379,31 @@ private struct CardioInsightCard: View {
         return "\(Int(bpm.rounded())) bpm"
     }
 
+    private var minimumHeartRateText: String {
+        guard let bpm = insight.minHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private var maximumHeartRateText: String {
+        guard let bpm = insight.maxHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private var zoneMiniBar: some View {
+        GeometryReader { proxy in
+            HStack(spacing: 0) {
+                ForEach(insight.zoneSummaries) { zone in
+                    Rectangle()
+                        .fill(zone.color.opacity(zone.durationSeconds > 0 ? 0.82 : 0.16))
+                        .frame(width: max(zone.durationSeconds > 0 ? 1 : 0, proxy.size.width * zone.durationSeconds / max(1, insight.totalZoneSeconds)))
+                }
+            }
+        }
+        .frame(height: 8)
+        .background(Color.stepAxisGrid)
+        .clipShape(Capsule())
+    }
+
     private func cardioStat(_ title: String, _ value: String, _ color: Color) -> some View {
         VStack(alignment: .leading, spacing: 2) {
             Text(value)
@@ -378,6 +419,57 @@ private struct CardioInsightCard: View {
         .padding(8)
         .background(color.opacity(0.12))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct WeekComparisonCard: View {
+    let comparison: PeriodComparisonInsight
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Week Pulse", systemImage: "waveform.path.ecg")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                Text("vs prior week")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+
+            ForEach(comparison.metrics) { metric in
+                HStack(spacing: 10) {
+                    Text(metric.title)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepMuted)
+                        .frame(width: 92, alignment: .leading)
+
+                    Text(metric.currentValue)
+                        .font(.caption.monospacedDigit().weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+
+                    Spacer(minLength: 8)
+
+                    Text(metric.priorValue)
+                        .font(.caption2)
+                        .foregroundStyle(Color.stepMuted)
+
+                    Text(metric.deltaText)
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(deltaColor(for: metric))
+                        .frame(width: 52, alignment: .trailing)
+                }
+            }
+        }
+        .compactMetricCard()
+        .accessibilityIdentifier("insights-week-comparison-card")
+    }
+
+    private func deltaColor(for metric: PeriodComparisonMetric) -> Color {
+        guard let isImprovement = metric.isImprovement else {
+            return Color.stepMuted
+        }
+        return isImprovement ? Color.stepAccent : Color.stepWarning
     }
 }
 
@@ -557,6 +649,7 @@ private struct StrengthDetailView: View {
 
 private struct CardioDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
+    @AppStorage(AppViewPreferenceKey.cardioSessionScope) private var cardioSessionScopeRaw = AppViewPreferenceDefault.cardioSessionScope
     let scope: ActivityPeriodScope
     let anchorDate: Date
     var trendFilter: InsightsTrendFilter = .all
@@ -567,12 +660,21 @@ private struct CardioDetailView: View {
     }
 
     private var insight: CardioPeriodInsight {
-        period.cardioInsight
+        repository.cardioInsight(
+            scope: scope,
+            containing: anchorDate,
+            filter: trendFilter,
+            sessionScope: selectedCardioSessionScope
+        )
+    }
+
+    private var selectedCardioSessionScope: CardioSessionScope {
+        CardioSessionScope(rawValue: cardioSessionScopeRaw) ?? .movement
     }
 
     private var cardioWorkouts: [WorkoutActivity] {
         var workoutsBySource: [String: WorkoutActivity] = [:]
-        for workout in period.summaries.flatMap(\.workouts) where workout.type.isCardioMovement {
+        for workout in period.summaries.flatMap(\.workouts) where selectedCardioSessionScope.matches(workout) {
             workoutsBySource[workout.sourceIdentifier] = workout
         }
         return workoutsBySource.values.sorted { $0.startDate > $1.startDate }
@@ -593,6 +695,7 @@ private struct CardioDetailView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
                 header
+                scopeChips
 
                 if insight.hasCardio {
                     statsGrid
@@ -667,6 +770,25 @@ private struct CardioDetailView: View {
             MetricTile(title: "Distance", value: ActivityFormatting.formattedDistance(from: insight.totalDistanceMeters, unit: repository.preferences.distanceUnit), icon: StepReceiptSymbol.distance)
             MetricTile(title: "Active Burn", value: ActivityFormatting.formattedCalories(insight.totalActiveEnergyKilocalories), icon: StepReceiptSymbol.activeEnergy)
             MetricTile(title: "Avg HR", value: averageHeartRateText, icon: "heart.fill")
+            MetricTile(title: "Min HR", value: minimumHeartRateText, icon: "heart")
+            MetricTile(title: "Max HR", value: maximumHeartRateText, icon: "heart.fill")
+        }
+    }
+
+    private var scopeChips: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(CardioSessionScope.allCases) { sessionScope in
+                    FilterChip(
+                        title: sessionScope.displayName,
+                        isSelected: selectedCardioSessionScope == sessionScope
+                    ) {
+                        cardioSessionScopeRaw = sessionScope.rawValue
+                    }
+                    .accessibilityIdentifier("cardio-detail-scope-\(sessionScope.rawValue)")
+                }
+            }
+            .padding(.vertical, 2)
         }
     }
 
@@ -781,6 +903,16 @@ private struct CardioDetailView: View {
 
     private var averageHeartRateText: String {
         guard let bpm = insight.averageHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private var minimumHeartRateText: String {
+        guard let bpm = insight.minHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private var maximumHeartRateText: String {
+        guard let bpm = insight.maxHeartRateBPM else { return "--" }
         return "\(Int(bpm.rounded())) bpm"
     }
 }

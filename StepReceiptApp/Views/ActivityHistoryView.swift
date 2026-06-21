@@ -469,10 +469,23 @@ struct DaySummaryDetailView: View {
 struct FilterChip: View {
     let title: String
     let isSelected: Bool
+    let accessibilityIdentifier: String?
     let action: () -> Void
 
+    init(
+        title: String,
+        isSelected: Bool,
+        accessibilityIdentifier: String? = nil,
+        action: @escaping () -> Void
+    ) {
+        self.title = title
+        self.isSelected = isSelected
+        self.accessibilityIdentifier = accessibilityIdentifier
+        self.action = action
+    }
+
     var body: some View {
-        Button(action: action) {
+        let chip = Button(action: action) {
             Text(title)
                 .font(.subheadline.weight(.semibold))
                 .padding(.horizontal, 12)
@@ -482,6 +495,12 @@ struct FilterChip: View {
                 .clipShape(Capsule())
         }
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+
+        if let accessibilityIdentifier {
+            chip.accessibilityIdentifier(accessibilityIdentifier)
+        } else {
+            chip
+        }
     }
 }
 

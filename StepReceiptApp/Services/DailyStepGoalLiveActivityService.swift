@@ -103,21 +103,29 @@ final class DailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing
             return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
+        await endStaleActivities(notMatching: summary.dateStart)
+
+        guard let existingActivity = activity(for: summary.dateStart) else {
+            return status
+        }
+
+        let updatedAt = Date()
         let content = ActivityContent(
-            state: contentState(for: summary),
-            staleDate: staleDate()
+            state: contentState(for: summary, updatedAt: updatedAt),
+            staleDate: staleDate(from: updatedAt)
         )
 
-        for activity in currentActivities {
-            await activity.update(content)
-        }
+        await existingActivity.update(content)
 
         return status
     }
 
     func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus {
         let content = summary.map {
-            ActivityContent(state: contentState(for: $0), staleDate: nil)
+            ActivityContent(
+                state: contentState(for: $0, updatedAt: Date()),
+                staleDate: nil
+            )
         }
 
         for activity in currentActivities {

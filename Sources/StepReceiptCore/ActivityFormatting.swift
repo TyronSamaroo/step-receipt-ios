@@ -57,4 +57,21 @@ public enum ActivityFormatting {
         let day = components.day ?? 0
         return String(format: "%04d-%02d-%02d", year, month, day)
     }
+
+    public static func shortHourLabel(for date: Date, calendar: Calendar = .current) -> String {
+        let hour = calendar.component(.hour, from: date)
+        if hour == 0 { return "12a" }
+        if hour < 12 { return "\(hour)a" }
+        if hour == 12 { return "12p" }
+        return "\(hour - 12)p"
+    }
+
+    public static func compactHourlyDetail(
+        steps: Int,
+        distanceMeters: Double,
+        activeEnergyKilocalories: Double,
+        unit: DistanceUnit
+    ) -> String {
+        "\(steps.formatted()) steps · \(formattedDistance(from: distanceMeters, unit: unit)) · \(formattedCalories(activeEnergyKilocalories))"
+    }
 }

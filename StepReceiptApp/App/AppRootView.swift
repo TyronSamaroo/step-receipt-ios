@@ -41,6 +41,9 @@ struct AppRootView: View {
         .onChange(of: repository.activityNavigationToken) { _, _ in
             selectedTab = .activity
         }
+        .onChange(of: repository.competeNavigationToken) { _, _ in
+            selectedTab = .compete
+        }
     }
 }
 

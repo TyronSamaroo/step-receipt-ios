@@ -837,7 +837,18 @@ struct TodayView: View {
 
                 VStack(spacing: 10) {
                     ForEach(visible) { insight in
-                        coachRow(insight)
+                        Group {
+                            if insight.kind == .household {
+                                Button {
+                                    repository.openCompeteTab()
+                                } label: {
+                                    coachRow(insight, showsCompeteLink: true)
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                coachRow(insight, showsCompeteLink: false)
+                            }
+                        }
                     }
                 }
 
@@ -853,7 +864,7 @@ struct TodayView: View {
         }
     }
 
-    private func coachRow(_ insight: TodayCoachInsight) -> some View {
+    private func coachRow(_ insight: TodayCoachInsight, showsCompeteLink: Bool) -> some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: insight.systemImage)
                 .font(.subheadline.weight(.bold))
@@ -870,6 +881,11 @@ struct TodayView: View {
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                     .fixedSize(horizontal: false, vertical: true)
+                if showsCompeteLink {
+                    Text("Open Compete")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.stepAccent)
+                }
             }
             Spacer(minLength: 0)
         }

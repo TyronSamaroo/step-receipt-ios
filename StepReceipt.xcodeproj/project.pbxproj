@@ -18,8 +18,10 @@
 		2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
+		46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */; };
 		4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */; };
+		511A2C1B7A6F6C041A3D643D /* CompeteSetupWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */; };
 		55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
 		58DD12BF3D9F204EFD70FC69 /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
@@ -28,11 +30,13 @@
 		6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		717D23C5C2085DB32F5C3357 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
 		7937BD85DBFDD55EAEC28111 /* WorkoutTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */; };
+		7A48CE932643DAB1B19B2E44 /* CompeteLeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */; };
 		7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCCA4BE75DE26E667433C90 /* InsightsView.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
 		8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
 		91A727FC5BFA6D2B3CBF4C5F /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
+		9C18D54A1FC7EFE82811FE38 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		9D0DA8357E5F916B3D0894EB /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
 		A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
 		A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
@@ -45,6 +49,7 @@
 		C2CB4739924C12FB35360039 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
+		D269C71AC24C4C5963A909ED /* CompeteSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */; };
 		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		DA254D0A49D1F5754D20937D /* DailyStepGoalLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */; };
 		DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
@@ -53,6 +58,7 @@
 		E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
 		E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */; };
+		EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
 		F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
@@ -60,6 +66,7 @@
 		F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D4678D07205B15BE59624E /* WorkoutDetailView.swift */; };
 		F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
 		F955F827A2DF72BF9E9B5A6D /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
+		F9FE4E8FFADE5EDA16602F92 /* CompeteWelcomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B50977D2B39AA9DEECAF0BD9 /* CompeteWelcomeView.swift */; };
 		FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */; };
 		FF42BF3650A3A03217058F4B /* ActivityHistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */; };
 /* End PBXBuildFile section */
@@ -97,6 +104,9 @@
 
 /* Begin PBXFileReference section */
 		01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplate.swift; sourceTree = "<group>"; };
+		03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSharedComponents.swift; sourceTree = "<group>"; };
+		0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionSyncDiagnostics.swift; sourceTree = "<group>"; };
+		0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteLeaderboardView.swift; sourceTree = "<group>"; };
 		1011A2BF853A9E608436A609 /* StepReceiptUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptUITests.swift; sourceTree = "<group>"; };
 		117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptTheme.swift; sourceTree = "<group>"; };
 		11D4678D07205B15BE59624E /* WorkoutDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutDetailView.swift; sourceTree = "<group>"; };
@@ -122,10 +132,12 @@
 		845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplateTests.swift; sourceTree = "<group>"; };
 		8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityWidget.swift; sourceTree = "<group>"; };
 		8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSync.swift; sourceTree = "<group>"; };
+		8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSetupWizardView.swift; sourceTree = "<group>"; };
 		959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSummarySync.swift; sourceTree = "<group>"; };
 		99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.entitlements; sourceTree = "<group>"; };
 		A1C02F7D43B39AEA6366E622 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayQuickDigestTests.swift; sourceTree = "<group>"; };
+		B50977D2B39AA9DEECAF0BD9 /* CompeteWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteWelcomeView.swift; sourceTree = "<group>"; };
 		BB6E09C0351D4BC1627353D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BFC828839F225D766AD0E781 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngine.swift; sourceTree = "<group>"; };
 		C419C531AB76EA4334533C31 /* CompetitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionView.swift; sourceTree = "<group>"; };
@@ -138,6 +150,7 @@
 		DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityShareCards.swift; sourceTree = "<group>"; };
 		DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryTests.swift; sourceTree = "<group>"; };
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteHouseholdSheet.swift; sourceTree = "<group>"; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
 		F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisabledCloudSync.swift; sourceTree = "<group>"; };
@@ -197,6 +210,7 @@
 				D7AA520E58D9123739472025 /* ShareSheet.swift */,
 				E6DCB0108D22D9887D64D763 /* TodayView.swift */,
 				11D4678D07205B15BE59624E /* WorkoutDetailView.swift */,
+				F31D9A7FEE3EE026CF636FF5 /* Compete */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -266,6 +280,7 @@
 				65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */,
 				8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */,
 				959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */,
+				0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */,
 				D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */,
 				F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */,
 				69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */,
@@ -293,6 +308,18 @@
 				55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */,
 			);
 			path = StepReceiptLiveActivityShared;
+			sourceTree = "<group>";
+		};
+		F31D9A7FEE3EE026CF636FF5 /* Compete */ = {
+			isa = PBXGroup;
+			children = (
+				E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */,
+				0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */,
+				8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */,
+				03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */,
+				B50977D2B39AA9DEECAF0BD9 /* CompeteWelcomeView.swift */,
+			);
+			path = Compete;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -460,6 +487,7 @@
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
+				EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */,
 				B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */,
 				AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */,
 				5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */,
@@ -489,8 +517,14 @@
 				0C19B3E6BD9402131FF0473D /* AppViewPreferences.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
+				46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */,
+				7A48CE932643DAB1B19B2E44 /* CompeteLeaderboardView.swift in Sources */,
+				511A2C1B7A6F6C041A3D643D /* CompeteSetupWizardView.swift in Sources */,
+				D269C71AC24C4C5963A909ED /* CompeteSharedComponents.swift in Sources */,
+				F9FE4E8FFADE5EDA16602F92 /* CompeteWelcomeView.swift in Sources */,
 				1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */,
 				4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */,
+				9C18D54A1FC7EFE82811FE38 /* CompetitionSyncDiagnostics.swift in Sources */,
 				EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */,
 				91A727FC5BFA6D2B3CBF4C5F /* DailyStepGoalAttributes.swift in Sources */,
 				2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */,

@@ -425,6 +425,46 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         let hash = digest.map { String(format: "%02x", $0) }.joined()
         return "competition-entry-\(hash)"
     }
+
+    static func friendlySyncMessage(for error: Error) -> String {
+        if let cloudError = error as? CloudSyncError {
+            return cloudError.localizedDescription
+        }
+
+        guard let ckError = error as? CKError else {
+            let description = error.localizedDescription
+            if description.localizedCaseInsensitiveContains("schema") || description.localizedCaseInsensitiveContains("unknown item") {
+                return "CloudKit schema is missing. Deploy HouseholdCompetitionBoard and CompetitionEntry in CloudKit Dashboard."
+            }
+            return description
+        }
+
+        switch ckError.code {
+        case .notAuthenticated:
+            return "Sign in to iCloud in Settings, then retry sync."
+        case .networkUnavailable, .networkFailure:
+            return "Network unavailable. Check connection and retry."
+        case .serviceUnavailable, .requestRateLimited, .zoneBusy:
+            return "iCloud is busy right now. Wait a moment and retry."
+        case .permissionFailure, .incompatibleVersion:
+            return "iCloud permission issue. Confirm CloudKit security roles for competition records."
+        case .unknownItem, .invalidArguments:
+            return "CloudKit schema is missing or incomplete. See Docs/CloudKitCompetitionSchema.md."
+        case .serverRecordChanged:
+            return "Board updated elsewhere. Pull to refresh and retry."
+        case .partialFailure:
+            if let partial = ckError.partialErrorsByItemID?.values.first {
+                return friendlySyncMessage(for: partial)
+            }
+            return "Some competition rows could not sync. Retry."
+        default:
+            let description = ckError.localizedDescription
+            if description.localizedCaseInsensitiveContains("icloud") {
+                return "Check iCloud sign-in, then retry sync."
+            }
+            return description
+        }
+    }
 }
 
 extension CloudKitCompetitionSync: SharedCompetitionSyncing {}

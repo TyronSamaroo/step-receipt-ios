@@ -9,6 +9,9 @@ struct AppDiagnosticsSummary: Equatable {
     let healthBackgroundUpdates: String
     let iCloudStatus: String
     let liveActivityStatus: String
+    let competeBoardStatus: String
+    let competeMemberCount: Int
+    let competeSyncStatus: String
 
     var text: String {
         var lines = [
@@ -18,6 +21,9 @@ struct AppDiagnosticsSummary: Equatable {
             "Health Refresh: \(healthRefreshStatus)",
             "Background Updates: \(healthBackgroundUpdates)",
             "iCloud: \(iCloudStatus)",
+            "Household Board: \(competeBoardStatus)",
+            "Household Members: \(competeMemberCount)",
+            "Compete Sync: \(competeSyncStatus)",
             "Live Activity: \(liveActivityStatus)"
         ]
 

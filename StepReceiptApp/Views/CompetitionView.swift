@@ -104,10 +104,25 @@ struct CompetitionView: View {
             } message: {
                 Text("This replaces your current board code. You'll leave your solo board.")
             }
+            .sheet(item: pendingJoinBinding) { request in
+                CompeteJoinConfirmationSheet(request: request)
+                    .environmentObject(repository)
+            }
             .task {
                 await syncSharedBoardIfNeeded()
             }
         }
+    }
+
+    private var pendingJoinBinding: Binding<CompeteJoinRequest?> {
+        Binding(
+            get: { repository.pendingCompeteJoin },
+            set: { newValue in
+                if newValue == nil {
+                    repository.dismissPendingCompeteJoin()
+                }
+            }
+        )
     }
 
     private func shareInviteCode() {

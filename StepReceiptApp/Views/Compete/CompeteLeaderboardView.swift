@@ -9,6 +9,8 @@ struct CompeteLeaderboardView: View {
     let phase: CompeteBoardPhase
     let onInvitePartner: () -> Void
 
+    @State private var showDiagnostics = false
+
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             if showsSampleBoard {
@@ -33,6 +35,10 @@ struct CompeteLeaderboardView: View {
 
             privacyNote
         }
+        .sheet(isPresented: $showDiagnostics) {
+            CompeteDiagnosticsSheet()
+                .environmentObject(repository)
+        }
         .accessibilityIdentifier("compete-leaderboard")
     }
 
@@ -46,11 +52,19 @@ struct CompeteLeaderboardView: View {
                     systemImage: "icloud.slash"
                 )
             } else if case .unavailable(let reason) = repository.sharedCompetitionSyncState {
-                CompeteAttentionCard(
-                    title: "Sync needs attention",
-                    detail: CompetitionSyncPresentation.shortIssue(reason),
-                    systemImage: "exclamationmark.triangle.fill"
-                )
+                VStack(alignment: .leading, spacing: 10) {
+                    CompeteAttentionCard(
+                        title: "Sync needs attention",
+                        detail: CompetitionSyncPresentation.shortIssue(reason),
+                        systemImage: "exclamationmark.triangle.fill"
+                    )
+                    Button("View diagnostics") {
+                        showDiagnostics = true
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .accessibilityIdentifier("compete-view-diagnostics")
+                }
             } else if !repository.canPublishSharedCompetitionEntries {
                 CompeteAttentionCard(
                     title: "Connect Apple Health",
@@ -94,7 +108,7 @@ struct CompeteLeaderboardView: View {
             .background(Color.stepBackground)
             .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            Text("Partner: Compete → Join with code → paste this code")
+            Text("Partner: tap the invite link in Messages, or Compete → Join with code.")
                 .font(.caption.weight(.semibold))
                 .foregroundStyle(Color.stepMuted)
                 .fixedSize(horizontal: false, vertical: true)

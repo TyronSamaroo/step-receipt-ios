@@ -1,6 +1,10 @@
+import CloudKit
 import Combine
 import CoreLocation
 import Foundation
+#if canImport(UIKit)
+import UIKit
+#endif
 
 @MainActor
 final class ActivityRepository: ObservableObject {
@@ -24,6 +28,7 @@ final class ActivityRepository: ObservableObject {
     @Published private(set) var householdMembers: [HouseholdMember] = []
     @Published private(set) var isShowingSampleCompetitionBoard = false
     @Published private(set) var competeNavigationToken = UUID()
+    @Published private(set) var pendingCompeteJoin: CompeteJoinRequest?
     @Published var competitionMetric: CompetitionMetric = .steps {
         didSet {
             refreshCompetition()
@@ -164,6 +169,7 @@ final class ActivityRepository: ObservableObject {
 
     func bootstrap() async {
         resetDefaultsForUITestingIfNeeded()
+        applyUITestingCompeteJoinCodeIfNeeded()
         if isUITestingSampleDataEnabled {
             authorizationState = .authorized
             loadSampleData()
@@ -1209,6 +1215,55 @@ final class ActivityRepository: ObservableObject {
         competeNavigationToken = UUID()
     }
 
+    func handleCompeteJoinDeepLink(code: String) {
+        let normalized = SharedCompetitionSettings.normalizedInviteCode(code)
+        guard !normalized.isEmpty else { return }
+
+        pendingCompeteJoin = CompeteJoinRequest(
+            inviteCode: normalized,
+            source: .deepLink
+        )
+        openCompeteTab()
+    }
+
+    func handleCloudKitShareAcceptance(metadata: CKShare.Metadata) async {
+        let container = CKContainer(identifier: metadata.containerIdentifier)
+        do {
+            _ = try await container.accept(metadata)
+            let boardRecord = try await container.sharedCloudDatabase.record(for: metadata.rootRecordID)
+
+            guard let inviteCode = CloudKitCompetitionSync.inviteCode(from: boardRecord) else {
+                lastError = "Could not read household code from iCloud invite."
+                return
+            }
+
+            pendingCompeteJoin = CompeteJoinRequest(
+                inviteCode: inviteCode,
+                source: .cloudKitShare,
+                ownerDisplayName: CloudKitCompetitionSync.ownerDisplayName(from: boardRecord)
+            )
+            openCompeteTab()
+        } catch {
+            lastError = CloudKitCompetitionSync.friendlySyncMessage(for: error)
+        }
+    }
+
+    func confirmPendingCompeteJoin(displayName: String) async {
+        guard let pending = pendingCompeteJoin else { return }
+        let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        await updateSharedCompetitionWithProfile(
+            isEnabled: true,
+            inviteCode: pending.inviteCode,
+            displayName: trimmedName.isEmpty ? nil : trimmedName
+        )
+        pendingCompeteJoin = nil
+        await syncSharedCompetition()
+    }
+
+    func dismissPendingCompeteJoin() {
+        pendingCompeteJoin = nil
+    }
+
     func handleCompetitionCloudKitNotification() async {
         guard sharedCompetitionSettings.canSync else { return }
         await syncSharedCompetition()
@@ -1223,6 +1278,11 @@ final class ActivityRepository: ObservableObject {
         let groupHash = inviteCode.isEmpty ? nil : CloudKitCompetitionSync.groupHash(for: inviteCode)
         let syncedAt: Date? = if case .synced(let date) = sharedCompetitionSyncState { date } else { nil }
         let unavailableReason: String? = if case .unavailable(let reason) = sharedCompetitionSyncState { reason } else { nil }
+        let syncDetail = unavailableReason ?? CompetitionSyncPresentation.statusDetail(
+            state: sharedCompetitionSyncState,
+            canSync: sharedCompetitionSettings.canSync,
+            canPublishEntries: canPublishSharedCompetitionEntries
+        )
 
         return CompetitionSyncDiagnostics(
             boardEnabled: sharedCompetitionSettings.canSync,
@@ -1230,15 +1290,70 @@ final class ActivityRepository: ObservableObject {
             memberCount: householdMembers.count,
             remoteEntryCount: sharedCompetitionEntries.count,
             lastSyncState: CompetitionSyncPresentation.statusTitle(for: sharedCompetitionSyncState),
-            lastSyncDetail: unavailableReason ?? CompetitionSyncPresentation.statusDetail(
-                state: sharedCompetitionSyncState,
-                canSync: sharedCompetitionSettings.canSync,
-                canPublishEntries: canPublishSharedCompetitionEntries
-            ),
+            lastSyncDetail: syncDetail,
             lastSyncedAt: syncedAt,
             boardRecordHashSuffix: groupHash.map { String($0.suffix(8)) },
-            cloudKitCompetitionAvailable: isCloudKitCompetitionAvailable
+            cloudKitCompetitionAvailable: isCloudKitCompetitionAvailable,
+            schemaLikelyMissing: CompetitionSyncDiagnostics.schemaLikelyMissing(from: syncDetail)
         )
+    }
+
+    func enrichedCompetitionSyncDiagnostics() async -> CompetitionSyncDiagnostics {
+        let base = competitionSyncDiagnostics
+        guard isCloudKitCompetitionAvailable else { return base }
+
+        let inviteCode = sharedCompetitionSettings.inviteCode
+        let groupHash = inviteCode.isEmpty ? nil : CloudKitCompetitionSync.groupHash(for: inviteCode)
+        let container = CKContainer(identifier: "iCloud.com.tyronsamaroo.stepreceipt")
+
+        let accountStatus: String
+        do {
+            let status = try await container.accountStatus()
+            accountStatus = CompetitionSyncPresentation.iCloudAccountStatusLabel(status)
+        } catch {
+            accountStatus = "check failed"
+        }
+
+        #if canImport(UIKit)
+        let pushState = UIApplication.shared.isRegisteredForRemoteNotifications ? "registered" : "not registered"
+        #else
+        let pushState = "unknown"
+        #endif
+
+        let subscriptionRegistered: Bool?
+        if let groupHash {
+            let expectedHash = competitionSubscription.registeredGroupHash()
+            subscriptionRegistered = expectedHash == groupHash
+        } else {
+            subscriptionRegistered = nil
+        }
+
+        return CompetitionSyncDiagnostics(
+            boardEnabled: base.boardEnabled,
+            inviteCodeHint: base.inviteCodeHint,
+            memberCount: base.memberCount,
+            remoteEntryCount: base.remoteEntryCount,
+            lastSyncState: base.lastSyncState,
+            lastSyncDetail: base.lastSyncDetail,
+            lastSyncedAt: base.lastSyncedAt,
+            boardRecordHashSuffix: base.boardRecordHashSuffix,
+            cloudKitCompetitionAvailable: base.cloudKitCompetitionAvailable,
+            iCloudAccountStatus: accountStatus,
+            pushRegistrationState: pushState,
+            subscriptionRegistered: subscriptionRegistered,
+            schemaLikelyMissing: base.schemaLikelyMissing
+        )
+    }
+
+    func checkICloudAvailableForCompete() async -> Bool {
+        guard isCloudKitCompetitionAvailable else { return false }
+        let container = CKContainer(identifier: "iCloud.com.tyronsamaroo.stepreceipt")
+        do {
+            let status = try await container.accountStatus()
+            return status == .available
+        } catch {
+            return false
+        }
     }
 
     func syncSharedCompetition() async {
@@ -1487,6 +1602,16 @@ final class ActivityRepository: ObservableObject {
 
     private func disableSamplePreview() {
         userDefaults.set(false, forKey: samplePreviewEnabledKey)
+    }
+
+    private func applyUITestingCompeteJoinCodeIfNeeded() {
+        let arguments = ProcessInfo.processInfo.arguments
+        guard let flagIndex = arguments.firstIndex(of: "-CompeteJoinCode"),
+              arguments.indices.contains(arguments.index(after: flagIndex))
+        else { return }
+
+        let code = arguments[arguments.index(after: flagIndex)]
+        handleCompeteJoinDeepLink(code: code)
     }
 
     private func resetDefaultsForUITestingIfNeeded() {

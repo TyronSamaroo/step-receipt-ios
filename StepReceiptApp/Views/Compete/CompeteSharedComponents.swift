@@ -12,8 +12,22 @@ struct CompetitionInviteShare: Identifiable {
     let id = UUID()
     let code: String
 
+    var joinURL: URL? {
+        CompeteJoinDeepLink.joinURL(for: code)
+    }
+
     var message: String {
-        "StrideSlip household code: \(code)\nOpen StrideSlip > Compete, paste this code, set your board name, then tap Sync."
+        var lines = [
+            "Join my StrideSlip household board:"
+        ]
+        if let joinURL {
+            lines.append(joinURL.absoluteString)
+        } else {
+            lines.append("Code: \(code)")
+        }
+        lines.append("")
+        lines.append("Or open StrideSlip → Compete and paste the code.")
+        return lines.joined(separator: "\n")
     }
 }
 

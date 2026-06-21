@@ -3,12 +3,29 @@ import UIKit
 
 final class StepReceiptAppDelegate: NSObject, UIApplicationDelegate {
     var competitionNotificationHandler: (@Sendable () async -> Void)?
+    var competitionShareAcceptanceHandler: (@Sendable (CKShare.Metadata) async -> Void)?
 
     func application(
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
         true
+    }
+
+    func application(
+        _ application: UIApplication,
+        userDidAcceptCloudKitShareWith metadata: CKShare.Metadata,
+        completionHandler: @escaping (URL?) -> Void
+    ) {
+        guard let handler = competitionShareAcceptanceHandler else {
+            completionHandler(nil)
+            return
+        }
+
+        Task { @MainActor in
+            await handler(metadata)
+            completionHandler(nil)
+        }
     }
 
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {}

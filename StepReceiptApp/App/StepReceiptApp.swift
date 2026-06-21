@@ -15,6 +15,9 @@ struct StepReceiptApp: App {
         appDelegate.competitionNotificationHandler = {
             await Self.sharedRepository.handleCompetitionCloudKitNotification()
         }
+        appDelegate.competitionShareAcceptanceHandler = { metadata in
+            await Self.sharedRepository.handleCloudKitShareAcceptance(metadata: metadata)
+        }
 
         #if canImport(UIKit)
         StepReceiptChrome.configure()
@@ -39,6 +42,8 @@ struct StepReceiptApp: App {
                     guard url.scheme == "stepreceipt" else { return }
                     if url.host == "today" {
                         Task { await repository.refreshAfterAppBecameActive() }
+                    } else if let joinCode = CompeteJoinDeepLink.inviteCode(from: url) {
+                        repository.handleCompeteJoinDeepLink(code: joinCode)
                     } else if url.host == "compete" {
                         repository.openCompeteTab()
                     }

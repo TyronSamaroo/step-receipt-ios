@@ -165,7 +165,8 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
 
         record["groupHash"] = groupHash
         record["schemaVersion"] = Self.schemaVersion
-        record["inviteCodeHint"] = inviteCode
+        record["inviteCode"] = inviteCode
+        record["inviteCodeHint"] = String(inviteCode.suffix(4))
         record["ownerDisplayName"] = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
         record["privacyBoundary"] = "competition-aggregates-only"
         record["updatedAt"] = Date()
@@ -424,6 +425,24 @@ final class CloudKitCompetitionSync: @unchecked Sendable {
         let digest = SHA256.hash(data: Data("\(groupHash)|\(entryID)".utf8))
         let hash = digest.map { String(format: "%02x", $0) }.joined()
         return "competition-entry-\(hash)"
+    }
+
+    static func inviteCode(from boardRecord: CKRecord) -> String? {
+        if let fullCode = boardRecord["inviteCode"] as? String {
+            let normalized = SharedCompetitionSettings.normalizedInviteCode(fullCode)
+            if !normalized.isEmpty { return normalized }
+        }
+
+        if let hint = boardRecord["inviteCodeHint"] as? String {
+            let normalized = SharedCompetitionSettings.normalizedInviteCode(hint)
+            if !normalized.isEmpty { return normalized }
+        }
+
+        return nil
+    }
+
+    static func ownerDisplayName(from boardRecord: CKRecord) -> String? {
+        boardRecord["ownerDisplayName"] as? String
     }
 
     static func friendlySyncMessage(for error: Error) -> String {

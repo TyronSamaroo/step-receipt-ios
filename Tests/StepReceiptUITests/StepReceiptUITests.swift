@@ -91,6 +91,28 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
+    func testCompeteJoinConfirmationSheetFromLaunchArg() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-stepReceiptUITestingResetDefaults",
+            "-stepReceiptUITestingUseSampleData",
+            "-CompeteJoinCode",
+            "SRTEST123"
+        ]
+        app.launch()
+
+        if app.buttons["Preview Sample Data"].waitForExistence(timeout: 2) {
+            app.buttons["Preview Sample Data"].tap()
+        }
+
+        app.tabBars.buttons["Compete"].tap()
+        XCTAssertTrue(app.otherElements["compete-join-confirmation-sheet"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.textFields["compete-join-confirm-name"].exists)
+        XCTAssertTrue(app.buttons["compete-join-confirm-submit"].exists)
+    }
+
+    @MainActor
     func testCompeteWelcomeQuickJoinFields() throws {
         continueAfterFailure = false
         let app = XCUIApplication()

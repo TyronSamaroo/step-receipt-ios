@@ -48,7 +48,7 @@ struct StepReceiptApp: App {
                 return
             }
 
-            await repository.refreshAfterAppBecameActive()
+            await repository.refreshLiveActivityTick()
         }
     }
 

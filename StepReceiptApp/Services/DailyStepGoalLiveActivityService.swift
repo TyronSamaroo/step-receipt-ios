@@ -34,7 +34,16 @@ enum DailyStepGoalLiveActivityStatus: Equatable {
     }
 }
 
-final class DailyStepGoalLiveActivityService: @unchecked Sendable {
+protocol DailyStepGoalLiveActivityServicing: Sendable {
+    var status: DailyStepGoalLiveActivityStatus { get }
+
+    func start(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func updateIfActive(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func update(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus
+    func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus
+}
+
+final class DailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing, @unchecked Sendable {
     private var currentActivities: [Activity<DailyStepGoalAttributes>] {
         Activity<DailyStepGoalAttributes>.activities
     }
@@ -56,13 +65,16 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
             return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
+        await endStaleActivities(notMatching: summary.dateStart)
+
+        let updatedAt = Date()
         let content = ActivityContent(
-            state: contentState(for: summary),
-            staleDate: staleDate()
+            state: contentState(for: summary, updatedAt: updatedAt),
+            staleDate: staleDate(from: updatedAt)
         )
 
         do {
-            if let existingActivity = currentActivities.first {
+            if let existingActivity = activity(for: summary.dateStart) {
                 await existingActivity.update(content)
             } else {
                 _ = try Activity.request(
@@ -91,21 +103,29 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
             return .unavailable("Live Activities are disabled for StrideSlip in iOS Settings.")
         }
 
+        await endStaleActivities(notMatching: summary.dateStart)
+
+        guard let existingActivity = activity(for: summary.dateStart) else {
+            return status
+        }
+
+        let updatedAt = Date()
         let content = ActivityContent(
-            state: contentState(for: summary),
-            staleDate: staleDate()
+            state: contentState(for: summary, updatedAt: updatedAt),
+            staleDate: staleDate(from: updatedAt)
         )
 
-        for activity in currentActivities {
-            await activity.update(content)
-        }
+        await existingActivity.update(content)
 
         return status
     }
 
     func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus {
         let content = summary.map {
-            ActivityContent(state: contentState(for: $0), staleDate: nil)
+            ActivityContent(
+                state: contentState(for: $0, updatedAt: Date()),
+                staleDate: nil
+            )
         }
 
         for activity in currentActivities {
@@ -119,14 +139,30 @@ final class DailyStepGoalLiveActivityService: @unchecked Sendable {
         return status
     }
 
-    private func contentState(for summary: DailyActivitySummary) -> DailyStepGoalAttributes.ContentState {
+    private func activity(for dayStart: Date) -> Activity<DailyStepGoalAttributes>? {
+        currentActivities.first {
+            Calendar.current.isDate($0.attributes.dayStart, inSameDayAs: dayStart)
+        }
+    }
+
+    private func endStaleActivities(notMatching dayStart: Date) async {
+        for activity in currentActivities where !Calendar.current.isDate(activity.attributes.dayStart, inSameDayAs: dayStart) {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+    }
+
+    private func contentState(
+        for summary: DailyActivitySummary,
+        updatedAt: Date
+    ) -> DailyStepGoalAttributes.ContentState {
         DailyStepGoalAttributes.ContentState(
             steps: summary.steps,
-            stepGoal: summary.goals.stepsPerDay
+            stepGoal: summary.goals.stepsPerDay,
+            updatedAt: updatedAt
         )
     }
 
-    private func staleDate() -> Date {
-        Date().addingTimeInterval(60 * 60 * 2)
+    private func staleDate(from updatedAt: Date) -> Date {
+        updatedAt.addingTimeInterval(60 * 60 * 2)
     }
 }

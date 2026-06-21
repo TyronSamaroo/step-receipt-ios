@@ -410,47 +410,29 @@ struct DaySummaryDetailView: View {
     }
 
     private var dayTimeline: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        let activeHourCount = summary.buckets.filter { $0.steps > 0 }.count
+
+        return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label("Hourly Timeline", systemImage: "clock")
                     .font(.headline)
                     .foregroundStyle(Color.stepInk)
                 Spacer()
-                Text(summary.buckets.isEmpty ? "No buckets" : "\(summary.buckets.count) hours")
-                    .font(.caption.weight(.bold))
+                Text(summary.buckets.isEmpty ? "No buckets" : "\(activeHourCount) active")
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.stepMuted)
             }
 
             if summary.buckets.isEmpty {
                 Text("No hourly timeline for this day yet.")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Color.stepMuted)
-                    .frame(maxWidth: .infinity, minHeight: 80, alignment: .center)
+                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
             } else {
-                VStack(spacing: 8) {
-                    ForEach(summary.buckets) { bucket in
-                        HStack(spacing: 12) {
-                            Text(bucket.startDate, format: .dateTime.hour())
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.stepMuted)
-                                .frame(width: 50, alignment: .leading)
-
-                            VStack(alignment: .leading, spacing: 3) {
-                                Text("\(bucket.steps.formatted()) steps")
-                                    .font(.subheadline.weight(.bold))
-                                    .foregroundStyle(Color.stepInk)
-                                Text("\(ActivityFormatting.formattedDistance(from: bucket.distanceMeters, unit: repository.preferences.distanceUnit)) · \(ActivityFormatting.formattedCalories(bucket.activeEnergyKilocalories))")
-                                    .font(.caption)
-                                    .foregroundStyle(Color.stepMuted)
-                            }
-
-                            Spacer()
-                        }
-                        .padding(10)
-                        .background(Color.stepBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-                    }
-                }
+                CompactHourlyTimetableRows(
+                    buckets: summary.buckets,
+                    distanceUnit: repository.preferences.distanceUnit
+                )
             }
         }
         .metricCard()

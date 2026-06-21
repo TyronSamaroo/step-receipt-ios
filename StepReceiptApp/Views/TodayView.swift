@@ -927,32 +927,19 @@ struct TodayView: View {
     }
 
     private func timetable(_ summary: DailyActivitySummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Timetable")
                 .font(.headline)
 
             if summary.buckets.isEmpty {
                 Text("No timetable entries for this day.")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Color.stepMuted)
             } else {
-                ForEach(summary.buckets) { bucket in
-                    HStack(spacing: 12) {
-                        Text(bucket.startDate, format: .dateTime.hour())
-                            .font(.caption)
-                            .foregroundStyle(Color.stepMuted)
-                            .frame(width: 58, alignment: .leading)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(bucket.steps.formatted()) steps")
-                                .font(.subheadline.weight(.semibold))
-                            Text("\(ActivityFormatting.formattedDistance(from: bucket.distanceMeters, unit: repository.preferences.distanceUnit)) · \(ActivityFormatting.formattedCalories(bucket.activeEnergyKilocalories))")
-                                .font(.caption)
-                                .foregroundStyle(Color.stepMuted)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 6)
-                }
+                CompactHourlyTimetableRows(
+                    buckets: summary.buckets,
+                    distanceUnit: repository.preferences.distanceUnit
+                )
             }
         }
         .metricCard()
@@ -996,11 +983,88 @@ struct TodayView: View {
     }
 
     private func shortHourLabel(for date: Date) -> String {
-        let hour = Calendar.current.component(.hour, from: date)
-        if hour == 0 { return "12a" }
-        if hour < 12 { return "\(hour)a" }
-        if hour == 12 { return "12p" }
-        return "\(hour - 12)p"
+        ActivityFormatting.shortHourLabel(for: date)
+    }
+}
+
+struct CompactHourlyTimetableRows: View {
+    let buckets: [HealthMetricBucket]
+    let distanceUnit: DistanceUnit
+
+    @State private var showQuietHours = false
+
+    private var quietHourCount: Int {
+        buckets.filter { $0.steps == 0 }.count
+    }
+
+    private var visibleBuckets: [HealthMetricBucket] {
+        showQuietHours ? buckets : buckets.filter { $0.steps > 0 }
+    }
+
+    private var usesDenseGrid: Bool {
+        visibleBuckets.count > 12
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            if quietHourCount > 0 {
+                Button {
+                    showQuietHours.toggle()
+                } label: {
+                    Text(
+                        showQuietHours
+                            ? "Hide quiet hours"
+                            : "\(quietHourCount) quiet hour\(quietHourCount == 1 ? "" : "s") hidden"
+                    )
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+                }
+                .buttonStyle(.plain)
+            }
+
+            if visibleBuckets.isEmpty {
+                Text("No steps logged in active hours.")
+                    .font(.caption)
+                    .foregroundStyle(Color.stepMuted)
+            } else if usesDenseGrid {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
+                    ForEach(visibleBuckets) { bucket in
+                        compactRow(bucket)
+                    }
+                }
+            } else {
+                VStack(spacing: 2) {
+                    ForEach(visibleBuckets) { bucket in
+                        compactRow(bucket)
+                    }
+                }
+            }
+        }
+    }
+
+    private func compactRow(_ bucket: HealthMetricBucket) -> some View {
+        HStack(spacing: 6) {
+            Text(ActivityFormatting.shortHourLabel(for: bucket.startDate))
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+                .frame(width: 28, alignment: .leading)
+
+            Text(
+                ActivityFormatting.compactHourlyDetail(
+                    steps: bucket.steps,
+                    distanceMeters: bucket.distanceMeters,
+                    activeEnergyKilocalories: bucket.activeEnergyKilocalories,
+                    unit: distanceUnit
+                )
+            )
+            .font(.caption)
+            .foregroundStyle(Color.stepInk)
+            .lineLimit(1)
+            .minimumScaleFactor(0.75)
+
+            Spacer(minLength: 0)
+        }
+        .padding(.vertical, 1)
     }
 }
 

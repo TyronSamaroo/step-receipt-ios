@@ -147,6 +147,140 @@ struct ActivityRepositoryTests {
     }
 
     @Test
+    func testBackgroundDeliveryUpdatesLiveActivityWhenEnabled() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let liveActivity = FakeDailyStepGoalLiveActivityService()
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 8, steps: 500, distance: 360, energy: 18)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 500, distance: 360, energy: 18)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            liveActivityService: liveActivity,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        await repository.setDailyStepGoalLiveActivityEnabled(true)
+
+        #expect(liveActivity.startCallCount == 1)
+        #expect(liveActivity.lastSummary?.steps == 500)
+
+        health.hourlyBuckets = [
+            bucket(day, hour: 8, steps: 500, distance: 360, energy: 18),
+            bucket(day, hour: 11, steps: 1_700, distance: 1_240, energy: 72)
+        ]
+
+        await health.deliverStepBackgroundUpdate()
+
+        #expect(repository.todaySummary?.steps == 2_200)
+        #expect(liveActivity.updateCallCount >= 1)
+        #expect(liveActivity.lastSummary?.steps == 2_200)
+        #expect(repository.liveActivityStatus.isActive)
+    }
+
+    @Test
+    func testForegroundLiveActivityTickUpdatesWhenEnabled() async throws {
+        let day = calendar.startOfDay(for: Date())
+        let liveActivity = FakeDailyStepGoalLiveActivityService()
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(day, hour: 9, steps: 800, distance: 580, energy: 28)
+            ],
+            dailyBuckets: [
+                bucket(day, hour: 0, steps: 800, distance: 580, energy: 28)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            liveActivityService: liveActivity,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        await repository.setDailyStepGoalLiveActivityEnabled(true)
+        liveActivity.resetCallCounts()
+
+        health.hourlyBuckets = [
+            bucket(day, hour: 9, steps: 800, distance: 580, energy: 28),
+            bucket(day, hour: 15, steps: 2_400, distance: 1_750, energy: 96)
+        ]
+        health.dailyBuckets = [
+            bucket(day, hour: 0, steps: 3_200, distance: 2_330, energy: 124)
+        ]
+
+        await repository.refreshLiveActivityTick()
+
+        #expect(repository.todaySummary?.steps == 3_200)
+        #expect(liveActivity.updateCallCount >= 1)
+        #expect(liveActivity.startCallCount == 0)
+        #expect(liveActivity.lastSummary?.steps == 3_200)
+    }
+
+    @Test
+    func testLiveActivityRefreshUsesTodayWhenSelectedDayIsPast() async throws {
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today) ?? today
+        let liveActivity = FakeDailyStepGoalLiveActivityService()
+        let health = FakeHealthKitProvider(
+            hourlyBuckets: [
+                bucket(today, hour: 10, steps: 4_500, distance: 3_200, energy: 150),
+                bucket(yesterday, hour: 10, steps: 9_000, distance: 6_500, energy: 360)
+            ],
+            dailyBuckets: [
+                bucket(today, hour: 0, steps: 4_500, distance: 3_200, energy: 150),
+                bucket(yesterday, hour: 0, steps: 9_000, distance: 6_500, energy: 360)
+            ],
+            workouts: []
+        )
+        let suiteName = defaultsSuiteName()
+        let defaults = isolatedDefaults(suiteName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+        let repository = ActivityRepository(
+            healthKit: health,
+            cloudKit: FakeCloudKitSummarySync(state: .available),
+            competitionSync: FakeSharedCompetitionSync(),
+            liveActivityService: liveActivity,
+            calendar: calendar,
+            userDefaults: defaults
+        )
+
+        await repository.requestHealthAccess()
+        await repository.selectDate(yesterday)
+        await repository.setDailyStepGoalLiveActivityEnabled(true)
+        liveActivity.resetCallCounts()
+
+        health.hourlyBuckets = [
+            bucket(today, hour: 10, steps: 4_500, distance: 3_200, energy: 150),
+            bucket(today, hour: 16, steps: 1_500, distance: 1_100, energy: 55),
+            bucket(yesterday, hour: 10, steps: 9_000, distance: 6_500, energy: 360)
+        ]
+
+        await repository.refreshLiveActivityTick()
+
+        #expect(repository.todaySummary?.steps == 9_000)
+        #expect(liveActivity.lastSummary?.steps == 6_000)
+    }
+
+    @Test
     func testRepairHealthSyncConfiguresBackgroundDeliveryAndRefreshes() async throws {
         let day = calendar.startOfDay(for: Date())
         let health = FakeHealthKitProvider(
@@ -1063,6 +1197,56 @@ struct ActivityRepositoryTests {
             workouts: [],
             goals: goals
         )
+    }
+}
+
+private final class FakeDailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing, @unchecked Sendable {
+    private(set) var startCallCount = 0
+    private(set) var updateCallCount = 0
+    private(set) var updateIfActiveCallCount = 0
+    private(set) var endCallCount = 0
+    private(set) var lastSummary: DailyActivitySummary?
+    private var isActive = false
+    private var lastUpdatedAt = Date()
+
+    var status: DailyStepGoalLiveActivityStatus {
+        isActive ? .active(updatedAt: lastUpdatedAt) : .inactive
+    }
+
+    func resetCallCounts() {
+        startCallCount = 0
+        updateCallCount = 0
+        updateIfActiveCallCount = 0
+        endCallCount = 0
+    }
+
+    func start(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        startCallCount += 1
+        lastSummary = summary
+        isActive = true
+        lastUpdatedAt = Date()
+        return status
+    }
+
+    func updateIfActive(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        updateIfActiveCallCount += 1
+        guard isActive else { return status }
+        return await update(summary: summary)
+    }
+
+    func update(summary: DailyActivitySummary) async -> DailyStepGoalLiveActivityStatus {
+        updateCallCount += 1
+        lastSummary = summary
+        if isActive {
+            lastUpdatedAt = Date()
+        }
+        return status
+    }
+
+    func end(summary: DailyActivitySummary?) async -> DailyStepGoalLiveActivityStatus {
+        endCallCount += 1
+        isActive = false
+        return status
     }
 }
 

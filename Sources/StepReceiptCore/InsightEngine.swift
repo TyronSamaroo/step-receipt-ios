@@ -145,6 +145,10 @@ public struct InsightEngine: Sendable {
             from: scopedSummaries,
             heartRateZoneConfiguration: heartRateZoneConfiguration
         )
+        let strengthInsight = strengthInsight(
+            from: scopedSummaries,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
         let bestDay = scopedSummaries.max {
             if $0.steps == $1.steps {
                 return $0.dateStart < $1.dateStart
@@ -163,9 +167,58 @@ public struct InsightEngine: Sendable {
             workoutCount: workoutCount,
             bestDay: bestDay,
             cardioInsight: cardioInsight,
+            strengthInsight: strengthInsight,
             headline: periodHeadline(
                 scope: scope,
                 summaries: scopedSummaries,
+                receipt: periodReceipt,
+                goals: goals
+            )
+        )
+    }
+
+    public func filteredPeriodSummary(
+        _ period: PeriodActivitySummary,
+        filter: InsightsTrendFilter,
+        goals: UserGoals,
+        heartRateZoneConfiguration: HeartRateZoneConfiguration = .default,
+        now: Date = Date()
+    ) -> PeriodActivitySummary {
+        let filteredSummaries = period.summaries.filter { filter.matches($0) }
+        let periodReceipt = receipt(for: filteredSummaries, goals: goals, now: now)
+        let activeDays = filteredSummaries.filter(\.hasActivityData).count
+        let goalHitDays = filteredSummaries.filter { $0.steps >= goals.stepsPerDay }.count
+        let workoutCount = filteredSummaries.reduce(0) { $0 + $1.workouts.count }
+        let cardioInsight = cardioInsight(
+            from: filteredSummaries,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
+        let strengthInsight = strengthInsight(
+            from: filteredSummaries,
+            heartRateZoneConfiguration: heartRateZoneConfiguration
+        )
+        let bestDay = filteredSummaries.max {
+            if $0.steps == $1.steps {
+                return $0.dateStart < $1.dateStart
+            }
+            return $0.steps < $1.steps
+        }
+
+        return PeriodActivitySummary(
+            scope: period.scope,
+            periodStart: period.periodStart,
+            periodEnd: period.periodEnd,
+            summaries: filteredSummaries,
+            receipt: periodReceipt,
+            activeDays: activeDays,
+            goalHitDays: goalHitDays,
+            workoutCount: workoutCount,
+            bestDay: bestDay,
+            cardioInsight: cardioInsight,
+            strengthInsight: strengthInsight,
+            headline: periodHeadline(
+                scope: period.scope,
+                summaries: filteredSummaries,
                 receipt: periodReceipt,
                 goals: goals
             )
@@ -217,7 +270,8 @@ public struct InsightEngine: Sendable {
                     title: "Connect Apple Health",
                     detail: "Coach insights get personal once today's step summary is available.",
                     systemImage: "heart.fill",
-                    priority: 100
+                    priority: 100,
+                    kind: .general
                 )
             ]
         }
@@ -227,6 +281,14 @@ public struct InsightEngine: Sendable {
 
         if let weekdayInsight = weekdayPaceInsight(today: today, history: history) {
             insights.append(weekdayInsight)
+        }
+
+        if let peakInsight = peakHourInsight(for: today) {
+            insights.append(peakInsight)
+        }
+
+        if let streakInsight = streakInsight(history: history, goals: today.goals) {
+            insights.append(streakInsight)
         }
 
         if let workoutInsight = workoutContextInsight(for: today) {
@@ -377,6 +439,50 @@ public struct InsightEngine: Sendable {
         )
     }
 
+    private func strengthInsight(
+        from summaries: [DailyActivitySummary],
+        heartRateZoneConfiguration: HeartRateZoneConfiguration
+    ) -> StrengthPeriodInsight {
+        var workoutsBySource: [String: WorkoutActivity] = [:]
+        for workout in summaries.flatMap(\.workouts) where workout.type == .strengthTraining {
+            workoutsBySource[workout.sourceIdentifier] = workout
+        }
+
+        let strengthWorkouts = workoutsBySource.values.sorted { $0.startDate < $1.startDate }
+        let zoneSummaries = heartRateZoneConfiguration.zoneSummaries(for: strengthWorkouts)
+        guard !strengthWorkouts.isEmpty else {
+            return StrengthPeriodInsight(zoneSummaries: zoneSummaries)
+        }
+
+        let heartRateSamples = strengthWorkouts.flatMap(\.heartRateSamples)
+        let averageHeartRate = heartRateSamples.isEmpty
+            ? nil
+            : heartRateSamples.reduce(0) { $0 + $1.beatsPerMinute } / Double(heartRateSamples.count)
+        let maxHeartRate = heartRateSamples.map(\.beatsPerMinute).max()
+
+        let bestWorkout = strengthWorkouts.max { lhs, rhs in
+            let lhsEnergy = lhs.activeEnergyKilocalories ?? 0
+            let rhsEnergy = rhs.activeEnergyKilocalories ?? 0
+            if lhsEnergy != rhsEnergy {
+                return lhsEnergy < rhsEnergy
+            }
+            if lhs.durationMinutes != rhs.durationMinutes {
+                return lhs.durationMinutes < rhs.durationMinutes
+            }
+            return lhs.startDate < rhs.startDate
+        }
+
+        return StrengthPeriodInsight(
+            totalMinutes: strengthWorkouts.reduce(0) { $0 + $1.durationMinutes },
+            sessionCount: strengthWorkouts.count,
+            totalActiveEnergyKilocalories: strengthWorkouts.reduce(0) { $0 + ($1.activeEnergyKilocalories ?? 0) },
+            averageHeartRateBPM: averageHeartRate,
+            maxHeartRateBPM: maxHeartRate,
+            bestWorkout: bestWorkout,
+            zoneSummaries: zoneSummaries
+        )
+    }
+
     private func periodHeadline(
         scope: ActivityPeriodScope,
         summaries: [DailyActivitySummary],
@@ -408,7 +514,8 @@ public struct InsightEngine: Sendable {
                 title: "Goal cleared",
                 detail: "You are at \(today.steps.formatted()) steps. Keep the streak intact.",
                 systemImage: "checkmark.circle.fill",
-                priority: 95
+                priority: 95,
+                kind: .goal
             )
         }
 
@@ -417,7 +524,38 @@ public struct InsightEngine: Sendable {
             title: "\(remaining.formatted()) steps left",
             detail: "About \(walkingMinutes) min of easy walking gets you to \(today.goals.stepsPerDay.formatted()).",
             systemImage: "figure.walk",
-            priority: 100
+            priority: 100,
+            kind: .goal
+        )
+    }
+
+    private func peakHourInsight(for today: DailyActivitySummary) -> TodayCoachInsight? {
+        guard let peak = today.buckets.max(by: { $0.steps < $1.steps }), peak.steps > 0 else { return nil }
+        let hour = calendar.component(.hour, from: peak.startDate)
+        let label: String = switch hour {
+        case 0: "12a"
+        case 1..<12: "\(hour)a"
+        case 12: "12p"
+        default: "\(hour - 12)p"
+        }
+        return TodayCoachInsight(
+            title: "Peak hour \(label)",
+            detail: "\(peak.steps.formatted()) steps landed around \(label) today.",
+            systemImage: "clock.fill",
+            priority: 72,
+            kind: .peakHour
+        )
+    }
+
+    private func streakInsight(history: [DailyActivitySummary], goals: UserGoals) -> TodayCoachInsight? {
+        let streak = currentStepGoalStreak(in: history, goal: goals.stepsPerDay)
+        guard streak >= 2 else { return nil }
+        return TodayCoachInsight(
+            title: "\(streak)-day goal streak",
+            detail: "You've hit your step goal \(streak) days in a row. Keep the momentum.",
+            systemImage: "flame.fill",
+            priority: 76,
+            kind: .streak
         )
     }
 
@@ -439,7 +577,8 @@ public struct InsightEngine: Sendable {
                 title: "Normal \(weekdayName(for: todayStart)) pace",
                 detail: "You are within \(abs(delta).formatted()) steps of your recent \(weekdayName(for: todayStart)) average.",
                 systemImage: "chart.line.uptrend.xyaxis",
-                priority: 65
+                priority: 65,
+                kind: .pace
             )
         }
 
@@ -448,7 +587,8 @@ public struct InsightEngine: Sendable {
                 title: "Behind usual \(weekdayName(for: todayStart))",
                 detail: "\(abs(delta).formatted()) steps under your recent \(weekdayName(for: todayStart)) average of \(average.formatted()).",
                 systemImage: "clock.arrow.circlepath",
-                priority: 90
+                priority: 90,
+                kind: .pace
             )
         }
 
@@ -456,18 +596,32 @@ public struct InsightEngine: Sendable {
             title: "Ahead of usual \(weekdayName(for: todayStart))",
             detail: "\(delta.formatted()) steps above your recent \(weekdayName(for: todayStart)) average.",
             systemImage: "chart.line.uptrend.xyaxis",
-            priority: 85
+            priority: 85,
+            kind: .pace
         )
     }
 
     private func workoutContextInsight(for today: DailyActivitySummary) -> TodayCoachInsight? {
         guard !today.workouts.isEmpty || today.workoutMinutes > 0 else { return nil }
+        if today.workouts.contains(where: { $0.type == .stairClimbing }) {
+            let stairMinutes = today.workouts
+                .filter { $0.type == .stairClimbing }
+                .reduce(0) { $0 + $1.durationMinutes }
+            return TodayCoachInsight(
+                title: "Stair session day",
+                detail: "\(ActivityFormatting.formattedMinutes(stairMinutes)) on stairs logged. Compare burn and HR against your recent stair sessions.",
+                systemImage: "arrow.up",
+                priority: 84,
+                kind: .workout
+            )
+        }
         if today.workouts.contains(where: { $0.type == .strengthTraining }) {
             return TodayCoachInsight(
                 title: "Strength day context",
                 detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) logged. Steps can be lighter, but a short walk helps recovery.",
                 systemImage: "dumbbell",
-                priority: 82
+                priority: 82,
+                kind: .workout
             )
         }
 
@@ -476,7 +630,8 @@ public struct InsightEngine: Sendable {
                 title: "\(topWorkout.displayTitle) logged",
                 detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) of workout time is already on the board today.",
                 systemImage: "bolt.heart",
-                priority: 80
+                priority: 80,
+                kind: .workout
             )
         }
 
@@ -484,7 +639,8 @@ public struct InsightEngine: Sendable {
             title: "Workout time logged",
             detail: "\(ActivityFormatting.formattedMinutes(today.workoutMinutes)) already counts toward your weekly training goal.",
             systemImage: "timer",
-            priority: 78
+            priority: 78,
+            kind: .workout
         )
     }
 
@@ -501,7 +657,8 @@ public struct InsightEngine: Sendable {
                 title: "Household lead",
                 detail: "You are ahead by \(formattedCompetitionScore(lead, metric: receipt.metric)) in \(receipt.window.displayName.lowercased()).",
                 systemImage: "person.2.fill",
-                priority: 75
+                priority: 75,
+                kind: .household
             )
         }
 
@@ -510,7 +667,8 @@ public struct InsightEngine: Sendable {
                 title: "Household chase",
                 detail: "\(formattedCompetitionScore(gap, metric: receipt.metric)) separates you from the next rank.",
                 systemImage: "person.2.fill",
-                priority: 75
+                priority: 75,
+                kind: .household
             )
         }
 
@@ -527,7 +685,8 @@ public struct InsightEngine: Sendable {
                 title: "Projected on track",
                 detail: "Current pace points to about \(projected.formatted()) steps today.",
                 systemImage: "target",
-                priority: 70
+                priority: 70,
+                kind: .projection
             )
         }
 
@@ -535,7 +694,8 @@ public struct InsightEngine: Sendable {
             title: "Projected short",
             detail: "Current pace points to about \(projected.formatted()) steps, below today's goal.",
             systemImage: "target",
-            priority: 88
+            priority: 88,
+            kind: .projection
         )
     }
 
@@ -628,5 +788,140 @@ public struct InsightEngine: Sendable {
             return "Close: a short walk could push more days over goal."
         }
         return "Behind goal pace: prioritize an easy walk block."
+    }
+}
+
+public struct WorkoutComparisonService: Sendable {
+    private let calendar: Calendar
+
+    public init(calendar: Calendar = .current) {
+        self.calendar = calendar
+    }
+
+    public func peerWorkouts(
+        for workout: WorkoutActivity,
+        in workouts: [WorkoutActivity],
+        tagProvider: (WorkoutActivity) -> String? = { _ in nil },
+        lookbackDays: Int = 90
+    ) -> [WorkoutActivity] {
+        let windowStart = calendar.date(byAdding: .day, value: -lookbackDays, to: workout.startDate) ?? workout.startDate
+        return workouts
+            .filter { candidate in
+                candidate.type == workout.type
+                    && candidate.startDate >= windowStart
+                    && candidate.startDate <= workout.startDate
+                    && matchesTag(candidate, workout: workout, tagProvider: tagProvider)
+            }
+            .sorted { $0.startDate > $1.startDate }
+    }
+
+    public func lastSession(before workout: WorkoutActivity, in peers: [WorkoutActivity]) -> WorkoutActivity? {
+        peers.first { $0.sourceIdentifier != workout.sourceIdentifier && $0.startDate < workout.startDate }
+    }
+
+    public func bestSession(in peers: [WorkoutActivity], excluding workout: WorkoutActivity) -> WorkoutActivity? {
+        peers
+            .filter { $0.sourceIdentifier != workout.sourceIdentifier }
+            .max { lhs, rhs in
+                let lhsEnergy = lhs.activeEnergyKilocalories ?? 0
+                let rhsEnergy = rhs.activeEnergyKilocalories ?? 0
+                if lhsEnergy != rhsEnergy { return lhsEnergy < rhsEnergy }
+                if lhs.durationMinutes != rhs.durationMinutes { return lhs.durationMinutes < rhs.durationMinutes }
+                return lhs.startDate < rhs.startDate
+            }
+    }
+
+    public func compare(current: WorkoutActivity, baseline: WorkoutActivity) -> WorkoutSessionComparison {
+        var deltas: [WorkoutComparisonDelta] = []
+
+        deltas.append(WorkoutComparisonDelta(
+            label: "Duration",
+            currentValue: ActivityFormatting.formattedMinutes(current.durationMinutes),
+            baselineValue: ActivityFormatting.formattedMinutes(baseline.durationMinutes),
+            deltaText: signedMinutes(current.durationMinutes - baseline.durationMinutes)
+        ))
+
+        let currentBurn = current.activeEnergyKilocalories ?? 0
+        let baselineBurn = baseline.activeEnergyKilocalories ?? 0
+        deltas.append(WorkoutComparisonDelta(
+            label: "Active burn",
+            currentValue: ActivityFormatting.formattedCalories(currentBurn),
+            baselineValue: ActivityFormatting.formattedCalories(baselineBurn),
+            deltaText: signedCalories(currentBurn - baselineBurn)
+        ))
+
+        if current.durationMinutes > 0, baseline.durationMinutes > 0 {
+            let currentRate = currentBurn / current.durationMinutes
+            let baselineRate = baselineBurn / baseline.durationMinutes
+            deltas.append(WorkoutComparisonDelta(
+                label: "Burn rate",
+                currentValue: String(format: "%.1f/min", currentRate),
+                baselineValue: String(format: "%.1f/min", baselineRate),
+                deltaText: signedCalories(currentRate - baselineRate) + "/min"
+            ))
+        }
+
+        if let currentHR = current.averageHeartRateBPM, let baselineHR = baseline.averageHeartRateBPM {
+            deltas.append(WorkoutComparisonDelta(
+                label: "Avg HR",
+                currentValue: "\(Int(currentHR.rounded())) bpm",
+                baselineValue: "\(Int(baselineHR.rounded())) bpm",
+                deltaText: signedInteger(Int(currentHR.rounded()) - Int(baselineHR.rounded())) + " bpm"
+            ))
+        }
+
+        if let currentDistance = current.distanceMeters, let baselineDistance = baseline.distanceMeters,
+           currentDistance > 0 || baselineDistance > 0 {
+            deltas.append(WorkoutComparisonDelta(
+                label: "Distance",
+                currentValue: formatDistanceMeters(currentDistance),
+                baselineValue: formatDistanceMeters(baselineDistance),
+                deltaText: signedDistance(currentDistance - baselineDistance)
+            ))
+        }
+
+        return WorkoutSessionComparison(current: current, baseline: baseline, deltas: deltas)
+    }
+
+    private func matchesTag(
+        _ candidate: WorkoutActivity,
+        workout: WorkoutActivity,
+        tagProvider: (WorkoutActivity) -> String?
+    ) -> Bool {
+        guard workout.type == .strengthTraining || workout.type == .stairClimbing else { return true }
+        let workoutTag = tagProvider(workout)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let workoutTag, !workoutTag.isEmpty else { return true }
+        let candidateTag = tagProvider(candidate)?.trimmingCharacters(in: .whitespacesAndNewlines)
+        return candidateTag?.caseInsensitiveCompare(workoutTag) == .orderedSame
+    }
+
+    private func signedMinutes(_ value: Double) -> String {
+        let rounded = Int(value.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)m" : "\(rounded)m"
+    }
+
+    private func signedCalories(_ value: Double) -> String {
+        let rounded = Int(value.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)" : "\(rounded)"
+    }
+
+    private func signedInteger(_ value: Int) -> String {
+        if value == 0 { return "Even" }
+        return value > 0 ? "+\(value)" : "\(value)"
+    }
+
+    private func signedDistance(_ meters: Double) -> String {
+        let rounded = Int(meters.rounded())
+        if rounded == 0 { return "Even" }
+        return rounded > 0 ? "+\(rounded)m" : "\(rounded)m"
+    }
+
+    private func formatDistanceMeters(_ meters: Double) -> String {
+        if meters >= 1_000 {
+            return String(format: "%.2f km", meters / 1_000)
+        }
+        return "\(Int(meters.rounded())) m"
     }
 }

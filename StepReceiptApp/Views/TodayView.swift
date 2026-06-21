@@ -757,7 +757,7 @@ struct TodayView: View {
 
             primaryWeatherStatsRow(weather)
 
-            if repository.weatherNeedsLocation || weather.source == .healthKitWorkout {
+            if repository.weatherNeedsLocation || repository.weatherKitUnavailable || weather.source == .healthKitWorkout {
                 weatherLocationHint
             }
 
@@ -804,8 +804,18 @@ struct TodayView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 .buttonStyle(.plain)
+            } else if repository.weatherKitUnavailable {
+                Button {
+                    Task { await repository.ensureDayWeather() }
+                } label: {
+                    Label("Live weather unavailable — tap to retry for wind and UV", systemImage: "arrow.clockwise")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(Color.stepAccent)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
             } else if repository.dayWeather?.source == .healthKitWorkout {
-                Text("Showing workout weather — enable Location for wind and UV.")
+                Text("Limited workout weather — wind and UV need live WeatherKit data.")
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                     .frame(maxWidth: .infinity, alignment: .leading)

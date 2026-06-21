@@ -12,6 +12,7 @@ final class ActivityRepository: ObservableObject {
     @Published private(set) var isLoadingDayWeather = false
     @Published private(set) var isLoadingWeatherDetail = false
     @Published private(set) var weatherNeedsLocation = false
+    @Published private(set) var weatherKitUnavailable = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
     @Published var workouts: [WorkoutActivity] = []
@@ -700,14 +701,29 @@ final class ActivityRepository: ObservableObject {
             let location = try await locationProvider.currentLocation()
             let snapshot = try await weatherKit.fetchDayWeather(for: date, at: location, calendar: calendar)
             dayWeather = snapshot
+            dayWeatherDetail = DayWeatherDetail(
+                date: calendar.startOfDay(for: date),
+                snapshot: snapshot,
+                hourly: dayWeatherDetail?.hourly ?? []
+            )
             weatherNeedsLocation = false
+            weatherKitUnavailable = false
         } catch let error as LocationProviderError where error == .denied || error == .restricted {
             weatherNeedsLocation = true
+            weatherKitUnavailable = false
             dayWeather = fallbackDayWeather(for: date)
         } catch {
             let status = await locationProvider.authorizationStatus()
             weatherNeedsLocation = status == .denied || status == .restricted
-            dayWeather = fallbackDayWeather(for: date)
+            if weatherNeedsLocation {
+                weatherKitUnavailable = false
+                dayWeather = fallbackDayWeather(for: date)
+            } else {
+                weatherKitUnavailable = true
+                if dayWeather?.source != .weatherKit {
+                    dayWeather = fallbackDayWeather(for: date)
+                }
+            }
         }
     }
 

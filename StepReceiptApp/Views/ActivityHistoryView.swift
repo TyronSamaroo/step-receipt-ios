@@ -48,7 +48,7 @@ struct ActivityHistoryView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 12) {
                     Picker("History", selection: selectedModeBinding) {
                         ForEach(ActivityHistoryMode.allCases) { mode in
                             Text(mode.displayName).tag(mode)
@@ -76,7 +76,7 @@ struct ActivityHistoryView: View {
     }
 
     private var daysList: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             dayControls
 
             if daySummaries.isEmpty {
@@ -136,7 +136,7 @@ struct ActivityHistoryView: View {
     }
 
     private var workoutsList: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 12) {
             filterStrip
 
             if filteredWorkouts.isEmpty {
@@ -290,7 +290,7 @@ struct DaySummaryDetailView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
+            VStack(alignment: .leading, spacing: 12) {
                 VStack(alignment: .leading, spacing: 8) {
                     Text(summary.dateStart, format: .dateTime.weekday(.wide).month(.wide).day().year())
                         .font(.title2.weight(.bold))
@@ -326,7 +326,7 @@ struct DaySummaryDetailView: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Workouts")
-                        .font(.headline)
+                        .font(.subheadline.weight(.bold))
                     if summary.workouts.isEmpty {
                         Text("No workouts logged for this day.")
                             .font(.subheadline)
@@ -381,7 +381,7 @@ struct DaySummaryDetailView: View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
                 Text("Workouts")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Spacer()
                 Text("\(summary.workouts.count)")
@@ -415,7 +415,7 @@ struct DaySummaryDetailView: View {
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
                 Label("Hourly Timeline", systemImage: "clock")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Spacer()
                 Text(summary.buckets.isEmpty ? "No buckets" : "\(activeHourCount) active")
@@ -442,7 +442,7 @@ struct DaySummaryDetailView: View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Cardio", systemImage: "figure.run")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Spacer()
                 Text("\(cardioInsight.sessionCount) sessions")

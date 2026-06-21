@@ -35,7 +35,7 @@ struct CompetitionSubscriptionTests {
     }
 
     @Test
-    func testDisabledSubscriptionServiceIsNoOp() async {
+    func testDisabledSubscriptionServiceIsNoOp() async throws {
         let service = DisabledCompetitionSubscriptionService()
         await #expect(service.registeredGroupHash() == nil)
         try await service.register(for: "abc")

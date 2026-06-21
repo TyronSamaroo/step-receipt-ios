@@ -116,19 +116,36 @@ Stack hero steps block vertically: full-width step headline, goal subtitle, then
 - `StepReceiptApp/Views/TodayView.swift`
 - `Tests/StepReceiptUITests/StepReceiptUITests.swift`
 
-## 2026-06-21 — Today Hero Balance + Coach Embed
+## 2026-06-21 — CloudKit Subscriptions, App Intents, and Watch Companion
 
-### Problem
-Stacked hero had left-aligned steps with a centered ring (visual imbalance). Week Pulse under hero competed with the briefing; Coach was too low in scroll.
+### Goal
+Live-ish household compete updates, Shortcuts discoverability, and a read-only Apple Watch glance without uploading raw HealthKit to CloudKit.
 
-### Fix
-1. Center steps + goal subtitle + ring as one cluster; date controls stay above.
-2. Embed top-2 Coach insights in hero footer (`today-hero-coach`); remove standalone Coach card.
-3. Reorder: Weather → Hero → Day Flow → Workouts → Week Pulse → Glance.
+### Patterns used
+1. **CKQuerySubscription on `CompetitionEntry`** — register when household board sync succeeds; silent push via `shouldSendContentAvailable`; remove on leave board.
+2. **App delegate push bridge** — `StepReceiptAppDelegate` handles CloudKit remote notifications and calls `ActivityRepository.handleCompetitionCloudKitNotification()` without clearing cached entries on sync failure.
+3. **Push only when board active** — `CompetitionPushRegistration.registerIfNeeded` calls `registerForRemoteNotifications()` after board enable/sync; `UIBackgroundModes` includes `remote-notification`.
+4. **App Intents + Shortcuts** — `OpenCompeteIntent`, `SyncHouseholdBoardIntent`, `GetTodayStepsIntent` with `StepReceiptShortcuts` provider; repository bridge via `StepReceiptAppIntentsSupport`.
+5. **Watch aggregate snapshot** — `WatchAggregateSnapshot` in shared folder; iPhone publishes via `WatchConnectivity.updateApplicationContext`; Watch shows steps, goal ring, compete rank/headline only.
+6. **Privacy preserved** — no raw HealthKit samples on Watch CloudKit path; aggregates only.
 
 ### Key files
-- `StepReceiptApp/Views/TodayView.swift`
-- `Tests/StepReceiptUITests/StepReceiptUITests.swift`
+- Subscriptions: `CloudKitCompetitionSubscriptionService.swift`, `StepReceiptAppDelegate.swift`
+- Intents: `StepReceiptApp/Intents/*`
+- Watch: `StepReceiptWatchShared/WatchAggregateSnapshot.swift`, `WatchAggregateSyncService.swift`, `StepReceiptWatchExtension/*`
+- Repository wiring: `ActivityRepository.syncSharedCompetition`, `publishWatchSnapshot`, `handleCompetitionCloudKitNotification`
+- Tests: `CompetitionSubscriptionTests.swift`, `WatchAggregateSnapshotTests.swift`
+
+### Manual setup
+- Enable Push Notifications capability / `aps-environment` on the production App ID before TestFlight silent push works end-to-end.
+- Pair Apple Watch with iPhone; open iPhone app once so WatchConnectivity context is seeded.
+- CloudKit Dashboard must already have `CompetitionEntry.groupHash` queryable for subscriptions.
+
+### Ship
+- `xcodegen generate`
+- `swift test --enable-swift-testing`
+- `xcodebuild -project StepReceipt.xcodeproj -scheme StepReceipt -destination 'platform=iOS Simulator,name=iPhone 17,OS=26.5' test`
+
 
 ## 2026-06-21 — Today Hero Balance + Coach Embed
 

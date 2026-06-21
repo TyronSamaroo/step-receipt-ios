@@ -8,28 +8,41 @@
 
 /* Begin PBXBuildFile section */
 		079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
+		0893E66787EEEDDC31A6C629 /* OpenCompeteIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA504AF04C5EA25DC6F1C38 /* OpenCompeteIntent.swift */; };
 		0C19B3E6BD9402131FF0473D /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
+		0C2F8FE3BCBB892CC2B22845 /* StepReceiptShortcuts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 997B289667C39587ECC74D74 /* StepReceiptShortcuts.swift */; };
 		0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
 		0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
+		119AE4F8C3993B17BFCD3A5F /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
 		12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D7B3688BBF71678CEEFABC /* SettingsView.swift */; };
 		165E2C740BA12624FADDA990 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DCB0108D22D9887D64D763 /* TodayView.swift */; };
 		17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
+		1886BC936BDC5975F52C6B0E /* GetTodayStepsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E86DD2B190F3D1DC3536CD /* GetTodayStepsIntent.swift */; };
 		1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
+		2587F03071B919A47DF209E7 /* WatchAggregateSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */; };
 		2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */; };
+		2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
+		3812333BC7EA105F28F0E9DD /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
 		46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */; };
+		4AE182DCEB0672A25A0F2F33 /* CompetitionSubscriptionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B76BCFD5BECADB9D310BDF14 /* CompetitionSubscriptionTests.swift */; };
 		4F8EA77CA8D1682D677A4E26 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 117B0DB121C58BD175E13816 /* StepReceiptTheme.swift */; };
 		511A2C1B7A6F6C041A3D643D /* CompeteSetupWizardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */; };
+		53CB4885DEB17F09A628AFF7 /* StepReceiptWatchExtensionApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D00E52B658C60744BEABEE1 /* StepReceiptWatchExtensionApp.swift */; };
 		55A7489A5F6AD88D4DBF3F45 /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
+		5686141750B012E8FB96943B /* CloudKitCompetitionSubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A50A866D8EB7ACE8B4F3D85 /* CloudKitCompetitionSubscriptionService.swift */; };
 		58DD12BF3D9F204EFD70FC69 /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		5E626038F174AF95629B1513 /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		5FE28FAF33A3F516EEDD5E36 /* TodayQuickDigestTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */; };
 		610B65E52530B8D2AA8CC3D1 /* StepReceiptLiveActivityWidget.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		649E665C02516779E71B9687 /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
 		6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
 		717D23C5C2085DB32F5C3357 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
+		72F3120A804D6813A348B52A /* CloudKitCompetitionSubscriptionService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A50A866D8EB7ACE8B4F3D85 /* CloudKitCompetitionSubscriptionService.swift */; };
 		7937BD85DBFDD55EAEC28111 /* WorkoutTemplateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */; };
+		79419113560A00703D195D9E /* StepReceiptAppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = E9FA9C664124BF11E10FEF64 /* StepReceiptAppDelegate.swift */; };
 		7A48CE932643DAB1B19B2E44 /* CompeteLeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F6399D81FA5F7E4E642FE20 /* CompeteLeaderboardView.swift */; };
 		7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BCCA4BE75DE26E667433C90 /* InsightsView.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
@@ -39,8 +52,11 @@
 		9C18D54A1FC7EFE82811FE38 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		9D0DA8357E5F916B3D0894EB /* ActivityFormatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */; };
 		A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = BFC828839F225D766AD0E781 /* InsightEngine.swift */; };
+		A1CC2843D309D78570C8CECD /* StepReceiptWatchExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = B5E72FF0AA07495D77848FD2 /* StepReceiptWatchExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */; };
+		A8B9F177B44AD91C4F7A82D0 /* StepReceiptAppIntentsSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A3763D40898922FBC0B3DAE /* StepReceiptAppIntentsSupport.swift */; };
 		AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
+		ADF4CF6DD945852EFB2BD455 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
 		AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */; };
 		B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
 		B4CC36F293704EB2BC59E544 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */; };
@@ -57,9 +73,11 @@
 		E21D5814EC2321420A38482E /* ActivityShareCards.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */; };
 		E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */; };
 		E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1C02F7D43B39AEA6366E622 /* Assets.xcassets */; };
+		E5A06CBB02370F6044E4E8D4 /* SyncHouseholdBoardIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABE47746608E2C642AF88C37 /* SyncHouseholdBoardIntent.swift */; };
 		E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */; };
 		EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
+		ED92C447C5403E50B5038FFE /* StepReceiptWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 454E46A98159F502B4E02190 /* StepReceiptWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
 		F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
 		F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */; };
@@ -86,9 +104,45 @@
 			remoteGlobalIDString = C9B550CC190A22C8718F6637;
 			remoteInfo = StepReceipt;
 		};
+		6C4737D4A0D56B92D29AD5A4 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B64FB614B72CA91568E55D28 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 15D4522D1F1528A2356A68B1;
+			remoteInfo = StepReceiptWatch;
+		};
+		9F1DA23658436F6F9EA72CEA /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B64FB614B72CA91568E55D28 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = E66BD85E8666C48F51DE932E;
+			remoteInfo = StepReceiptWatchExtension;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		B132D645989F80674812CA08 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				A1CC2843D309D78570C8CECD /* StepReceiptWatchExtension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		ECA173B44BD95B8FCFB0902D /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				ED92C447C5403E50B5038FFE /* StepReceiptWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F870C07FDD189D4B817BE8B2 /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -113,16 +167,22 @@
 		14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayQuickDigest.swift; sourceTree = "<group>"; };
 		1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptApp.swift; sourceTree = "<group>"; };
 		213DCE28E5441F4415CF65C3 /* ActivityFormatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityFormatting.swift; sourceTree = "<group>"; };
+		314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshot.swift; sourceTree = "<group>"; };
 		383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngineTests.swift; sourceTree = "<group>"; };
 		39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
+		454E46A98159F502B4E02190 /* StepReceiptWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StepReceiptWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4D00E52B658C60744BEABEE1 /* StepReceiptWatchExtensionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptWatchExtensionApp.swift; sourceTree = "<group>"; };
+		4DCC0C1304839C961A50B33C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributesTests.swift; sourceTree = "<group>"; };
 		55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalAttributes.swift; sourceTree = "<group>"; };
+		58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshotTests.swift; sourceTree = "<group>"; };
 		6277880B45319181EE54747C /* CompetitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionEngine.swift; sourceTree = "<group>"; };
 		63A6EA53FBB377B2AB87EA82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewPreferences.swift; sourceTree = "<group>"; };
 		67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDiagnosticsSummary.swift; sourceTree = "<group>"; };
 		69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitClient.swift; sourceTree = "<group>"; };
+		6A3763D40898922FBC0B3DAE /* StepReceiptAppIntentsSupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptAppIntentsSupport.swift; sourceTree = "<group>"; };
 		707E420CC51D70EA4C77BD16 /* StepReceiptUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		77D7B3688BBF71678CEEFABC /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		7BCCA4BE75DE26E667433C90 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
@@ -134,11 +194,19 @@
 		8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSync.swift; sourceTree = "<group>"; };
 		8EB088DB04397C8E8906DD12 /* CompeteSetupWizardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSetupWizardView.swift; sourceTree = "<group>"; };
 		959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitSummarySync.swift; sourceTree = "<group>"; };
+		997B289667C39587ECC74D74 /* StepReceiptShortcuts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptShortcuts.swift; sourceTree = "<group>"; };
 		99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.entitlements; sourceTree = "<group>"; };
+		9A50A866D8EB7ACE8B4F3D85 /* CloudKitCompetitionSubscriptionService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSubscriptionService.swift; sourceTree = "<group>"; };
 		A1C02F7D43B39AEA6366E622 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		ABE47746608E2C642AF88C37 /* SyncHouseholdBoardIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncHouseholdBoardIntent.swift; sourceTree = "<group>"; };
 		AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayQuickDigestTests.swift; sourceTree = "<group>"; };
+		B3E86DD2B190F3D1DC3536CD /* GetTodayStepsIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GetTodayStepsIntent.swift; sourceTree = "<group>"; };
 		B50977D2B39AA9DEECAF0BD9 /* CompeteWelcomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteWelcomeView.swift; sourceTree = "<group>"; };
+		B5E72FF0AA07495D77848FD2 /* StepReceiptWatchExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = StepReceiptWatchExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		B76BCFD5BECADB9D310BDF14 /* CompetitionSubscriptionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionSubscriptionTests.swift; sourceTree = "<group>"; };
+		BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSyncService.swift; sourceTree = "<group>"; };
 		BB6E09C0351D4BC1627353D9 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		BDA504AF04C5EA25DC6F1C38 /* OpenCompeteIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OpenCompeteIntent.swift; sourceTree = "<group>"; };
 		BFC828839F225D766AD0E781 /* InsightEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngine.swift; sourceTree = "<group>"; };
 		C419C531AB76EA4334533C31 /* CompetitionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionView.swift; sourceTree = "<group>"; };
 		C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyUseQOLTests.swift; sourceTree = "<group>"; };
@@ -152,6 +220,8 @@
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteHouseholdSheet.swift; sourceTree = "<group>"; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		E863E61B852579953F4FEDF7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		E9FA9C664124BF11E10FEF64 /* StepReceiptAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptAppDelegate.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
 		F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DisabledCloudSync.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -165,6 +235,14 @@
 			path = Design;
 			sourceTree = "<group>";
 		};
+		103A755D1F97E37535B65287 /* StepReceiptWatch */ = {
+			isa = PBXGroup;
+			children = (
+				E863E61B852579953F4FEDF7 /* Info.plist */,
+			);
+			path = StepReceiptWatch;
+			sourceTree = "<group>";
+		};
 		105AE4026E32E03DA963A150 /* StepReceiptApp */ = {
 			isa = PBXGroup;
 			children = (
@@ -175,6 +253,7 @@
 				CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */,
 				1D76CF2A8C2C1E62869B1397 /* App */,
 				0A4786819E11CC5F26CBD1FD /* Design */,
+				E4CBC1BAE1A8EF644F5E9BBB /* Intents */,
 				BCA932C06580B65016C7D3F4 /* Services */,
 				2C56DB994E76FD5436810B2A /* Views */,
 			);
@@ -186,6 +265,7 @@
 			children = (
 				39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */,
 				1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */,
+				E9FA9C664124BF11E10FEF64 /* StepReceiptAppDelegate.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -234,8 +314,10 @@
 			isa = PBXGroup;
 			children = (
 				DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */,
+				B76BCFD5BECADB9D310BDF14 /* CompetitionSubscriptionTests.swift */,
 				4F388EDFD0E2F41B410F36BA /* DailyStepGoalAttributesTests.swift */,
 				C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */,
+				58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */,
 			);
 			name = StepReceiptAppTests;
 			path = Tests/StepReceiptAppTests;
@@ -248,8 +330,18 @@
 				7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */,
 				E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */,
 				707E420CC51D70EA4C77BD16 /* StepReceiptUITests.xctest */,
+				454E46A98159F502B4E02190 /* StepReceiptWatch.app */,
+				B5E72FF0AA07495D77848FD2 /* StepReceiptWatchExtension.appex */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		809FFF5376A41A08FFB6F054 /* StepReceiptWatchShared */ = {
+			isa = PBXGroup;
+			children = (
+				314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */,
+			);
+			path = StepReceiptWatchShared;
 			sourceTree = "<group>";
 		};
 		A385142CBBD07E9ABFDEE00C /* StepReceiptCoreTests */ = {
@@ -278,12 +370,14 @@
 				7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */,
 				67D9B116ECF5F149C6DBDFF8 /* AppDiagnosticsSummary.swift */,
 				65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */,
+				9A50A866D8EB7ACE8B4F3D85 /* CloudKitCompetitionSubscriptionService.swift */,
 				8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */,
 				959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */,
 				0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */,
 				D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */,
 				F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */,
 				69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */,
+				BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -298,8 +392,23 @@
 				E881EBBB0F1FFAF2B72C6B23 /* StepReceiptLiveActivityShared */,
 				A688B28F7B4C9C53AAE7F94E /* StepReceiptLiveActivityWidget */,
 				1F23641E4AA06ACFEC251895 /* StepReceiptUITests */,
+				103A755D1F97E37535B65287 /* StepReceiptWatch */,
+				F881614232E6EAE0124FB588 /* StepReceiptWatchExtension */,
+				809FFF5376A41A08FFB6F054 /* StepReceiptWatchShared */,
 				62B83B43F9A93198B1D3FADB /* Products */,
 			);
+			sourceTree = "<group>";
+		};
+		E4CBC1BAE1A8EF644F5E9BBB /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				B3E86DD2B190F3D1DC3536CD /* GetTodayStepsIntent.swift */,
+				BDA504AF04C5EA25DC6F1C38 /* OpenCompeteIntent.swift */,
+				6A3763D40898922FBC0B3DAE /* StepReceiptAppIntentsSupport.swift */,
+				997B289667C39587ECC74D74 /* StepReceiptShortcuts.swift */,
+				ABE47746608E2C642AF88C37 /* SyncHouseholdBoardIntent.swift */,
+			);
+			path = Intents;
 			sourceTree = "<group>";
 		};
 		E881EBBB0F1FFAF2B72C6B23 /* StepReceiptLiveActivityShared */ = {
@@ -322,9 +431,36 @@
 			path = Compete;
 			sourceTree = "<group>";
 		};
+		F881614232E6EAE0124FB588 /* StepReceiptWatchExtension */ = {
+			isa = PBXGroup;
+			children = (
+				4DCC0C1304839C961A50B33C /* Info.plist */,
+				4D00E52B658C60744BEABEE1 /* StepReceiptWatchExtensionApp.swift */,
+			);
+			path = StepReceiptWatchExtension;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		15D4522D1F1528A2356A68B1 /* StepReceiptWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BCC1D0E4EF7972B2D76794F0 /* Build configuration list for PBXNativeTarget "StepReceiptWatch" */;
+			buildPhases = (
+				B132D645989F80674812CA08 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				CD29BDAC9FA11CD076D362A6 /* PBXTargetDependency */,
+			);
+			name = StepReceiptWatch;
+			packageProductDependencies = (
+			);
+			productName = StepReceiptWatch;
+			productReference = 454E46A98159F502B4E02190 /* StepReceiptWatch.app */;
+			productType = "com.apple.product-type.application.watchapp2";
+		};
 		8C7F896D4D69BDE60F76B7FA /* StepReceiptTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = 137B093DA1D4029BC925DBED /* Build configuration list for PBXNativeTarget "StepReceiptTests" */;
@@ -349,11 +485,13 @@
 				A20428AB086AF8BD565C06C1 /* Sources */,
 				8BAC080CAEDC6DA55F1BCC65 /* Resources */,
 				F870C07FDD189D4B817BE8B2 /* Embed Foundation Extensions */,
+				ECA173B44BD95B8FCFB0902D /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				EDAB24D6E329485AB9D6461E /* PBXTargetDependency */,
+				1CF52B76B5853BD2BCE2A4D0 /* PBXTargetDependency */,
 			);
 			name = StepReceipt;
 			packageProductDependencies = (
@@ -397,6 +535,23 @@
 			productReference = 7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
+		E66BD85E8666C48F51DE932E /* StepReceiptWatchExtension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 11755D1612AF5BFA411C9A15 /* Build configuration list for PBXNativeTarget "StepReceiptWatchExtension" */;
+			buildPhases = (
+				A60F5862BF4896921BFA54D1 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = StepReceiptWatchExtension;
+			packageProductDependencies = (
+			);
+			productName = StepReceiptWatchExtension;
+			productReference = B5E72FF0AA07495D77848FD2 /* StepReceiptWatchExtension.appex */;
+			productType = "com.apple.product-type.watchkit2-extension";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -406,6 +561,9 @@
 				BuildIndependentTargetsInParallel = YES;
 				LastUpgradeCheck = 1430;
 				TargetAttributes = {
+					15D4522D1F1528A2356A68B1 = {
+						DevelopmentTeam = U63TLL4JY4;
+					};
 					8C7F896D4D69BDE60F76B7FA = {
 						DevelopmentTeam = U63TLL4JY4;
 					};
@@ -417,6 +575,9 @@
 						TestTargetID = C9B550CC190A22C8718F6637;
 					};
 					D2360DDACCA33821BCA8DEDA = {
+						DevelopmentTeam = U63TLL4JY4;
+					};
+					E66BD85E8666C48F51DE932E = {
 						DevelopmentTeam = U63TLL4JY4;
 					};
 				};
@@ -439,6 +600,8 @@
 				D2360DDACCA33821BCA8DEDA /* StepReceiptLiveActivityWidget */,
 				8C7F896D4D69BDE60F76B7FA /* StepReceiptTests */,
 				CDE8BBF2228368C480C60028 /* StepReceiptUITests */,
+				15D4522D1F1528A2356A68B1 /* StepReceiptWatch */,
+				E66BD85E8666C48F51DE932E /* StepReceiptWatchExtension */,
 			);
 		};
 /* End PBXProject section */
@@ -483,10 +646,12 @@
 				D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */,
 				E2D29A6CDEE5F2D454EBC60C /* AppDiagnosticsSummary.swift in Sources */,
 				DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */,
+				5686141750B012E8FB96943B /* CloudKitCompetitionSubscriptionService.swift in Sources */,
 				0CDD0EC6333B406356886B40 /* CloudKitCompetitionSync.swift in Sources */,
 				AA0CDB4B5C9E74944B4D10FD /* CloudKitSummarySync.swift in Sources */,
 				828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */,
 				F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */,
+				4AE182DCEB0672A25A0F2F33 /* CompetitionSubscriptionTests.swift in Sources */,
 				EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */,
 				B058B934152AB344B89A83D5 /* DailyStepGoalAttributes.swift in Sources */,
 				AFFB145104C2AC2090696038 /* DailyStepGoalAttributesTests.swift in Sources */,
@@ -498,6 +663,9 @@
 				F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */,
 				BF9759C715614A8D499A2DBC /* TodayQuickDigest.swift in Sources */,
 				5FE28FAF33A3F516EEDD5E36 /* TodayQuickDigestTests.swift in Sources */,
+				119AE4F8C3993B17BFCD3A5F /* WatchAggregateSnapshot.swift in Sources */,
+				2587F03071B919A47DF209E7 /* WatchAggregateSnapshotTests.swift in Sources */,
+				ADF4CF6DD945852EFB2BD455 /* WatchAggregateSyncService.swift in Sources */,
 				6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */,
 				7937BD85DBFDD55EAEC28111 /* WorkoutTemplateTests.swift in Sources */,
 			);
@@ -515,6 +683,7 @@
 				58DD12BF3D9F204EFD70FC69 /* AppDiagnosticsSummary.swift in Sources */,
 				FE3F170D2BCA0D8C3A7C8291 /* AppRootView.swift in Sources */,
 				0C19B3E6BD9402131FF0473D /* AppViewPreferences.swift in Sources */,
+				72F3120A804D6813A348B52A /* CloudKitCompetitionSubscriptionService.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
 				46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */,
@@ -529,27 +698,54 @@
 				91A727FC5BFA6D2B3CBF4C5F /* DailyStepGoalAttributes.swift in Sources */,
 				2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */,
 				8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */,
+				1886BC936BDC5975F52C6B0E /* GetTodayStepsIntent.swift in Sources */,
 				0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */,
 				A023ACB10FAA73D2F0351187 /* InsightEngine.swift in Sources */,
 				7B32AD208A1FABC39F8097C8 /* InsightsView.swift in Sources */,
+				0893E66787EEEDDC31A6C629 /* OpenCompeteIntent.swift in Sources */,
 				12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */,
 				D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */,
 				F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */,
+				79419113560A00703D195D9E /* StepReceiptAppDelegate.swift in Sources */,
+				A8B9F177B44AD91C4F7A82D0 /* StepReceiptAppIntentsSupport.swift in Sources */,
+				0C2F8FE3BCBB892CC2B22845 /* StepReceiptShortcuts.swift in Sources */,
 				4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */,
+				E5A06CBB02370F6044E4E8D4 /* SyncHouseholdBoardIntent.swift in Sources */,
 				E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */,
 				165E2C740BA12624FADDA990 /* TodayView.swift in Sources */,
+				649E665C02516779E71B9687 /* WatchAggregateSnapshot.swift in Sources */,
+				2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */,
 				F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */,
 				A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A60F5862BF4896921BFA54D1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				53CB4885DEB17F09A628AFF7 /* StepReceiptWatchExtensionApp.swift in Sources */,
+				3812333BC7EA105F28F0E9DD /* WatchAggregateSnapshot.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		1CF52B76B5853BD2BCE2A4D0 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 15D4522D1F1528A2356A68B1 /* StepReceiptWatch */;
+			targetProxy = 6C4737D4A0D56B92D29AD5A4 /* PBXContainerItemProxy */;
+		};
 		B28B86D60ACCFF718FFC88D6 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = C9B550CC190A22C8718F6637 /* StepReceipt */;
 			targetProxy = 657DB415836771079BCB2230 /* PBXContainerItemProxy */;
+		};
+		CD29BDAC9FA11CD076D362A6 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = E66BD85E8666C48F51DE932E /* StepReceiptWatchExtension */;
+			targetProxy = 9F1DA23658436F6F9EA72CEA /* PBXContainerItemProxy */;
 		};
 		EDAB24D6E329485AB9D6461E /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
@@ -576,6 +772,25 @@
 			};
 			name = Debug;
 		};
+		0B2CDB589FD0B0748FFBA219 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				INFOPLIST_FILE = StepReceiptWatchExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp.watchkitextension;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				WK_APP_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp;
+			};
+			name = Release;
+		};
 		1176EBEA2B9836DB9EAFF24B /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -593,6 +808,25 @@
 				TEST_TARGET_NAME = StepReceipt;
 			};
 			name = Release;
+		};
+		1C3D4B38A28611A077ABC901 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_COMPLICATION_NAME = Complication;
+				INFOPLIST_FILE = StepReceiptWatchExtension/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp.watchkitextension;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+				WK_APP_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp;
+			};
+			name = Debug;
 		};
 		289C207E905261EE5182A581 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -760,12 +994,24 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
+		};
+		B0DF54A184B3A8618C74D162 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = StepReceiptWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
 		};
 		BE29A07C62525B5A32138139 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -819,12 +1065,24 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
+		};
+		C161D6F56A173351C14AB400 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				INFOPLIST_FILE = StepReceiptWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tyronsamaroo.stepreceipt.watchkitapp;
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
 		};
 /* End XCBuildConfiguration section */
 
@@ -834,6 +1092,15 @@
 			buildConfigurations = (
 				807807B664F5D660B3137F28 /* Debug */,
 				289C207E905261EE5182A581 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		11755D1612AF5BFA411C9A15 /* Build configuration list for PBXNativeTarget "StepReceiptWatchExtension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1C3D4B38A28611A077ABC901 /* Debug */,
+				0B2CDB589FD0B0748FFBA219 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
@@ -870,6 +1137,15 @@
 			buildConfigurations = (
 				58EABDD2F8C93EAC9D5E8A74 /* Debug */,
 				1176EBEA2B9836DB9EAFF24B /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BCC1D0E4EF7972B2D76794F0 /* Build configuration list for PBXNativeTarget "StepReceiptWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C161D6F56A173351C14AB400 /* Debug */,
+				B0DF54A184B3A8618C74D162 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

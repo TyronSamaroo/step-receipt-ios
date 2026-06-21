@@ -60,8 +60,11 @@ jobs:
             StepReceiptApp/App/*.swift \
             StepReceiptApp/Design/*.swift \
             StepReceiptApp/Services/*.swift \
+            StepReceiptApp/Intents/*.swift \
             StepReceiptApp/Views/*.swift \
-            StepReceiptLiveActivityShared/*.swift
+            StepReceiptApp/Views/Compete/*.swift \
+            StepReceiptLiveActivityShared/*.swift \
+            StepReceiptWatchShared/*.swift
 
       - name: Validate plist and asset JSON
         run: |

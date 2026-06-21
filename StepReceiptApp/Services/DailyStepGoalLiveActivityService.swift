@@ -131,14 +131,30 @@ final class DailyStepGoalLiveActivityService: DailyStepGoalLiveActivityServicing
         return status
     }
 
-    private func contentState(for summary: DailyActivitySummary) -> DailyStepGoalAttributes.ContentState {
+    private func activity(for dayStart: Date) -> Activity<DailyStepGoalAttributes>? {
+        currentActivities.first {
+            Calendar.current.isDate($0.attributes.dayStart, inSameDayAs: dayStart)
+        }
+    }
+
+    private func endStaleActivities(notMatching dayStart: Date) async {
+        for activity in currentActivities where !Calendar.current.isDate(activity.attributes.dayStart, inSameDayAs: dayStart) {
+            await activity.end(nil, dismissalPolicy: .immediate)
+        }
+    }
+
+    private func contentState(
+        for summary: DailyActivitySummary,
+        updatedAt: Date
+    ) -> DailyStepGoalAttributes.ContentState {
         DailyStepGoalAttributes.ContentState(
             steps: summary.steps,
-            stepGoal: summary.goals.stepsPerDay
+            stepGoal: summary.goals.stepsPerDay,
+            updatedAt: updatedAt
         )
     }
 
-    private func staleDate() -> Date {
-        Date().addingTimeInterval(60 * 60 * 2)
+    private func staleDate(from updatedAt: Date) -> Date {
+        updatedAt.addingTimeInterval(60 * 60 * 2)
     }
 }

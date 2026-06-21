@@ -79,6 +79,8 @@ final class ActivityRepository: ObservableObject {
     private let healthKit: any HealthKitProviding
     private let cloudKit: any CloudKitSummarySyncing
     private let competitionSync: any SharedCompetitionSyncing
+    private let competitionSubscription: any CompetitionSubscriptionManaging
+    private let watchSync: any WatchAggregatePublishing
     private let liveActivityService: any DailyStepGoalLiveActivityServicing
     private let engine: InsightEngine
     private let workoutComparisonService: WorkoutComparisonService
@@ -106,6 +108,8 @@ final class ActivityRepository: ObservableObject {
         healthKit: any HealthKitProviding = HealthKitClient(),
         cloudKit: any CloudKitSummarySyncing = CloudKitSummarySync(),
         competitionSync: any SharedCompetitionSyncing = CloudKitCompetitionSync(),
+        competitionSubscription: any CompetitionSubscriptionManaging = LiveCloudKitCompetitionSubscriptionService(),
+        watchSync: any WatchAggregatePublishing = WatchAggregateSyncService.shared,
         liveActivityService: any DailyStepGoalLiveActivityServicing = DailyStepGoalLiveActivityService(),
         calendar: Calendar = .current,
         userDefaults: UserDefaults = .standard
@@ -114,6 +118,8 @@ final class ActivityRepository: ObservableObject {
         self.healthKit = healthKit
         self.cloudKit = cloudKit
         self.competitionSync = competitionSync
+        self.competitionSubscription = competitionSubscription
+        self.watchSync = watchSync
         self.liveActivityService = liveActivityService
         self.calendar = activityCalendar
         self.userDefaults = userDefaults
@@ -971,11 +977,14 @@ final class ActivityRepository: ObservableObject {
         let settings = SharedCompetitionSettings(isEnabled: isEnabled, inviteCode: inviteCode)
         sharedCompetitionSettings = settings
         if settings.canSync {
+            await configureCompetitionPushIfNeeded()
             await syncSharedCompetition()
         } else {
             sharedCompetitionEntries = []
             sharedCompetitionSyncState = .off
             refreshCompetitionBoardState()
+            await removeCompetitionSubscriptionIfNeeded()
+            publishWatchSnapshot()
         }
     }
 
@@ -996,6 +1005,11 @@ final class ActivityRepository: ObservableObject {
 
     func openCompeteTab() {
         competeNavigationToken = UUID()
+    }
+
+    func handleCompetitionCloudKitNotification() async {
+        guard sharedCompetitionSettings.canSync else { return }
+        await syncSharedCompetition()
     }
 
     var isCloudKitCompetitionAvailable: Bool {
@@ -1044,11 +1058,58 @@ final class ActivityRepository: ObservableObject {
                 sharedCompetitionSyncState = .unavailable("Connect Apple Health before syncing your row to the household board.")
             } else {
                 sharedCompetitionSyncState = .synced(Date())
+                await registerCompetitionSubscriptionIfNeeded()
             }
         } catch {
             sharedCompetitionSyncState = .unavailable(CloudKitCompetitionSync.friendlySyncMessage(for: error))
             refreshCompetition()
         }
+        publishWatchSnapshot()
+    }
+
+    private func configureCompetitionPushIfNeeded() async {
+        guard sharedCompetitionSettings.canSync else { return }
+        await CompetitionPushRegistration.registerIfNeeded(boardEnabled: true)
+    }
+
+    private func registerCompetitionSubscriptionIfNeeded() async {
+        guard sharedCompetitionSettings.canSync else { return }
+        let groupHash = CloudKitCompetitionSync.groupHash(for: sharedCompetitionSettings.inviteCode)
+        do {
+            try await competitionSubscription.register(for: groupHash)
+            await configureCompetitionPushIfNeeded()
+        } catch {
+            // Subscription failures should not block leaderboard display.
+        }
+    }
+
+    private func removeCompetitionSubscriptionIfNeeded() async {
+        do {
+            try await competitionSubscription.unregisterCurrent()
+        } catch {
+            // Best-effort cleanup when leaving a board.
+        }
+    }
+
+    private func publishWatchSnapshot() {
+        let todaySteps: Int
+        if let todaySummary, calendar.isDateInToday(todaySummary.dateStart) {
+            todaySteps = todaySummary.steps
+        } else if let liveActivitySummary {
+            todaySteps = liveActivitySummary.steps
+        } else {
+            todaySteps = 0
+        }
+
+        let snapshot = WatchAggregateSnapshot(
+            steps: todaySteps,
+            stepGoal: goals.stepsPerDay,
+            updatedAt: Date(),
+            competeRank: sharedCompetitionSettings.canSync ? competitionReceipt?.currentUserRank : nil,
+            competeHeadline: sharedCompetitionSettings.canSync ? competitionReceipt?.headline : nil,
+            householdBoardActive: sharedCompetitionSettings.canSync
+        )
+        watchSync.publish(snapshot)
     }
 
     func generatedSharedCompetitionInviteCode() -> String {
@@ -1132,6 +1193,7 @@ final class ActivityRepository: ObservableObject {
             householdMemberCount: householdMembers.count,
             isShowingSampleBoard: isShowingSampleCompetitionBoard
         )
+        publishWatchSnapshot()
     }
 
     private func householdCompetitionEntries() -> [CompetitionEntry] {

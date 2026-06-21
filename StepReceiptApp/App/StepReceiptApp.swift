@@ -3,6 +3,7 @@ import SwiftUI
 @main
 @MainActor
 struct StepReceiptApp: App {
+    @UIApplicationDelegateAdaptor(StepReceiptAppDelegate.self) private var appDelegate
     @Environment(\.scenePhase) private var scenePhase
     @StateObject private var repository: ActivityRepository
 
@@ -10,6 +11,10 @@ struct StepReceiptApp: App {
 
     init() {
         _repository = StateObject(wrappedValue: Self.sharedRepository)
+        StepReceiptAppIntentsSupport.repository = Self.sharedRepository
+        appDelegate.competitionNotificationHandler = {
+            await Self.sharedRepository.handleCompetitionCloudKitNotification()
+        }
 
         #if canImport(UIKit)
         StepReceiptChrome.configure()
@@ -31,8 +36,12 @@ struct StepReceiptApp: App {
                     await runForegroundRefreshLoop(for: scenePhase)
                 }
                 .onOpenURL { url in
-                    guard url.scheme == "stepreceipt", url.host == "today" else { return }
-                    Task { await repository.refreshAfterAppBecameActive() }
+                    guard url.scheme == "stepreceipt" else { return }
+                    if url.host == "today" {
+                        Task { await repository.refreshAfterAppBecameActive() }
+                    } else if url.host == "compete" {
+                        repository.openCompeteTab()
+                    }
                 }
         }
     }
@@ -56,7 +65,9 @@ struct StepReceiptApp: App {
         #if LOCAL_NO_CLOUDKIT
         ActivityRepository(
             cloudKit: DisabledCloudKitSummarySync(),
-            competitionSync: DisabledSharedCompetitionSync()
+            competitionSync: DisabledSharedCompetitionSync(),
+            competitionSubscription: DisabledCompetitionSubscriptionService(),
+            watchSync: DisabledWatchAggregateSyncService()
         )
         #else
         ActivityRepository()

@@ -53,6 +53,7 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(scrollToElement(app.staticTexts["Cardio"], in: app, timeout: 3, maxSwipes: 3))
         let bestCardio = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Best cardio'")).firstMatch
         XCTAssertTrue(bestCardio.waitForExistence(timeout: 3))
+        XCTAssertTrue(scrollToElement(app.buttons["insights-strength-card"], in: app, timeout: 3, maxSwipes: 2))
 
         app.tabBars.buttons["Settings"].tap()
         XCTAssertTrue(app.staticTexts["Profile"].waitForExistence(timeout: 3))
@@ -113,12 +114,12 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Push Day"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Additional Info"].exists)
         XCTAssertTrue(app.staticTexts["Workout Receipt"].exists)
-        XCTAssertTrue(app.staticTexts["Pace"].exists)
-        XCTAssertTrue(app.staticTexts["Weather"].exists)
-        XCTAssertTrue(app.staticTexts["Heart Rate"].exists)
+        XCTAssertTrue(scrollToElement(app.staticTexts["Pace"], in: app, timeout: 3, maxSwipes: 4))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Weather"], in: app, timeout: 2, maxSwipes: 2))
+        XCTAssertTrue(scrollToElement(app.staticTexts["Heart Rate"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Average"].exists)
         XCTAssertTrue(app.staticTexts["Max"].exists)
-        XCTAssertTrue(app.staticTexts["Zone 1"].exists)
+        XCTAssertTrue(scrollToElement(app.staticTexts["Zone 1"], in: app, timeout: 2, maxSwipes: 2))
         XCTAssertTrue(app.staticTexts["Zone 5"].exists)
 
         app.navigationBars.buttons.element(boundBy: 0).tap()

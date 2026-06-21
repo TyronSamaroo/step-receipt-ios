@@ -4,6 +4,7 @@ import SwiftUI
 struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var shareImage: ShareImage?
+    @State private var coachExpanded = false
 
     var body: some View {
         NavigationStack {
@@ -634,6 +635,7 @@ struct TodayView: View {
     @ViewBuilder
     private func todayCoach(_ insights: [TodayCoachInsight]) -> some View {
         if !insights.isEmpty {
+            let visible = coachExpanded ? insights : Array(insights.prefix(2))
             VStack(alignment: .leading, spacing: 12) {
                 HStack {
                     Label("Today Coach", systemImage: "sparkles")
@@ -646,13 +648,13 @@ struct TodayView: View {
                 }
 
                 VStack(spacing: 10) {
-                    ForEach(insights) { insight in
+                    ForEach(visible) { insight in
                         HStack(alignment: .top, spacing: 10) {
                             Image(systemName: insight.systemImage)
                                 .font(.subheadline.weight(.bold))
-                                .foregroundStyle(Color.stepAccent)
+                                .foregroundStyle(coachAccent(for: insight.kind))
                                 .frame(width: 28, height: 28)
-                                .background(Color.stepAccent.opacity(0.14))
+                                .background(coachAccent(for: insight.kind).opacity(0.14))
                                 .clipShape(Circle())
 
                             VStack(alignment: .leading, spacing: 3) {
@@ -668,8 +670,33 @@ struct TodayView: View {
                         }
                     }
                 }
+
+                if insights.count > 2 {
+                    Button(coachExpanded ? "Show less" : "+\(insights.count - 2) more") {
+                        coachExpanded.toggle()
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                }
             }
             .metricCard()
+        }
+    }
+
+    private func coachAccent(for kind: TodayCoachInsightKind) -> Color {
+        switch kind {
+        case .goal, .projection:
+            Color.stepAccent
+        case .pace, .peakHour:
+            Color.stepDistance
+        case .workout:
+            Color.stepEnergy
+        case .household:
+            Color.stepMuted
+        case .streak:
+            Color.stepWarning
+        case .general:
+            Color.stepAccent
         }
     }
 
@@ -698,6 +725,9 @@ struct TodayView: View {
                                 .foregroundStyle(Color.stepInk)
                                 .lineLimit(2)
                                 .minimumScaleFactor(0.82)
+                            Text(workout.startDate, format: .dateTime.hour().minute())
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(Color.stepMuted)
                         }
 
                         Spacer(minLength: 0)
@@ -730,6 +760,28 @@ struct TodayView: View {
                             }
                         }
                     }
+
+                    HStack(spacing: 8) {
+                        if workout.type == .stairClimbing, let burn = workout.activeEnergyKilocalories, workout.durationMinutes > 0 {
+                            workoutHeroMetric("Burn rate", String(format: "%.1f/min", burn / workout.durationMinutes), StepReceiptSymbol.activeEnergy, Color.stepEnergy)
+                        }
+                        if workout.type == .strengthTraining, let tag = repository.workoutTag(for: workout) {
+                            workoutHeroMetric("Tag", tag, "dumbbell", style.accent)
+                        }
+                        if workout.type.isCardioMovement, let distance = workout.distanceMeters, distance > 0 {
+                            workoutHeroMetric("Distance", ActivityFormatting.formattedDistance(from: distance, unit: repository.preferences.distanceUnit), StepReceiptSymbol.distance, Color.stepDistance)
+                        }
+                    }
+
+                    NavigationLink {
+                        WorkoutCompareView(workout: workout, baseline: nil)
+                    } label: {
+                        Label("Compare session", systemImage: "arrow.left.arrow.right")
+                            .font(.caption.weight(.bold))
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.bordered)
+                    .tint(style.accent)
                 }
                 .padding(16)
                 .background(

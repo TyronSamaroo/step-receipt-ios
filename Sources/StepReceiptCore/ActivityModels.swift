@@ -576,6 +576,53 @@ public enum DailySummaryFilter: String, Codable, CaseIterable, Equatable, Identi
     }
 }
 
+public enum InsightsTrendFilter: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
+    case all
+    case goalHit
+    case goalMissed
+    case workoutDays
+    case lightDays
+    case cardio
+    case strength
+    case stairs
+
+    public var id: String { rawValue }
+
+    public var displayName: String {
+        switch self {
+        case .all: "All"
+        case .goalHit: "Goal Hit"
+        case .goalMissed: "Goal Missed"
+        case .workoutDays: "Workouts"
+        case .lightDays: "Light"
+        case .cardio: "Cardio"
+        case .strength: "Strength"
+        case .stairs: "Stairs"
+        }
+    }
+
+    public func matches(_ summary: DailyActivitySummary) -> Bool {
+        switch self {
+        case .all:
+            return true
+        case .goalHit:
+            return summary.steps >= summary.goals.stepsPerDay
+        case .goalMissed:
+            return summary.steps < summary.goals.stepsPerDay
+        case .workoutDays:
+            return !summary.workouts.isEmpty || summary.workoutMinutes > 0
+        case .lightDays:
+            return summary.hasActivityData && summary.steps < summary.goals.stepsPerDay && summary.workoutMinutes == 0
+        case .cardio:
+            return summary.workouts.contains { $0.type.isCardioMovement && $0.type != .stairClimbing }
+        case .strength:
+            return summary.workouts.contains { $0.type == .strengthTraining }
+        case .stairs:
+            return summary.workouts.contains { $0.type == .stairClimbing }
+        }
+    }
+}
+
 public enum DailySummarySort: String, Codable, CaseIterable, Equatable, Identifiable, Sendable {
     case newest
     case steps
@@ -872,6 +919,44 @@ public struct CardioPeriodInsight: Codable, Equatable, Sendable {
     }
 }
 
+public struct StrengthPeriodInsight: Codable, Equatable, Sendable {
+    public static let empty = StrengthPeriodInsight()
+
+    public let totalMinutes: Double
+    public let sessionCount: Int
+    public let totalActiveEnergyKilocalories: Double
+    public let averageHeartRateBPM: Double?
+    public let maxHeartRateBPM: Double?
+    public let bestWorkout: WorkoutActivity?
+    public let zoneSummaries: [HeartRateZoneSummary]
+
+    public init(
+        totalMinutes: Double = 0,
+        sessionCount: Int = 0,
+        totalActiveEnergyKilocalories: Double = 0,
+        averageHeartRateBPM: Double? = nil,
+        maxHeartRateBPM: Double? = nil,
+        bestWorkout: WorkoutActivity? = nil,
+        zoneSummaries: [HeartRateZoneSummary] = HeartRateZoneConfiguration.default.zoneSummaries(for: [])
+    ) {
+        self.totalMinutes = max(0, totalMinutes)
+        self.sessionCount = max(0, sessionCount)
+        self.totalActiveEnergyKilocalories = max(0, totalActiveEnergyKilocalories)
+        self.averageHeartRateBPM = averageHeartRateBPM.map { max(0, $0) }
+        self.maxHeartRateBPM = maxHeartRateBPM.map { max(0, $0) }
+        self.bestWorkout = bestWorkout
+        self.zoneSummaries = zoneSummaries.sorted { $0.level < $1.level }
+    }
+
+    public var hasStrength: Bool {
+        sessionCount > 0 || totalMinutes > 0
+    }
+
+    public var totalZoneSeconds: TimeInterval {
+        zoneSummaries.reduce(0) { $0 + $1.durationSeconds }
+    }
+}
+
 public struct PeriodActivitySummary: Codable, Equatable, Sendable {
     public let scope: ActivityPeriodScope
     public let periodStart: Date
@@ -883,6 +968,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
     public let workoutCount: Int
     public let bestDay: DailyActivitySummary?
     public let cardioInsight: CardioPeriodInsight
+    public let strengthInsight: StrengthPeriodInsight
     public let headline: String
 
     public init(
@@ -896,6 +982,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         workoutCount: Int,
         bestDay: DailyActivitySummary?,
         cardioInsight: CardioPeriodInsight = .empty,
+        strengthInsight: StrengthPeriodInsight = .empty,
         headline: String
     ) {
         self.scope = scope
@@ -908,6 +995,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         self.workoutCount = max(0, workoutCount)
         self.bestDay = bestDay
         self.cardioInsight = cardioInsight
+        self.strengthInsight = strengthInsight
         self.headline = headline
     }
 
@@ -922,6 +1010,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         case workoutCount
         case bestDay
         case cardioInsight
+        case strengthInsight
         case headline
     }
 
@@ -938,6 +1027,7 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
             workoutCount: try container.decode(Int.self, forKey: .workoutCount),
             bestDay: try container.decodeIfPresent(DailyActivitySummary.self, forKey: .bestDay),
             cardioInsight: try container.decodeIfPresent(CardioPeriodInsight.self, forKey: .cardioInsight) ?? .empty,
+            strengthInsight: try container.decodeIfPresent(StrengthPeriodInsight.self, forKey: .strengthInsight) ?? .empty,
             headline: try container.decode(String.self, forKey: .headline)
         )
     }
@@ -954,8 +1044,20 @@ public struct PeriodActivitySummary: Codable, Equatable, Sendable {
         try container.encode(workoutCount, forKey: .workoutCount)
         try container.encodeIfPresent(bestDay, forKey: .bestDay)
         try container.encode(cardioInsight, forKey: .cardioInsight)
+        try container.encode(strengthInsight, forKey: .strengthInsight)
         try container.encode(headline, forKey: .headline)
     }
+}
+
+public enum TodayCoachInsightKind: String, Codable, Sendable {
+    case general
+    case goal
+    case pace
+    case workout
+    case household
+    case projection
+    case streak
+    case peakHour
 }
 
 public struct TodayCoachInsight: Codable, Equatable, Identifiable, Sendable {
@@ -965,12 +1067,78 @@ public struct TodayCoachInsight: Codable, Equatable, Identifiable, Sendable {
     public let detail: String
     public let systemImage: String
     public let priority: Int
+    public let kind: TodayCoachInsightKind
 
-    public init(title: String, detail: String, systemImage: String, priority: Int) {
+    public init(
+        title: String,
+        detail: String,
+        systemImage: String,
+        priority: Int,
+        kind: TodayCoachInsightKind = .general
+    ) {
         self.title = title
         self.detail = detail
         self.systemImage = systemImage
         self.priority = priority
+        self.kind = kind
+    }
+
+    enum CodingKeys: String, CodingKey {
+        case title
+        case detail
+        case systemImage
+        case priority
+        case kind
+    }
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.init(
+            title: try container.decode(String.self, forKey: .title),
+            detail: try container.decode(String.self, forKey: .detail),
+            systemImage: try container.decode(String.self, forKey: .systemImage),
+            priority: try container.decode(Int.self, forKey: .priority),
+            kind: try container.decodeIfPresent(TodayCoachInsightKind.self, forKey: .kind) ?? .general
+        )
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(title, forKey: .title)
+        try container.encode(detail, forKey: .detail)
+        try container.encode(systemImage, forKey: .systemImage)
+        try container.encode(priority, forKey: .priority)
+        try container.encode(kind, forKey: .kind)
+    }
+}
+
+public struct WorkoutComparisonDelta: Codable, Equatable, Sendable {
+    public let label: String
+    public let currentValue: String
+    public let baselineValue: String
+    public let deltaText: String
+
+    public init(label: String, currentValue: String, baselineValue: String, deltaText: String) {
+        self.label = label
+        self.currentValue = currentValue
+        self.baselineValue = baselineValue
+        self.deltaText = deltaText
+    }
+}
+
+public struct WorkoutSessionComparison: Codable, Equatable, Sendable {
+    public let current: WorkoutActivity
+    public let baseline: WorkoutActivity
+    public let deltas: [WorkoutComparisonDelta]
+
+    public var canCompareRoutes: Bool {
+        current.routePoints.count >= 2 && baseline.routePoints.count >= 2
+    }
+
+    public init(current: WorkoutActivity, baseline: WorkoutActivity, deltas: [WorkoutComparisonDelta]) {
+        self.current = current
+        self.baseline = baseline
+        self.deltas = deltas
     }
 }
 

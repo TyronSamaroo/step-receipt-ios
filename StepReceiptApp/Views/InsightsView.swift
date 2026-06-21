@@ -3,11 +3,23 @@ import SwiftUI
 struct InsightsView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @AppStorage(AppViewPreferenceKey.insightsScope) private var selectedScopeRaw = AppViewPreferenceDefault.insightsScope
+    @AppStorage(AppViewPreferenceKey.insightsTrendFilter) private var selectedTrendFilterRaw = AppViewPreferenceDefault.insightsTrendFilter
     @State private var periodAnchorDate = Date()
     @State private var shareImage: ShareImage?
 
     private var selectedScope: ActivityPeriodScope {
         ActivityPeriodScope(rawValue: selectedScopeRaw) ?? .week
+    }
+
+    private var selectedTrendFilter: InsightsTrendFilter {
+        InsightsTrendFilter(rawValue: selectedTrendFilterRaw) ?? .all
+    }
+
+    private var selectedTrendFilterBinding: Binding<InsightsTrendFilter> {
+        Binding(
+            get: { selectedTrendFilter },
+            set: { selectedTrendFilterRaw = $0.rawValue }
+        )
     }
 
     private var selectedScopeBinding: Binding<ActivityPeriodScope> {
@@ -18,7 +30,11 @@ struct InsightsView: View {
     }
 
     private var period: PeriodActivitySummary {
-        repository.periodSummary(scope: selectedScope, containing: periodAnchorDate)
+        repository.filteredPeriodSummary(
+            scope: selectedScope,
+            containing: periodAnchorDate,
+            filter: selectedTrendFilter
+        )
     }
 
     var body: some View {
@@ -38,14 +54,32 @@ struct InsightsView: View {
                     }
                     .compactMetricCard()
 
+                    trendFilterStrip
+
+                    if period.summaries.isEmpty && selectedTrendFilter != .all {
+                        ContentUnavailableView(
+                            "No matching days",
+                            systemImage: "line.3.horizontal.decrease.circle",
+                            description: Text("Try a different trend filter for this \(selectedScope.displayName.lowercased()).")
+                        )
+                        .frame(maxWidth: .infinity, minHeight: 160)
+                        .compactMetricCard()
+                    } else {
                     PeriodReceiptCard(period: period, distanceUnit: repository.preferences.distanceUnit)
 
                     PeriodHeatMap(period: period)
 
                     NavigationLink {
-                        CardioDetailView(scope: selectedScope, anchorDate: periodAnchorDate)
+                        CardioDetailView(scope: selectedScope, anchorDate: periodAnchorDate, trendFilter: selectedTrendFilter)
                     } label: {
                         CardioInsightCard(insight: period.cardioInsight, distanceUnit: repository.preferences.distanceUnit)
+                    }
+                    .buttonStyle(.plain)
+
+                    NavigationLink {
+                        StrengthDetailView(scope: selectedScope, anchorDate: periodAnchorDate, trendFilter: selectedTrendFilter)
+                    } label: {
+                        StrengthInsightCard(insight: period.strengthInsight)
                     }
                     .buttonStyle(.plain)
 
@@ -53,6 +87,7 @@ struct InsightsView: View {
 
                     if selectedScope != .day {
                         bestDays
+                    }
                     }
                 }
                 .padding(16)
@@ -170,6 +205,20 @@ struct InsightsView: View {
             return
         }
         periodAnchorDate = anchor
+    }
+
+    private var trendFilterStrip: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(InsightsTrendFilter.allCases) { filter in
+                    FilterChip(title: filter.displayName, isSelected: selectedTrendFilter == filter) {
+                        selectedTrendFilterRaw = filter.rawValue
+                    }
+                    .accessibilityIdentifier("insights-trend-filter-\(filter.rawValue)")
+                }
+            }
+            .padding(.vertical, 2)
+        }
     }
 
     private var periodStats: some View {
@@ -332,14 +381,189 @@ private struct CardioInsightCard: View {
     }
 }
 
+private struct StrengthInsightCard: View {
+    let insight: StrengthPeriodInsight
+
+    private let columns = [GridItem(.flexible()), GridItem(.flexible())]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Label("Strength", systemImage: "dumbbell")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                Spacer()
+                Text(insight.hasStrength ? "\(insight.sessionCount) sessions" : "No sessions")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+
+            if insight.hasStrength {
+                LazyVGrid(columns: columns, spacing: 8) {
+                    strengthStat("Minutes", ActivityFormatting.formattedMinutes(insight.totalMinutes), Color.stepEnergy)
+                    strengthStat("Burn", ActivityFormatting.formattedCalories(insight.totalActiveEnergyKilocalories), Color.stepAccent)
+                    strengthStat("Avg HR", averageHeartRateText, Color.stepWarning)
+                    strengthStat("Max HR", maxHeartRateText, Color.stepDistance)
+                }
+
+                if let workout = insight.bestWorkout {
+                    HStack(spacing: 6) {
+                        Image(systemName: StepReceiptSymbol.workoutIcon(for: workout.type))
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepEnergy)
+                        Text("Best strength · \(workout.displayTitle) · \(ActivityFormatting.formattedMinutes(workout.durationMinutes))")
+                            .font(.caption.weight(.semibold))
+                            .foregroundStyle(Color.stepMuted)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.8)
+                    }
+                }
+            } else {
+                Text("No strength workouts in this period yet.")
+                    .font(.caption)
+                    .foregroundStyle(Color.stepMuted)
+                    .frame(maxWidth: .infinity, minHeight: 48, alignment: .center)
+            }
+        }
+        .compactMetricCard()
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("insights-strength-card")
+    }
+
+    private var averageHeartRateText: String {
+        guard let bpm = insight.averageHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private var maxHeartRateText: String {
+        guard let bpm = insight.maxHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+
+    private func strengthStat(_ title: String, _ value: String, _ color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 2) {
+            Text(value)
+                .font(.subheadline.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.72)
+            Text(title)
+                .font(.caption2.weight(.semibold))
+                .foregroundStyle(Color.stepMuted)
+        }
+        .frame(maxWidth: .infinity, minHeight: 40, alignment: .leading)
+        .padding(8)
+        .background(color.opacity(0.12))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+}
+
+private struct StrengthDetailView: View {
+    @EnvironmentObject private var repository: ActivityRepository
+    let scope: ActivityPeriodScope
+    let anchorDate: Date
+    var trendFilter: InsightsTrendFilter = .all
+
+    private var period: PeriodActivitySummary {
+        repository.filteredPeriodSummary(scope: scope, containing: anchorDate, filter: trendFilter)
+    }
+
+    private var insight: StrengthPeriodInsight {
+        period.strengthInsight
+    }
+
+    private var strengthWorkouts: [WorkoutActivity] {
+        var workoutsBySource: [String: WorkoutActivity] = [:]
+        for workout in period.summaries.flatMap(\.workouts) where workout.type == .strengthTraining {
+            workoutsBySource[workout.sourceIdentifier] = workout
+        }
+        return workoutsBySource.values.sorted { $0.startDate > $1.startDate }
+    }
+
+    var body: some View {
+        ScrollView {
+            VStack(alignment: .leading, spacing: 12) {
+                if insight.hasStrength {
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                        CompactMetricTile(title: "Minutes", value: ActivityFormatting.formattedMinutes(insight.totalMinutes), icon: StepReceiptSymbol.workout, color: .stepEnergy)
+                        CompactMetricTile(title: "Burn", value: ActivityFormatting.formattedCalories(insight.totalActiveEnergyKilocalories), icon: StepReceiptSymbol.activeEnergy)
+                        CompactMetricTile(title: "Avg HR", value: averageHeartRateText, icon: "heart.fill", color: .stepWarning)
+                        CompactMetricTile(title: "Sessions", value: insight.sessionCount.formatted(), icon: "dumbbell")
+                    }
+                    .compactMetricCard()
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text("Strength Workouts")
+                                .font(.subheadline.weight(.bold))
+                            Spacer()
+                            Text("\(strengthWorkouts.count)")
+                                .font(.caption.weight(.bold))
+                                .foregroundStyle(Color.stepMuted)
+                        }
+
+                        ForEach(strengthWorkouts) { workout in
+                            NavigationLink {
+                                WorkoutDetailView(workout: workout)
+                            } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(repository.workoutTag(for: workout) ?? workout.displayTitle)
+                                            .font(.caption.weight(.bold))
+                                        Text(workout.startDate, format: .dateTime.weekday(.abbreviated).month(.abbreviated).day())
+                                            .font(.caption2)
+                                            .foregroundStyle(Color.stepMuted)
+                                    }
+                                    Spacer()
+                                    Text(ActivityFormatting.formattedMinutes(workout.durationMinutes))
+                                        .font(.caption.monospacedDigit().weight(.bold))
+                                    Image(systemName: "chevron.right")
+                                        .font(.caption2.weight(.bold))
+                                        .foregroundStyle(Color.stepMuted)
+                                }
+                                .padding(.vertical, 6)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .compactMetricCard()
+                } else {
+                    ContentUnavailableView(
+                        "No strength in this period",
+                        systemImage: "dumbbell",
+                        description: Text("Strength training sessions will show here.")
+                    )
+                    .frame(maxWidth: .infinity, minHeight: 260)
+                    .compactMetricCard()
+                }
+            }
+            .padding(16)
+            .accessibilityIdentifier("strength-detail-screen")
+        }
+        .safeAreaPadding(.bottom, 84)
+        .background(Color.stepBackground)
+        .navigationTitle("Strength Detail")
+        .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private var averageHeartRateText: String {
+        guard let bpm = insight.averageHeartRateBPM else { return "--" }
+        return "\(Int(bpm.rounded())) bpm"
+    }
+}
+
 private struct CardioDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
     let scope: ActivityPeriodScope
     let anchorDate: Date
+    var trendFilter: InsightsTrendFilter = .all
     @State private var isEditingZones = false
 
     private var period: PeriodActivitySummary {
-        repository.periodSummary(scope: scope, containing: anchorDate)
+        repository.filteredPeriodSummary(scope: scope, containing: anchorDate, filter: trendFilter)
     }
 
     private var insight: CardioPeriodInsight {

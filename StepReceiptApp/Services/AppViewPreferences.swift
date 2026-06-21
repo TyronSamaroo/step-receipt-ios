@@ -6,13 +6,15 @@ enum AppViewPreferenceKey {
     static let activityDaySort = "stepReceipt.activityHistory.daySort.v1"
     static let activityWorkoutFilter = "stepReceipt.activityHistory.workoutFilter.v1"
     static let insightsScope = "stepReceipt.insights.scope.v1"
+    static let insightsTrendFilter = "stepReceipt.insights.trendFilter.v1"
 
     static let all = [
         activityMode,
         activityDayFilter,
         activityDaySort,
         activityWorkoutFilter,
-        insightsScope
+        insightsScope,
+        insightsTrendFilter
     ]
 }
 
@@ -22,6 +24,7 @@ enum AppViewPreferenceDefault {
     static let activityDaySort = DailySummarySort.newest.rawValue
     static let activityWorkoutFilter = "all"
     static let insightsScope = ActivityPeriodScope.week.rawValue
+    static let insightsTrendFilter = InsightsTrendFilter.all.rawValue
 }
 
 struct AppViewPreferenceStore {

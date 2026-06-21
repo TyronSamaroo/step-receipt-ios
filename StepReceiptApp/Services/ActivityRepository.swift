@@ -11,6 +11,11 @@ final class ActivityRepository: ObservableObject {
     @Published var workouts: [WorkoutActivity] = []
     @Published var receipt: InsightReceipt?
     @Published var competitionReceipt: CompetitionReceipt?
+    @Published private(set) var activityNavigationToken = UUID()
+    @Published private(set) var competeNavigationToken = UUID()
+    @Published private(set) var competeBoardPhase: CompeteBoardPhase = .setup
+    @Published private(set) var householdMembers: [HouseholdMember] = []
+    @Published private(set) var isShowingSampleCompetitionBoard = false
     @Published var competitionMetric: CompetitionMetric = .steps {
         didSet {
             refreshCompetition()
@@ -971,6 +976,10 @@ final class ActivityRepository: ObservableObject {
             sharedCompetitionEntries = []
             sharedCompetitionSyncState = .off
         }
+    }
+
+    func openActivityTab() {
+        activityNavigationToken = UUID()
     }
 
     func syncSharedCompetition() async {

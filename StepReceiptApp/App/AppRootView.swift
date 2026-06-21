@@ -38,6 +38,9 @@ struct AppRootView: View {
         }
         .tint(.stepAccent)
         .preferredColorScheme(repository.preferences.appTheme.colorScheme)
+        .onChange(of: repository.activityNavigationToken) { _, _ in
+            selectedTab = .activity
+        }
     }
 }
 

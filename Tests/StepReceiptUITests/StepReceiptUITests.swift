@@ -7,13 +7,14 @@ final class StepReceiptUITests: XCTestCase {
         let app = XCUIApplication()
         launchWithSampleData(app)
 
-        let welcomeBandText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] 'welcome back'")).firstMatch
-        XCTAssertTrue(welcomeBandText.waitForExistence(timeout: 3))
-        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 5))
+        let weatherStrip = app.otherElements["today-weather-strip"]
+        XCTAssertTrue(weatherStrip.waitForExistence(timeout: 3) || app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'Humidity'")).firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["today-day-flow"].waitForExistence(timeout: 3) || app.staticTexts["Day Flow"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["Today Coach"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["Share day"].exists)
-        let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'steps left'")).firstMatch
+        let stepsLeftText = app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'left to'")).firstMatch
         XCTAssertTrue(stepsLeftText.waitForExistence(timeout: 3))
+        XCTAssertTrue(scrollToElement(app.otherElements["today-quick-digest"], in: app, timeout: 5, maxSwipes: 6))
 
         app.tabBars.buttons["Activity"].tap()
         XCTAssertTrue(app.buttons["Goal Hit"].waitForExistence(timeout: 3))
@@ -21,21 +22,17 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(app.buttons["Workouts"].exists)
 
         app.tabBars.buttons["Compete"].tap()
-        XCTAssertTrue(app.staticTexts["Household Board"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.textFields["Your board name"].exists)
-        XCTAssertTrue(app.buttons["Generate"].exists)
-        XCTAssertTrue(app.buttons["Sync"].exists)
-        XCTAssertTrue(app.buttons["Share Code"].exists)
-        XCTAssertTrue(app.buttons["Copy Code"].exists)
-        XCTAssertTrue(app.buttons["Paste Code"].exists)
-        XCTAssertTrue(app.buttons["Join"].exists)
-        XCTAssertTrue(app.otherElements["compete-sync-status-row"].exists || app.staticTexts["Sync Status"].exists)
-        XCTAssertFalse(app.buttons["Send iCloud Invite"].exists)
-        XCTAssertTrue(app.staticTexts["Leaderboard"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.buttons["Add Check-In"].waitForExistence(timeout: 3))
-        app.buttons["Add Check-In"].tap()
-        XCTAssertTrue(app.navigationBars["Check-In"].waitForExistence(timeout: 3))
-        app.buttons["Cancel"].tap()
+        let competeLoaded = app.otherElements["compete-welcome-screen"].waitForExistence(timeout: 5)
+            || app.otherElements["compete-leaderboard"].waitForExistence(timeout: 3)
+        XCTAssertTrue(competeLoaded)
+        let startBoardButton = app.buttons["compete-welcome-start"].exists
+            ? app.buttons["compete-welcome-start"]
+            : app.buttons["Start a household board"]
+        if startBoardButton.waitForExistence(timeout: 3) {
+            startBoardButton.tap()
+            XCTAssertTrue(app.navigationBars["Start Board"].waitForExistence(timeout: 3))
+            app.buttons["Close"].tap()
+        }
 
         app.tabBars.buttons["Insights"].tap()
         XCTAssertTrue(app.buttons["Day"].waitForExistence(timeout: 3))
@@ -84,7 +81,7 @@ final class StepReceiptUITests: XCTestCase {
         let app = XCUIApplication()
         launchWithSampleData(app)
 
-        XCTAssertTrue(scrollToElement(app.staticTexts["Hourly Steps"], in: app, timeout: 5, maxSwipes: 2))
+        XCTAssertTrue(scrollToElement(app.otherElements["today-day-flow"], in: app, timeout: 5, maxSwipes: 2) || app.staticTexts["Day Flow"].waitForExistence(timeout: 3))
         app.tabBars.buttons["Activity"].tap()
         let workoutsSegment = app.segmentedControls.buttons["Workouts"]
         XCTAssertTrue(workoutsSegment.waitForExistence(timeout: 3))

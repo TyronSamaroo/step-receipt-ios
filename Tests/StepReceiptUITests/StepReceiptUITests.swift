@@ -2,6 +2,26 @@ import XCTest
 
 final class StepReceiptUITests: XCTestCase {
     @MainActor
+    func testDayFlowCardShowsPeakAndQuietHoursToggle() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        let dayFlow = app.otherElements["today-day-flow"]
+        XCTAssertTrue(scrollToElement(dayFlow, in: app, timeout: 5, maxSwipes: 4))
+
+        let peakPill = app.descendants(matching: .any)["day-flow-peak-pill"]
+        XCTAssertTrue(peakPill.waitForExistence(timeout: 3))
+
+        let quietHoursToggle = app.buttons["day-flow-quiet-hours-toggle"]
+        if quietHoursToggle.waitForExistence(timeout: 2) {
+            quietHoursToggle.tap()
+            XCTAssertTrue(app.staticTexts["Hide quiet hours"].waitForExistence(timeout: 2))
+            quietHoursToggle.tap()
+        }
+    }
+
+    @MainActor
     func testSamplePreviewShowsCoreTabs() throws {
         continueAfterFailure = false
         let app = XCUIApplication()

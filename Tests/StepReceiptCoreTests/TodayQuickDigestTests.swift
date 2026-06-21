@@ -88,6 +88,37 @@ struct TodayQuickDigestTests {
         #expect(digest.activeEnergyKilocalories == summary.activeEnergyKilocalories)
     }
 
+    @Test
+    func testMostActiveWindowLabelMatchesDigestRange() throws {
+        let summary = dailySummary(
+            steps: 8_500,
+            buckets: [
+                bucket(hour: 7, steps: 400),
+                bucket(hour: 8, steps: 900),
+                bucket(hour: 9, steps: 0),
+                bucket(hour: 12, steps: 300),
+                bucket(hour: 13, steps: 350),
+                bucket(hour: 14, steps: 500)
+            ]
+        )
+
+        let digest = TodayQuickDigestBuilder.digest(for: summary)
+
+        guard let start = digest.mostActiveWindowStart,
+              let end = digest.mostActiveWindowEnd else {
+            Issue.record("Expected active window for sample buckets")
+            return
+        }
+
+        let label = ActivityFormatting.formattedActiveWindowLabel(
+            start: start,
+            end: end,
+            calendar: calendar
+        )
+
+        #expect(label == "Active 7a–9a")
+    }
+
     private func dailySummary(
         steps: Int,
         buckets: [HealthMetricBucket],

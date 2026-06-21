@@ -72,6 +72,47 @@ public enum ActivityFormatting {
         activeEnergyKilocalories: Double,
         unit: DistanceUnit
     ) -> String {
-        "\(steps.formatted()) steps · \(formattedDistance(from: distanceMeters, unit: unit)) · \(formattedCalories(activeEnergyKilocalories))"
+        let parts = formattedHourlyRowParts(
+            steps: steps,
+            distanceMeters: distanceMeters,
+            activeEnergyKilocalories: activeEnergyKilocalories,
+            unit: unit
+        )
+        return "\(parts.stepsText) steps · \(parts.distanceText) · \(parts.caloriesText)"
+    }
+
+    public struct HourlyRowParts: Equatable, Sendable {
+        public let stepsText: String
+        public let distanceText: String
+        public let caloriesText: String
+
+        public init(stepsText: String, distanceText: String, caloriesText: String) {
+            self.stepsText = stepsText
+            self.distanceText = distanceText
+            self.caloriesText = caloriesText
+        }
+    }
+
+    public static func formattedHourlyRowParts(
+        steps: Int,
+        distanceMeters: Double,
+        activeEnergyKilocalories: Double,
+        unit: DistanceUnit
+    ) -> HourlyRowParts {
+        HourlyRowParts(
+            stepsText: steps.formatted(),
+            distanceText: formattedDistance(from: distanceMeters, unit: unit),
+            caloriesText: formattedCalories(activeEnergyKilocalories)
+        )
+    }
+
+    public static func formattedActiveWindowLabel(
+        start: Date,
+        end: Date,
+        calendar: Calendar = .current
+    ) -> String {
+        let startLabel = shortHourLabel(for: start, calendar: calendar)
+        let endLabel = shortHourLabel(for: end, calendar: calendar)
+        return "Active \(startLabel)–\(endLabel)"
     }
 }

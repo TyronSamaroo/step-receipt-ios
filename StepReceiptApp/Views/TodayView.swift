@@ -1,4 +1,3 @@
-import Charts
 import SwiftUI
 #if canImport(UIKit)
 import UIKit
@@ -19,7 +18,11 @@ struct TodayView: View {
                     if let summary = repository.todaySummary {
                         weatherStripCard
                         todayHero(summary)
-                        dayFlowCard(summary)
+                        DayFlowCard(
+                            summary: summary,
+                            selectedDate: repository.selectedDate,
+                            distanceUnit: repository.preferences.distanceUnit
+                        )
                         workoutSection(summary)
                         weekPulseCard
                         todayQuickDigestCard(summary)
@@ -816,85 +819,6 @@ struct TodayView: View {
         return parts.joined(separator: ", ")
     }
 
-    @ViewBuilder
-    private func dayFlowCard(_ summary: DailyActivitySummary) -> some View {
-        let digest = TodayQuickDigestBuilder.digest(for: summary)
-
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .firstTextBaseline) {
-                Label("Day Flow", systemImage: "chart.bar.fill")
-                    .font(.headline)
-                    .foregroundStyle(Color.stepInk)
-                Spacer(minLength: 8)
-                Text("Hourly Steps")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepMuted)
-            }
-
-            if let peakStart = digest.peakHourStart, digest.peakHourSteps > 0 {
-                Text("Peak \(peakStart.formatted(date: .omitted, time: .shortened)) · \(digest.peakHourSteps.formatted()) steps")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepDistance)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 6)
-                    .background(Color.stepDistance.opacity(0.12))
-                    .clipShape(Capsule())
-            }
-
-            if summary.buckets.isEmpty {
-                Text("No hourly samples for this day.")
-                    .font(.subheadline)
-                    .foregroundStyle(Color.stepMuted)
-                    .frame(maxWidth: .infinity, minHeight: 120, alignment: .center)
-            } else {
-                Chart(summary.buckets) { bucket in
-                    BarMark(
-                        x: .value("Hour", bucket.startDate, unit: .hour),
-                        y: .value("Steps", bucket.steps)
-                    )
-                    .foregroundStyle(Color.stepAccent.gradient)
-                }
-                .frame(height: 170)
-                .chartXAxis {
-                    AxisMarks(values: .stride(by: .hour, count: 4)) { value in
-                        AxisGridLine()
-                            .foregroundStyle(Color.stepAxisGrid)
-                        AxisTick()
-                            .foregroundStyle(Color.stepAxis)
-                        AxisValueLabel {
-                            if let date = value.as(Date.self) {
-                                Text(shortHourLabel(for: date))
-                                    .font(.caption.weight(.semibold))
-                                    .foregroundStyle(Color.stepAxis)
-                            }
-                        }
-                    }
-                }
-                .chartYAxis {
-                    AxisMarks(position: .leading) {
-                        AxisGridLine()
-                            .foregroundStyle(Color.stepAxisGrid)
-                        AxisTick()
-                            .foregroundStyle(Color.stepAxis)
-                        AxisValueLabel()
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.stepAxis)
-                    }
-                }
-
-                Divider()
-                    .padding(.top, 4)
-
-                CompactHourlyTimetableRows(
-                    buckets: summary.buckets,
-                    distanceUnit: repository.preferences.distanceUnit
-                )
-            }
-        }
-        .metricCard()
-        .accessibilityIdentifier("today-day-flow")
-    }
-
     private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
         HStack(spacing: 8) {
             Image(systemName: icon)
@@ -1246,87 +1170,6 @@ struct TodayView: View {
 
     private func shortHourLabel(for date: Date) -> String {
         ActivityFormatting.shortHourLabel(for: date)
-    }
-}
-
-struct CompactHourlyTimetableRows: View {
-    let buckets: [HealthMetricBucket]
-    let distanceUnit: DistanceUnit
-
-    @State private var showQuietHours = false
-
-    private var quietHourCount: Int {
-        buckets.filter { $0.steps == 0 }.count
-    }
-
-    private var visibleBuckets: [HealthMetricBucket] {
-        showQuietHours ? buckets : buckets.filter { $0.steps > 0 }
-    }
-
-    private var usesDenseGrid: Bool {
-        visibleBuckets.count > 12
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
-            if quietHourCount > 0 {
-                Button {
-                    showQuietHours.toggle()
-                } label: {
-                    Text(
-                        showQuietHours
-                            ? "Hide quiet hours"
-                            : "\(quietHourCount) quiet hour\(quietHourCount == 1 ? "" : "s") hidden"
-                    )
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.stepMuted)
-                }
-                .buttonStyle(.plain)
-            }
-
-            if visibleBuckets.isEmpty {
-                Text("No steps logged in active hours.")
-                    .font(.caption)
-                    .foregroundStyle(Color.stepMuted)
-            } else if usesDenseGrid {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
-                    ForEach(visibleBuckets) { bucket in
-                        compactRow(bucket)
-                    }
-                }
-            } else {
-                VStack(spacing: 2) {
-                    ForEach(visibleBuckets) { bucket in
-                        compactRow(bucket)
-                    }
-                }
-            }
-        }
-    }
-
-    private func compactRow(_ bucket: HealthMetricBucket) -> some View {
-        HStack(spacing: 6) {
-            Text(ActivityFormatting.shortHourLabel(for: bucket.startDate))
-                .font(.caption2.weight(.semibold))
-                .foregroundStyle(Color.stepMuted)
-                .frame(width: 28, alignment: .leading)
-
-            Text(
-                ActivityFormatting.compactHourlyDetail(
-                    steps: bucket.steps,
-                    distanceMeters: bucket.distanceMeters,
-                    activeEnergyKilocalories: bucket.activeEnergyKilocalories,
-                    unit: distanceUnit
-                )
-            )
-            .font(.caption)
-            .foregroundStyle(Color.stepInk)
-            .lineLimit(1)
-            .minimumScaleFactor(0.75)
-
-            Spacer(minLength: 0)
-        }
-        .padding(.vertical, 1)
     }
 }
 

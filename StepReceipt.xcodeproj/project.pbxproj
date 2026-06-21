@@ -16,6 +16,7 @@
 		0DF5CCA5B5EEC8016F8B4F60 /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		119AE4F8C3993B17BFCD3A5F /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
 		12BC625C4A968CA67D3A4BB7 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 77D7B3688BBF71678CEEFABC /* SettingsView.swift */; };
+		E9D8C7B6A594837261504938 /* DayFlowCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1A2B3C4D5E6789012345678 /* DayFlowCard.swift */; };
 		165E2C740BA12624FADDA990 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6DCB0108D22D9887D64D763 /* TodayView.swift */; };
 		17C887D0CA9290FF2636362D /* ActivityRepository.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */; };
 		1886BC936BDC5975F52C6B0E /* GetTodayStepsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E86DD2B190F3D1DC3536CD /* GetTodayStepsIntent.swift */; };
@@ -258,6 +259,7 @@
 		E04E44CCE24EE4D7A0B40583 /* StepReceiptTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = StepReceiptTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E6428ADCADAC2E8A81E51AB5 /* CompeteHouseholdSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteHouseholdSheet.swift; sourceTree = "<group>"; };
 		E6DCB0108D22D9887D64D763 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		F1A2B3C4D5E6789012345678 /* DayFlowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayFlowCard.swift; sourceTree = "<group>"; };
 		E863E61B852579953F4FEDF7 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		E9FA9C664124BF11E10FEF64 /* StepReceiptAppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptAppDelegate.swift; sourceTree = "<group>"; };
 		F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionModels.swift; sourceTree = "<group>"; };
@@ -340,6 +342,7 @@
 				7BCCA4BE75DE26E667433C90 /* InsightsView.swift */,
 				77D7B3688BBF71678CEEFABC /* SettingsView.swift */,
 				D7AA520E58D9123739472025 /* ShareSheet.swift */,
+				F1A2B3C4D5E6789012345678 /* DayFlowCard.swift */,
 				E6DCB0108D22D9887D64D763 /* TodayView.swift */,
 				42A559BD53296F30FB6E3975 /* WeatherAttributionView.swift */,
 				4AF7A5DA430DADDEC1AFCC5A /* WeatherCardStyle.swift */,
@@ -811,6 +814,7 @@
 				4FCEE2FBD60307D9F0E0F572 /* StepReceiptTheme.swift in Sources */,
 				E5A06CBB02370F6044E4E8D4 /* SyncHouseholdBoardIntent.swift in Sources */,
 				E8D6025E3EFB28BFF864451D /* TodayQuickDigest.swift in Sources */,
+				E9D8C7B6A594837261504938 /* DayFlowCard.swift in Sources */,
 				165E2C740BA12624FADDA990 /* TodayView.swift in Sources */,
 				649E665C02516779E71B9687 /* WatchAggregateSnapshot.swift in Sources */,
 				2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */,

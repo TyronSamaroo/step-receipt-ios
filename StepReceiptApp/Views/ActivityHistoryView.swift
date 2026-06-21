@@ -411,6 +411,7 @@ struct DaySummaryDetailView: View {
 
     private var dayTimeline: some View {
         let activeHourCount = summary.buckets.filter { $0.steps > 0 }.count
+        let peakHourStart = TodayQuickDigestBuilder.digest(for: summary).peakHourStart
 
         return VStack(alignment: .leading, spacing: 8) {
             HStack {
@@ -431,7 +432,8 @@ struct DaySummaryDetailView: View {
             } else {
                 CompactHourlyTimetableRows(
                     buckets: summary.buckets,
-                    distanceUnit: repository.preferences.distanceUnit
+                    distanceUnit: repository.preferences.distanceUnit,
+                    peakHourStart: peakHourStart
                 )
             }
         }

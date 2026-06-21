@@ -69,12 +69,10 @@ struct WeatherDetailSheet: View {
 
     private func weatherSummarySection(_ weather: DayWeatherSnapshot) -> some View {
         HStack(alignment: .center, spacing: 16) {
-            if let symbol = weather.conditionSymbolName {
-                Image(systemName: symbol)
-                    .font(.system(size: 52))
-                    .symbolRenderingMode(.multicolor)
-                    .foregroundStyle(Color.stepDistance)
-            }
+            Image(systemName: weather.displayConditionSymbolName)
+                .font(.system(size: 52))
+                .symbolRenderingMode(.multicolor)
+                .frame(width: 58, height: 58)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text(weather.formattedTemperatureFahrenheit)
@@ -82,16 +80,20 @@ struct WeatherDetailSheet: View {
                     .foregroundStyle(Color.stepInk)
                     .monospacedDigit()
 
-                if let condition = weather.conditionDescription {
-                    Text(condition)
-                        .font(.headline.weight(.semibold))
+                Text(weather.displayConditionDescription)
+                    .font(.headline.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+
+                if weather.formattedApparentTemperatureFahrenheit != nil {
+                    Text("Feels like \(weather.displayApparentTemperatureFahrenheit)")
+                        .font(.subheadline.weight(.semibold))
                         .foregroundStyle(Color.stepMuted)
                 }
 
-                if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
-                    Text("Feels like \(feelsLike)")
-                        .font(.subheadline.weight(.semibold))
-                        .foregroundStyle(Color.stepMuted)
+                if let highLow = weather.formattedHighLowFahrenheit {
+                    Text(highLow)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepDistance)
                 }
             }
 
@@ -134,19 +136,13 @@ struct WeatherDetailSheet: View {
     }
 
     private func detailStats(for weather: DayWeatherSnapshot) -> [(title: String, value: String, icon: String, color: Color)] {
-        var stats: [(title: String, value: String, icon: String, color: Color)] = []
+        var stats: [(title: String, value: String, icon: String, color: Color)] = [
+            ("Feels like", weather.displayApparentTemperatureFahrenheit, "thermometer.medium", Color.stepEnergy),
+            ("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance),
+            ("Wind", weather.displayWind, "wind", Color.stepAccent),
+            ("UV Index", weather.displayUVIndex, "sun.max", Color.stepWarning)
+        ]
 
-        if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
-            stats.append(("Feels like", feelsLike, "thermometer.medium", Color.stepEnergy))
-        }
-        stats.append(("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance))
-
-        if let wind = weather.formattedWind {
-            stats.append(("Wind", wind, "wind", Color.stepAccent))
-        }
-        if let uv = weather.formattedUVIndex {
-            stats.append(("UV Index", uv, "sun.max", Color.stepWarning))
-        }
         if let dew = weather.formattedDewPointFahrenheit {
             stats.append(("Dew point", dew, "drop", Color.stepDistance))
         }
@@ -279,16 +275,16 @@ struct WeatherDetailSheet: View {
 
 enum WeatherCardStyle {
     static func gradientColors(for weather: DayWeatherSnapshot) -> [Color] {
-        let symbol = weather.conditionSymbolName ?? ""
+        let symbol = weather.displayConditionSymbolName
         if symbol.contains("sun") || symbol.contains("clear") {
-            return [Color.stepSurface, Color.stepEnergy.opacity(0.18), Color.stepWarning.opacity(0.10)]
+            return [Color.stepSurface, Color.stepEnergy.opacity(0.22), Color.stepWarning.opacity(0.12)]
         }
         if symbol.contains("rain") || symbol.contains("drizzle") || symbol.contains("snow") {
-            return [Color.stepSurface, Color.stepDistance.opacity(0.20), Color.stepAccent.opacity(0.10)]
+            return [Color.stepSurface, Color.stepDistance.opacity(0.24), Color.stepAccent.opacity(0.12)]
         }
         if symbol.contains("cloud") {
-            return [Color.stepSurface, Color.stepMuted.opacity(0.12), Color.stepDistance.opacity(0.12)]
+            return [Color.stepSurface, Color.stepMuted.opacity(0.16), Color.stepDistance.opacity(0.14)]
         }
-        return [Color.stepSurface, Color.stepDistance.opacity(0.14), Color.stepAccent.opacity(0.10)]
+        return [Color.stepSurface, Color.stepDistance.opacity(0.16), Color.stepAccent.opacity(0.12)]
     }
 }

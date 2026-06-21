@@ -101,9 +101,11 @@ actor LiveWeatherKitClient: WeatherKitProviding {
             .hourly(startDate: now, endDate: hourlyEnd)
         )
 
+        let hourlyHours = Array(hourly)
         let todayDaily = dailyForecast(for: dayStart, in: Array(daily), calendar: calendar)
-        let snapshot = snapshot(from: current, daily: todayDaily)
-        let hourlySnapshots = Array(hourly).map { hourSnapshot(from: $0) }
+        let nearestHour = hourlyHours.first
+        let snapshot = snapshot(from: current, daily: todayDaily, nearestHour: nearestHour)
+        let hourlySnapshots = hourlyHours.map { hourSnapshot(from: $0) }
 
         return DayWeatherDetail(date: dayStart, snapshot: snapshot, hourly: hourlySnapshots)
     }
@@ -157,7 +159,11 @@ actor LiveWeatherKitClient: WeatherKitProviding {
         return HighLow(highCelsius: high, lowCelsius: low)
     }
 
-    private func snapshot(from current: CurrentWeather, daily: DayWeather?) -> DayWeatherSnapshot {
+    private func snapshot(
+        from current: CurrentWeather,
+        daily: DayWeather?,
+        nearestHour: HourWeather? = nil
+    ) -> DayWeatherSnapshot {
         DayWeatherSnapshot(
             temperatureCelsius: celsiusValue(from: current.temperature),
             humidityPercent: current.humidity * 100,
@@ -169,7 +175,7 @@ actor LiveWeatherKitClient: WeatherKitProviding {
             uvIndex: Double(current.uvIndex.value),
             dewPointCelsius: celsiusValue(from: current.dewPoint),
             visibilityMeters: current.visibility.converted(to: .meters).value,
-            precipitationChancePercent: nil,
+            precipitationChancePercent: nearestHour.map { $0.precipitationChance * 100 },
             highTemperatureCelsius: daily.map { celsiusValue(from: $0.highTemperature) },
             lowTemperatureCelsius: daily.map { celsiusValue(from: $0.lowTemperature) },
             cloudCoverPercent: current.cloudCover * 100,

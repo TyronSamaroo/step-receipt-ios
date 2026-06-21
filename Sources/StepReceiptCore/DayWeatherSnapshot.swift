@@ -177,6 +177,56 @@ public struct DayWeatherSnapshot: Equatable, Sendable {
         return "H \(high)° · L \(low)°"
     }
 
+    /// SF Symbol for UI when WeatherKit metadata is missing.
+    public var displayConditionSymbolName: String {
+        conditionSymbolName ?? "cloud.sun.fill"
+    }
+
+    /// Human-readable condition with source-aware fallback.
+    public var displayConditionDescription: String {
+        if let conditionDescription, !conditionDescription.isEmpty {
+            return conditionDescription
+        }
+        switch source {
+        case .healthKitWorkout:
+            return "From workout"
+        case .unavailable:
+            return "Unavailable"
+        case .weatherKit:
+            return "Current conditions"
+        }
+    }
+
+    public var displayApparentTemperatureFahrenheit: String {
+        formattedApparentTemperatureFahrenheit ?? "—"
+    }
+
+    public var displayWind: String {
+        formattedWind ?? "—"
+    }
+
+    public var displayUVIndex: String {
+        formattedUVIndex ?? "—"
+    }
+
+    public var displayDewPointFahrenheit: String {
+        formattedDewPointFahrenheit ?? "—"
+    }
+
+    public var displayVisibilityMiles: String {
+        formattedVisibilityMiles ?? "—"
+    }
+
+    public var displayPrecipitationChance: String {
+        formattedPrecipitationChance ?? "—"
+    }
+
+    public var hasSecondaryWeatherStats: Bool {
+        formattedDewPointFahrenheit != nil
+            || formattedVisibilityMiles != nil
+            || formattedPrecipitationChance != nil
+    }
+
     public static func compassDirection(for degrees: Double) -> String {
         let normalized = (degrees.truncatingRemainder(dividingBy: 360) + 360).truncatingRemainder(dividingBy: 360)
         let directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"]

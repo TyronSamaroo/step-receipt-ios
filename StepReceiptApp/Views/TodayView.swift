@@ -676,7 +676,7 @@ struct TodayView: View {
 
     @ViewBuilder
     private var weatherStripCard: some View {
-        if repository.isLoadingDayWeather {
+        if repository.isLoadingDayWeather, repository.dayWeather == nil {
             HStack(spacing: 12) {
                 ProgressView()
                     .controlSize(.small)
@@ -695,44 +695,28 @@ struct TodayView: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("today-weather-strip")
-        } else if let summary = repository.todaySummary, let fallback = workoutMetadataWeather(for: summary) {
-            Button {
-                isWeatherDetailPresented = true
-            } label: {
-                workoutFallbackWeatherCard(fallback)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("today-weather-strip")
         }
     }
 
     private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top, spacing: 14) {
-                if let symbol = weather.conditionSymbolName {
-                    Image(systemName: symbol)
-                        .font(.system(size: 40))
-                        .symbolRenderingMode(.multicolor)
-                        .foregroundStyle(Color.stepDistance)
-                        .frame(width: 48, height: 48)
-                }
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: weather.displayConditionSymbolName)
+                    .font(.system(size: 44))
+                    .symbolRenderingMode(.multicolor)
+                    .frame(width: 52, height: 52)
 
-                VStack(alignment: .leading, spacing: 3) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(weather.formattedTemperatureFahrenheit)
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .font(.system(size: 36, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
                         .monospacedDigit()
 
-                    if let condition = weather.conditionDescription {
-                        Text(condition)
-                            .font(.subheadline.weight(.semibold))
-                            .foregroundStyle(Color.stepMuted)
-                            .lineLimit(1)
-                    } else if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
-                        Text("Feels like \(feelsLike)")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(Color.stepMuted)
-                    }
+                    Text(weather.displayConditionDescription)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.stepInk.opacity(0.72))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
 
                     if let highLow = weather.formattedHighLowFahrenheit {
                         Text(highLow)
@@ -743,35 +727,40 @@ struct TodayView: View {
 
                 Spacer(minLength: 0)
 
-                VStack(alignment: .trailing, spacing: 4) {
-                    HStack(spacing: 4) {
+                VStack(alignment: .trailing, spacing: 2) {
+                    if weather.source == .healthKitWorkout {
+                        Text("Workout")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Color.stepMuted)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 3)
+                            .background(Color.stepSurface.opacity(0.82))
+                            .clipShape(Capsule())
+                    }
+
+                    HStack(spacing: 3) {
                         Text("Details")
                             .font(.caption.weight(.bold))
                         Image(systemName: "chevron.right")
                             .font(.caption2.weight(.bold))
                     }
                     .foregroundStyle(Color.stepAccent)
+                    .padding(.top, weather.source == .healthKitWorkout ? 4 : 0)
                 }
             }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
-                    weatherMiniStat("Feels like", feelsLike, "thermometer.medium", Color.stepEnergy)
-                }
-                weatherMiniStat("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance)
-                if let wind = weather.formattedWind {
-                    weatherMiniStat("Wind", wind, "wind", Color.stepAccent)
-                }
-                if let uv = weather.formattedUVIndex {
-                    weatherMiniStat("UV", uv, "sun.max", Color.stepWarning)
-                }
+            primaryWeatherStatsRow(weather)
+
+            if weather.hasSecondaryWeatherStats {
+                secondaryWeatherStatsRow(weather)
             }
 
             if weather.source == .weatherKit {
                 WeatherAttributionView()
+                    .padding(.top, 2)
             }
         }
-        .padding(16)
+        .padding(14)
         .frame(maxWidth: .infinity, alignment: .leading)
         .background(
             LinearGradient(
@@ -791,88 +780,93 @@ struct TodayView: View {
         .accessibilityHint("Opens detailed weather forecast")
     }
 
-    private func workoutFallbackWeatherCard(_ fallback: (temperature: String, humidity: String)) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text(fallback.temperature)
-                        .font(.system(size: 34, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.stepInk)
-                    Text("From workout")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepMuted)
-                }
-                Spacer()
-                HStack(spacing: 4) {
-                    Text("Details")
-                        .font(.caption.weight(.bold))
-                    Image(systemName: "chevron.right")
-                        .font(.caption2.weight(.bold))
-                }
-                .foregroundStyle(Color.stepAccent)
-            }
+    private func primaryWeatherStatsRow(_ weather: DayWeatherSnapshot) -> some View {
+        HStack(spacing: 6) {
+            weatherMiniStat(
+                "Feels like",
+                weather.displayApparentTemperatureFahrenheit,
+                "thermometer.medium",
+                Color.stepEnergy
+            )
+            weatherMiniStat("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance)
+            weatherMiniStat("Wind", weather.displayWind, "wind", Color.stepAccent)
+            weatherMiniStat("UV", weather.displayUVIndex, "sun.max", Color.stepWarning)
+        }
+    }
 
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                weatherMiniStat("Humidity", fallback.humidity, "humidity", Color.stepDistance)
+    @ViewBuilder
+    private func secondaryWeatherStatsRow(_ weather: DayWeatherSnapshot) -> some View {
+        HStack(spacing: 6) {
+            if weather.formattedDewPointFahrenheit != nil {
+                weatherMiniStat(
+                    "Dew point",
+                    weather.displayDewPointFahrenheit,
+                    "drop.fill",
+                    Color.stepDistance
+                )
+            }
+            if weather.formattedVisibilityMiles != nil {
+                weatherMiniStat(
+                    "Visibility",
+                    weather.displayVisibilityMiles,
+                    "eye",
+                    Color.stepMuted
+                )
+            }
+            if weather.formattedPrecipitationChance != nil {
+                weatherMiniStat(
+                    "Precip.",
+                    weather.displayPrecipitationChance,
+                    "cloud.rain",
+                    Color.stepAccent
+                )
             }
         }
-        .padding(16)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.stepSurface)
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .shadow(color: .black.opacity(0.06), radius: 14, x: 0, y: 8)
-        .accessibilityLabel("Weather \(fallback.temperature), humidity \(fallback.humidity)")
-        .accessibilityHint("Opens weather details")
     }
 
     private func weatherMiniStat(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: 8) {
+        VStack(spacing: 4) {
             Image(systemName: icon)
-                .font(.caption.weight(.bold))
+                .font(.caption2.weight(.bold))
                 .foregroundStyle(color)
-                .frame(width: 22, height: 22)
-                .background(color.opacity(0.14))
+                .frame(width: 20, height: 20)
+                .background(color.opacity(0.16))
                 .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(value)
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepInk)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-                Text(title)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.stepMuted)
-            }
-            Spacer(minLength: 0)
+            Text(value)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+                .multilineTextAlignment(.center)
+
+            Text(title)
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundStyle(Color.stepMuted)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
         }
-        .padding(10)
-        .background(Color.stepSurface.opacity(0.72))
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 8)
+        .padding(.horizontal, 2)
+        .background(Color.stepSurface.opacity(0.88))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     private func weatherAccessibilityLabel(for weather: DayWeatherSnapshot) -> String {
-        var parts = ["Weather", weather.formattedTemperatureFahrenheitWithUnit]
-        if let condition = weather.conditionDescription {
-            parts.append(condition)
-        }
-        parts.append("humidity \(weather.formattedHumidity)")
-        if let wind = weather.formattedWind {
-            parts.append("wind \(wind)")
+        var parts = [
+            "Weather",
+            weather.formattedTemperatureFahrenheitWithUnit,
+            weather.displayConditionDescription,
+            "feels like \(weather.displayApparentTemperatureFahrenheit)",
+            "humidity \(weather.formattedHumidity)",
+            "wind \(weather.displayWind)",
+            "UV \(weather.displayUVIndex)"
+        ]
+        if let highLow = weather.formattedHighLowFahrenheit {
+            parts.append(highLow)
         }
         return parts.joined(separator: ", ")
-    }
-
-    private func workoutMetadataWeather(for summary: DailyActivitySummary) -> (temperature: String, humidity: String)? {
-        guard let workout = summary.workouts.first(where: {
-            $0.weatherTemperatureCelsius != nil || $0.weatherHumidityPercent != nil
-        }) else {
-            return nil
-        }
-
-        let temperature = workout.weatherTemperatureCelsius.map { "\(Int(DayWeatherSnapshot.celsiusToFahrenheit($0).rounded())) F" } ?? "-- F"
-        let humidity = workout.weatherHumidityPercent.map { "\(Int($0.rounded()))%" } ?? "--%"
-        return (temperature, humidity)
     }
 
     @ViewBuilder

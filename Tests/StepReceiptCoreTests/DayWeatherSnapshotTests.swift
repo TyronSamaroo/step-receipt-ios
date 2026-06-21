@@ -56,6 +56,38 @@ struct DayWeatherSnapshotTests {
     }
 
     @Test
+    func displayFallbacksWhenOptionalFieldsMissing() {
+        let snapshot = DayWeatherSnapshot(
+            temperatureCelsius: 25.5,
+            humidityPercent: 47,
+            source: .healthKitWorkout
+        )
+
+        #expect(snapshot.displayConditionSymbolName == "cloud.sun.fill")
+        #expect(snapshot.displayConditionDescription == "From workout")
+        #expect(snapshot.displayApparentTemperatureFahrenheit == "—")
+        #expect(snapshot.displayWind == "—")
+        #expect(snapshot.displayUVIndex == "—")
+        #expect(snapshot.hasSecondaryWeatherStats == false)
+    }
+
+    @Test
+    func secondaryStatsFlagWhenOptionalFieldsPresent() {
+        let snapshot = DayWeatherSnapshot(
+            temperatureCelsius: 22,
+            humidityPercent: 40,
+            dewPointCelsius: 12,
+            visibilityMeters: 10_000,
+            precipitationChancePercent: 20,
+            source: .weatherKit
+        )
+
+        #expect(snapshot.hasSecondaryWeatherStats == true)
+        #expect(snapshot.displayDewPointFahrenheit == "54°")
+        #expect(snapshot.displayPrecipitationChance == "20%")
+    }
+
+    @Test
     func cacheKeyBucketsCoordinates() {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!

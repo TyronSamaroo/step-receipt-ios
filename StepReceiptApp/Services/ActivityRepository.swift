@@ -1600,8 +1600,30 @@ final class ActivityRepository: ObservableObject {
         )
         receipt = engine.receipt(for: history, goals: goals)
         activityDataSource = .sample
+        dayWeather = sampleDayWeatherSnapshot()
         refreshCompetition()
         Task { await updateLiveActivityIfNeeded(with: todaySummary) }
+    }
+
+    private func sampleDayWeatherSnapshot() -> DayWeatherSnapshot {
+        DayWeatherSnapshot(
+            temperatureCelsius: 25.5,
+            humidityPercent: 47,
+            apparentTemperatureCelsius: 26.5,
+            conditionSymbolName: "cloud.sun.fill",
+            conditionDescription: "Partly Cloudy",
+            windSpeedMetersPerSecond: 3.6,
+            windDirectionDegrees: 45,
+            uvIndex: 5,
+            dewPointCelsius: 13.5,
+            visibilityMeters: 16_000,
+            precipitationChancePercent: 15,
+            highTemperatureCelsius: 28,
+            lowTemperatureCelsius: 18,
+            cloudCoverPercent: 42,
+            isDaylight: true,
+            source: .weatherKit
+        )
     }
 
     private func sampleHeartRateSamples(

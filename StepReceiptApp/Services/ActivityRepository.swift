@@ -8,7 +8,9 @@ final class ActivityRepository: ObservableObject {
     @Published var cloudSyncState: CloudSyncState = .unknown
     @Published var selectedDate: Date = Date()
     @Published var dayWeather: DayWeatherSnapshot?
+    @Published var dayWeatherDetail: DayWeatherDetail?
     @Published private(set) var isLoadingDayWeather = false
+    @Published private(set) var isLoadingWeatherDetail = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
     @Published var workouts: [WorkoutActivity] = []
@@ -640,8 +642,31 @@ final class ActivityRepository: ObservableObject {
         workoutWeatherBackfills[workout.sourceIdentifier]
     }
 
+    func loadWeatherDetail(for date: Date) async {
+        if let detail = dayWeatherDetail, calendar.isDate(detail.date, inSameDayAs: date) {
+            return
+        }
+
+        isLoadingWeatherDetail = true
+        defer { isLoadingWeatherDetail = false }
+
+        do {
+            await locationProvider.requestWhenInUseAuthorization()
+            let location = try await locationProvider.currentLocation()
+            let detail = try await weatherKit.fetchWeatherDetail(for: date, at: location, calendar: calendar)
+            dayWeatherDetail = detail
+            dayWeather = detail.snapshot
+        } catch {
+            if dayWeatherDetail == nil, let fallback = fallbackDayWeather(for: date) {
+                dayWeatherDetail = DayWeatherDetail(date: calendar.startOfDay(for: date), snapshot: fallback, hourly: [])
+                dayWeather = fallback
+            }
+        }
+    }
+
     private func fetchDayWeather(for date: Date) async {
         isLoadingDayWeather = true
+        dayWeatherDetail = nil
         defer { isLoadingDayWeather = false }
 
         do {

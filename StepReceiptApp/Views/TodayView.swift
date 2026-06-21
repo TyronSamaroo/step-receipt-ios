@@ -5,6 +5,7 @@ struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var shareImage: ShareImage?
     @State private var coachExpanded = false
+    @State private var isWeatherDetailPresented = false
 
     var body: some View {
         NavigationStack {
@@ -68,6 +69,10 @@ struct TodayView: View {
         }
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
+        }
+        .sheet(isPresented: $isWeatherDetailPresented) {
+            WeatherDetailSheet(date: repository.selectedDate)
+                .environmentObject(repository)
         }
     }
 
@@ -683,81 +688,179 @@ struct TodayView: View {
             .metricCard()
             .accessibilityIdentifier("today-weather-strip")
         } else if let weather = repository.dayWeather {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(spacing: 0) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        HStack(spacing: 6) {
-                            if let symbol = weather.conditionSymbolName {
-                                Image(systemName: symbol)
-                                    .font(.title3)
-                                    .foregroundStyle(Color.stepDistance)
-                            }
-                            Text(weather.formattedTemperatureFahrenheit)
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(Color.stepInk)
-                        }
-                        if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
-                            Text("Feels like \(feelsLike)")
-                                .font(.caption.weight(.semibold))
-                                .foregroundStyle(Color.stepMuted)
-                        }
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
+            Button {
+                isWeatherDetailPresented = true
+            } label: {
+                weatherCardContent(weather)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("today-weather-strip")
+        } else if let summary = repository.todaySummary, let fallback = workoutMetadataWeather(for: summary) {
+            Button {
+                isWeatherDetailPresented = true
+            } label: {
+                workoutFallbackWeatherCard(fallback)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("today-weather-strip")
+        }
+    }
 
-                    Rectangle()
-                        .fill(Color.stepMuted.opacity(0.18))
-                        .frame(width: 1)
-                        .padding(.vertical, 4)
+    private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top, spacing: 14) {
+                if let symbol = weather.conditionSymbolName {
+                    Image(systemName: symbol)
+                        .font(.system(size: 40))
+                        .symbolRenderingMode(.multicolor)
+                        .foregroundStyle(Color.stepDistance)
+                        .frame(width: 48, height: 48)
+                }
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        Label(weather.formattedHumidity, systemImage: "water.waves")
-                            .font(.subheadline.weight(.bold))
-                            .foregroundStyle(Color.stepDistance)
-                        Text("Humidity")
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(weather.formattedTemperatureFahrenheit)
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.stepInk)
+                        .monospacedDigit()
+
+                    if let condition = weather.conditionDescription {
+                        Text(condition)
+                            .font(.subheadline.weight(.semibold))
+                            .foregroundStyle(Color.stepMuted)
+                            .lineLimit(1)
+                    } else if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
+                        Text("Feels like \(feelsLike)")
                             .font(.caption.weight(.semibold))
                             .foregroundStyle(Color.stepMuted)
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.leading, 14)
-                }
-                .metricCard()
 
-                if weather.source == .weatherKit {
-                    WeatherAttributionView()
-                        .padding(.leading, 4)
+                    if let highLow = weather.formattedHighLowFahrenheit {
+                        Text(highLow)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepDistance)
+                    }
+                }
+
+                Spacer(minLength: 0)
+
+                VStack(alignment: .trailing, spacing: 4) {
+                    HStack(spacing: 4) {
+                        Text("Details")
+                            .font(.caption.weight(.bold))
+                        Image(systemName: "chevron.right")
+                            .font(.caption2.weight(.bold))
+                    }
+                    .foregroundStyle(Color.stepAccent)
                 }
             }
-            .accessibilityElement(children: .combine)
-            .accessibilityLabel("Weather \(weather.formattedTemperatureFahrenheit), humidity \(weather.formattedHumidity)")
-            .accessibilityIdentifier("today-weather-strip")
-        } else if let summary = repository.todaySummary, let fallback = workoutMetadataWeather(for: summary) {
-            HStack(spacing: 0) {
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                if let feelsLike = weather.formattedApparentTemperatureFahrenheit {
+                    weatherMiniStat("Feels like", feelsLike, "thermometer.medium", Color.stepEnergy)
+                }
+                weatherMiniStat("Humidity", weather.formattedHumidity, "humidity", Color.stepDistance)
+                if let wind = weather.formattedWind {
+                    weatherMiniStat("Wind", wind, "wind", Color.stepAccent)
+                }
+                if let uv = weather.formattedUVIndex {
+                    weatherMiniStat("UV", uv, "sun.max", Color.stepWarning)
+                }
+            }
+
+            if weather.source == .weatherKit {
+                WeatherAttributionView()
+            }
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(
+            LinearGradient(
+                colors: WeatherCardStyle.gradientColors(for: weather),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .stroke(Color.stepDistance.opacity(0.14), lineWidth: 1)
+        )
+        .shadow(color: Color.stepDistance.opacity(0.08), radius: 14, x: 0, y: 8)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(weatherAccessibilityLabel(for: weather))
+        .accessibilityHint("Opens detailed weather forecast")
+    }
+
+    private func workoutFallbackWeatherCard(_ fallback: (temperature: String, humidity: String)) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(fallback.temperature)
-                        .font(.title3.weight(.bold))
+                        .font(.system(size: 34, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                Rectangle()
-                    .fill(Color.stepMuted.opacity(0.18))
-                    .frame(width: 1)
-                    .padding(.vertical, 4)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Label(fallback.humidity, systemImage: "water.waves")
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(Color.stepDistance)
-                    Text("Humidity")
+                    Text("From workout")
                         .font(.caption.weight(.semibold))
                         .foregroundStyle(Color.stepMuted)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.leading, 14)
+                Spacer()
+                HStack(spacing: 4) {
+                    Text("Details")
+                        .font(.caption.weight(.bold))
+                    Image(systemName: "chevron.right")
+                        .font(.caption2.weight(.bold))
+                }
+                .foregroundStyle(Color.stepAccent)
             }
-            .metricCard()
-            .accessibilityIdentifier("today-weather-strip")
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                weatherMiniStat("Humidity", fallback.humidity, "humidity", Color.stepDistance)
+            }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.stepSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .shadow(color: .black.opacity(0.06), radius: 14, x: 0, y: 8)
+        .accessibilityLabel("Weather \(fallback.temperature), humidity \(fallback.humidity)")
+        .accessibilityHint("Opens weather details")
+    }
+
+    private func weatherMiniStat(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(color)
+                .frame(width: 22, height: 22)
+                .background(color.opacity(0.14))
+                .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(value)
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.72)
+                Text(title)
+                    .font(.caption2.weight(.semibold))
+                    .foregroundStyle(Color.stepMuted)
+            }
+            Spacer(minLength: 0)
+        }
+        .padding(10)
+        .background(Color.stepSurface.opacity(0.72))
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+    }
+
+    private func weatherAccessibilityLabel(for weather: DayWeatherSnapshot) -> String {
+        var parts = ["Weather", weather.formattedTemperatureFahrenheitWithUnit]
+        if let condition = weather.conditionDescription {
+            parts.append(condition)
+        }
+        parts.append("humidity \(weather.formattedHumidity)")
+        if let wind = weather.formattedWind {
+            parts.append("wind \(wind)")
+        }
+        return parts.joined(separator: ", ")
     }
 
     private func workoutMetadataWeather(for summary: DailyActivitySummary) -> (temperature: String, humidity: String)? {

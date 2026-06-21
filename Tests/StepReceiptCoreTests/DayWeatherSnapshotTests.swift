@@ -14,8 +14,9 @@ struct DayWeatherSnapshotTests {
             source: .weatherKit
         )
 
-        #expect(snapshot.formattedTemperatureFahrenheit == "70 F")
-        #expect(snapshot.formattedApparentTemperatureFahrenheit == "73 F")
+        #expect(snapshot.formattedTemperatureFahrenheit == "70°")
+        #expect(snapshot.formattedTemperatureFahrenheitWithUnit == "70° F")
+        #expect(snapshot.formattedApparentTemperatureFahrenheit == "73°")
         #expect(snapshot.formattedHumidity == "62%")
     }
 
@@ -23,6 +24,35 @@ struct DayWeatherSnapshotTests {
     func celsiusToFahrenheitConversion() {
         #expect(DayWeatherSnapshot.celsiusToFahrenheit(0) == 32)
         #expect(DayWeatherSnapshot.celsiusToFahrenheit(100) == 212)
+    }
+
+    @Test
+    func windAndCompassFormatting() {
+        let snapshot = DayWeatherSnapshot(
+            temperatureCelsius: 20,
+            humidityPercent: 50,
+            windSpeedMetersPerSecond: 4.47,
+            windDirectionDegrees: 45,
+            source: .weatherKit
+        )
+
+        #expect(snapshot.formattedWindSpeedMPH == "10 mph")
+        #expect(snapshot.formattedWind == "NE 10 mph")
+        #expect(DayWeatherSnapshot.compassDirection(for: 0) == "N")
+        #expect(DayWeatherSnapshot.compassDirection(for: 90) == "E")
+    }
+
+    @Test
+    func highLowFormatting() {
+        let snapshot = DayWeatherSnapshot(
+            temperatureCelsius: 22,
+            humidityPercent: 40,
+            highTemperatureCelsius: 28,
+            lowTemperatureCelsius: 16,
+            source: .weatherKit
+        )
+
+        #expect(snapshot.formattedHighLowFahrenheit == "H 82° · L 61°")
     }
 
     @Test

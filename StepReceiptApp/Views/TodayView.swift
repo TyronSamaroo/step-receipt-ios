@@ -927,32 +927,19 @@ struct TodayView: View {
     }
 
     private func timetable(_ summary: DailyActivitySummary) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: 8) {
             Text("Timetable")
                 .font(.headline)
 
             if summary.buckets.isEmpty {
                 Text("No timetable entries for this day.")
-                    .font(.subheadline)
+                    .font(.caption)
                     .foregroundStyle(Color.stepMuted)
             } else {
-                ForEach(summary.buckets) { bucket in
-                    HStack(spacing: 12) {
-                        Text(bucket.startDate, format: .dateTime.hour())
-                            .font(.caption)
-                            .foregroundStyle(Color.stepMuted)
-                            .frame(width: 58, alignment: .leading)
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("\(bucket.steps.formatted()) steps")
-                                .font(.subheadline.weight(.semibold))
-                            Text("\(ActivityFormatting.formattedDistance(from: bucket.distanceMeters, unit: repository.preferences.distanceUnit)) · \(ActivityFormatting.formattedCalories(bucket.activeEnergyKilocalories))")
-                                .font(.caption)
-                                .foregroundStyle(Color.stepMuted)
-                        }
-                        Spacer()
-                    }
-                    .padding(.vertical, 6)
-                }
+                CompactHourlyTimetableRows(
+                    buckets: summary.buckets,
+                    distanceUnit: repository.preferences.distanceUnit
+                )
             }
         }
         .metricCard()

@@ -64,7 +64,7 @@ public enum TodayQuickDigestBuilder {
             action = .refresh
         }
 
-        let activeWindow = mostActiveWindow(in: summary.buckets)
+        let activeWindow = ActivityPatternAnalysis.mostActiveWindow(in: summary.buckets)
 
         return TodayQuickDigest(
             peakHourStart: peakBucket?.startDate,
@@ -78,44 +78,5 @@ public enum TodayQuickDigestBuilder {
             workoutMinutes: summary.workoutMinutes,
             action: action
         )
-    }
-
-    private static func mostActiveWindow(in buckets: [HealthMetricBucket]) -> (start: Date, end: Date)? {
-        let sortedBuckets = buckets.sorted { $0.startDate < $1.startDate }
-        guard !sortedBuckets.isEmpty else { return nil }
-
-        var best: (start: Date, end: Date, steps: Int)?
-        var currentStart: Date?
-        var currentEnd: Date?
-        var currentSteps = 0
-
-        func closeCurrentRange() {
-            guard let start = currentStart, let end = currentEnd, currentSteps > 0 else { return }
-            if best == nil || currentSteps > (best?.steps ?? 0) {
-                best = (start, end, currentSteps)
-            }
-        }
-
-        for bucket in sortedBuckets {
-            if bucket.steps > 0 {
-                if currentStart == nil {
-                    currentStart = bucket.startDate
-                }
-                currentEnd = bucket.endDate
-                currentSteps += bucket.steps
-            } else if currentStart != nil {
-                closeCurrentRange()
-                currentStart = nil
-                currentEnd = nil
-                currentSteps = 0
-            }
-        }
-
-        if currentStart != nil {
-            closeCurrentRange()
-        }
-
-        guard let best else { return nil }
-        return (best.start, best.end)
     }
 }

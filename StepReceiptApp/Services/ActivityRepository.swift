@@ -122,6 +122,7 @@ final class ActivityRepository: ObservableObject {
 
     private var workoutWeatherSources: [String: WeatherDataSource] = [:]
     private var workoutWeatherBackfills: [String: DayWeatherSnapshot] = [:]
+    private var stepPatternCache: [String: StepPattern] = [:]
 
     init(
         healthKit: any HealthKitProviding = HealthKitClient(),
@@ -534,6 +535,62 @@ final class ActivityRepository: ObservableObject {
         return engine.periodComparison(current: current, prior: prior, goals: goals)
     }
 
+    func loadStepPattern(scope: ActivityPeriodScope, containing date: Date, now: Date = Date()) async -> StepPattern {
+        let normalizedDate = normalizedActivityDate(date, now: now)
+        let cacheKey = stepPatternCacheKey(scope: scope, containing: normalizedDate)
+        if let cached = stepPatternCache[cacheKey] {
+            return cached
+        }
+
+        let interval = engine.dateInterval(for: scope, containing: normalizedDate)
+        let period = periodSummary(scope: scope, containing: normalizedDate, now: now)
+        var buckets = period.summaries.flatMap(\.buckets)
+
+        if buckets.isEmpty || shouldRefreshHourlyBuckets(for: period, activityDataSource: activityDataSource) {
+            if healthKit.isAvailable, hasRequestedHealthAuthorization, activityDataSource == .healthKit {
+                let fetch = await fetchHealthValue(label: "Hourly Apple Health pattern") {
+                    try await healthKit.fetchHourlyBuckets(from: interval.start, to: interval.end)
+                }
+                if let fetchedBuckets = fetch.value, !fetchedBuckets.isEmpty {
+                    buckets = fetchedBuckets
+                }
+            }
+        }
+
+        let pattern = WeekPatternBuilder.build(
+            from: buckets,
+            scope: scope,
+            periodStart: interval.start,
+            periodEnd: interval.end,
+            calendar: calendar
+        )
+        stepPatternCache[cacheKey] = pattern
+        return pattern
+    }
+
+    func weekPatternCoachInsights(
+        pattern: StepPattern,
+        containing date: Date,
+        now: Date = Date()
+    ) -> [WeekPatternCoachInsight] {
+        let normalizedDate = normalizedActivityDate(date, now: now)
+        let period = periodSummary(scope: pattern.scope, containing: normalizedDate, now: now)
+        let priorPeriod: PeriodActivitySummary?
+        if pattern.scope == .month,
+           let priorAnchor = adjacentInsightPeriodAnchor(scope: .month, containing: normalizedDate, offset: -1, now: now) {
+            priorPeriod = periodSummary(scope: .month, containing: priorAnchor, now: now)
+        } else {
+            priorPeriod = nil
+        }
+
+        return engine.weekPatternCoachInsights(
+            pattern: pattern,
+            period: period,
+            priorPeriod: priorPeriod,
+            goals: goals
+        )
+    }
+
     func workoutComparisonPeers(for workout: WorkoutActivity) -> [WorkoutActivity] {
         workoutComparisonService.peerWorkouts(
             for: workout,
@@ -918,6 +975,20 @@ final class ActivityRepository: ObservableObject {
     private func normalizedActivityDate(_ date: Date, now: Date = Date()) -> Date {
         let range = selectableDateRange(now: now)
         return min(max(calendar.startOfDay(for: date), range.lowerBound), range.upperBound)
+    }
+
+    private func stepPatternCacheKey(scope: ActivityPeriodScope, containing date: Date) -> String {
+        let periodStart = engine.dateInterval(for: scope, containing: date).start
+        return "\(scope.rawValue)-\(ActivityFormatting.dayKey(for: periodStart, calendar: calendar))"
+    }
+
+    private func shouldRefreshHourlyBuckets(
+        for period: PeriodActivitySummary,
+        activityDataSource: ActivityDataSource
+    ) -> Bool {
+        guard activityDataSource == .healthKit else { return false }
+        guard !period.summaries.isEmpty else { return true }
+        return period.summaries.contains { $0.buckets.isEmpty }
     }
 
     private static func mondayFirstCalendar(_ calendar: Calendar) -> Calendar {
@@ -1828,6 +1899,20 @@ final class ActivityRepository: ObservableObject {
                         distanceMeters: Double(base) * 0.74,
                         activeEnergyKilocalories: Double(base) * 0.038,
                         flightsClimbed: hour.isMultiple(of: 4) ? 2 : 0
+                    )
+                )
+            }
+
+            for hour in [0, 1, 2, 3, 4, 5, 6, 21, 22, 23] {
+                guard let bucketStart = calendar.date(byAdding: .hour, value: hour, to: day) else { continue }
+                allBuckets.append(
+                    HealthMetricBucket(
+                        startDate: bucketStart,
+                        endDate: bucketStart.addingTimeInterval(3_600),
+                        steps: 0,
+                        distanceMeters: 0,
+                        activeEnergyKilocalories: 0,
+                        flightsClimbed: 0
                     )
                 )
             }

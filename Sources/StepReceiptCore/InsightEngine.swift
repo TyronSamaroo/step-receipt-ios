@@ -314,6 +314,88 @@ public struct InsightEngine: Sendable {
             .map { $0 }
     }
 
+    public func weekPatternCoachInsights(
+        pattern: StepPattern,
+        period: PeriodActivitySummary,
+        priorPeriod: PeriodActivitySummary?,
+        goals: UserGoals
+    ) -> [WeekPatternCoachInsight] {
+        var insights: [WeekPatternCoachInsight] = []
+
+        if pattern.peakHourMedianSteps > 0 {
+            let peakLabel = ActivityFormatting.shortHourLabel(
+                for: peakHourDate(hour: pattern.peakHour, calendar: calendar),
+                calendar: calendar
+            )
+            insights.append(
+                WeekPatternCoachInsight(
+                    id: "peak-hour",
+                    title: "Peak hour \(peakLabel)",
+                    detail: "Your typical \(pattern.scope.displayName.lowercased()) peak lands around \(peakLabel) with about \(pattern.peakHourMedianSteps.formatted()) median steps.",
+                    systemImage: "clock.fill"
+                )
+            )
+        }
+
+        if let windowStart = pattern.mostActiveWindowStart,
+           let windowEnd = pattern.mostActiveWindowEnd {
+            insights.append(
+                WeekPatternCoachInsight(
+                    id: "active-window",
+                    title: "Active window",
+                    detail: ActivityFormatting.formattedActiveWindowLabel(start: windowStart, end: windowEnd, calendar: calendar) + " is your most reliable movement block.",
+                    systemImage: "figure.walk"
+                )
+            )
+        }
+
+        if !pattern.quietHours.isEmpty, pattern.activeHours.count >= 4 {
+            insights.append(
+                WeekPatternCoachInsight(
+                    id: "quiet-hours",
+                    title: "\(pattern.quietHours.count) quiet hours",
+                    detail: "Most days stay quiet outside your active window — a short walk in a quiet block can add easy steps.",
+                    systemImage: "moon.zzz.fill"
+                )
+            )
+        }
+
+        if period.goalHitDays > 0 {
+            insights.append(
+                WeekPatternCoachInsight(
+                    id: "goal-days",
+                    title: "\(period.goalHitDays) goal day\(period.goalHitDays == 1 ? "" : "s")",
+                    detail: "You cleared \(goals.stepsPerDay.formatted()) steps on \(period.goalHitDays) of \(max(1, period.summaries.count)) days this \(pattern.scope.displayName.lowercased()).",
+                    systemImage: "target"
+                )
+            )
+        }
+
+        if pattern.scope == .month,
+           let priorPeriod,
+           priorPeriod.receipt.dailyAverageSteps > 0 {
+            let delta = period.receipt.dailyAverageSteps - priorPeriod.receipt.dailyAverageSteps
+            if abs(delta) >= 250 {
+                let direction = delta > 0 ? "up" : "down"
+                insights.append(
+                    WeekPatternCoachInsight(
+                        id: "month-trend",
+                        title: "Month vs last month",
+                        detail: "Daily average is \(direction) \(abs(delta).formatted()) steps compared with last month.",
+                        systemImage: delta > 0 ? "chart.line.uptrend.xyaxis" : "chart.line.downtrend.xyaxis"
+                    )
+                )
+            }
+        }
+
+        return Array(insights.prefix(3))
+    }
+
+    private func peakHourDate(hour: Int, calendar: Calendar) -> Date {
+        let reference = calendar.startOfDay(for: Date())
+        return calendar.date(byAdding: .hour, value: hour, to: reference) ?? reference
+    }
+
     public func receipt(
         for summaries: [DailyActivitySummary],
         goals: UserGoals,

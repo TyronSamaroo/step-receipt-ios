@@ -16,6 +16,7 @@ protocol HealthKitProviding: Sendable {
         onDelivery: @escaping @MainActor @Sendable () async -> Void
     ) async throws
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket]
+    func fetchHourlyBuckets(from startDate: Date, to endDate: Date) async throws -> [HealthMetricBucket]
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket]
     func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity]
 }
@@ -95,7 +96,11 @@ final class HealthKitClient: @unchecked Sendable {
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket] {
         let start = calendar.startOfDay(for: date)
         let end = calendar.date(byAdding: .day, value: 1, to: start) ?? start.addingTimeInterval(86_400)
-        return try await fetchMetricBuckets(startDate: start, endDate: end, interval: DateComponents(hour: 1))
+        return try await fetchHourlyBuckets(from: start, to: end)
+    }
+
+    func fetchHourlyBuckets(from startDate: Date, to endDate: Date) async throws -> [HealthMetricBucket] {
+        try await fetchMetricBuckets(startDate: startDate, endDate: endDate, interval: DateComponents(hour: 1))
     }
 
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date = Date()) async throws -> [HealthMetricBucket] {

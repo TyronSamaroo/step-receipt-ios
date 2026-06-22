@@ -5,6 +5,7 @@ struct DayFlowCard: View {
     let summary: DailyActivitySummary
     let selectedDate: Date
     let distanceUnit: DistanceUnit
+    var onPatternTap: (() -> Void)? = nil
 
     private var digest: TodayQuickDigest {
         TodayQuickDigestBuilder.digest(for: summary)
@@ -28,6 +29,19 @@ struct DayFlowCard: View {
                     .font(.headline)
                     .foregroundStyle(Color.stepInk)
                 Spacer(minLength: 8)
+                if onPatternTap != nil {
+                    Button {
+                        onPatternTap?()
+                    } label: {
+                        Label("Week pattern", systemImage: "chart.xyaxis.line")
+                            .labelStyle(.iconOnly)
+                            .font(.caption.weight(.bold))
+                            .foregroundStyle(Color.stepAccent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Week pattern")
+                    .accessibilityIdentifier("day-flow-pattern-button")
+                }
                 Text("Hourly Steps")
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepMuted)
@@ -156,8 +170,8 @@ struct CompactHourlyTimetableRows: View {
         showQuietHours ? buckets : buckets.filter { $0.steps > 0 }
     }
 
-    private var usesDenseGrid: Bool {
-        visibleBuckets.count > 12
+    private var usesScrollableRows: Bool {
+        showQuietHours && visibleBuckets.count > 12
     }
 
     var body: some View {
@@ -186,20 +200,25 @@ struct CompactHourlyTimetableRows: View {
                 Text("No steps logged in active hours.")
                     .font(.caption)
                     .foregroundStyle(Color.stepMuted)
-            } else if usesDenseGrid {
-                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
-                    ForEach(visibleBuckets) { bucket in
-                        tabularRow(bucket)
-                    }
-                }
             } else {
                 columnHeaderRow
 
-                VStack(spacing: 2) {
-                    ForEach(visibleBuckets) { bucket in
-                        tabularRow(bucket)
+                if usesScrollableRows {
+                    ScrollView {
+                        tabularRows
                     }
+                    .frame(maxHeight: 240)
+                } else {
+                    tabularRows
                 }
+            }
+        }
+    }
+
+    private var tabularRows: some View {
+        VStack(spacing: 2) {
+            ForEach(visibleBuckets) { bucket in
+                tabularRow(bucket)
             }
         }
     }

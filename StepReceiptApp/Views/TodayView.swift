@@ -8,6 +8,7 @@ struct TodayView: View {
     @State private var shareImage: ShareImage?
     @State private var coachExpanded = false
     @State private var isWeatherDetailPresented = false
+    @State private var isDayFlowPatternPresented = false
 
     var body: some View {
         NavigationStack {
@@ -21,7 +22,8 @@ struct TodayView: View {
                         DayFlowCard(
                             summary: summary,
                             selectedDate: repository.selectedDate,
-                            distanceUnit: repository.preferences.distanceUnit
+                            distanceUnit: repository.preferences.distanceUnit,
+                            onPatternTap: { isDayFlowPatternPresented = true }
                         )
                         workoutSection(summary)
                         weekPulseCard
@@ -81,6 +83,10 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isWeatherDetailPresented) {
             WeatherDetailSheet(date: repository.selectedDate)
+                .environmentObject(repository)
+        }
+        .sheet(isPresented: $isDayFlowPatternPresented) {
+            DayFlowPatternSheet(date: repository.selectedDate)
                 .environmentObject(repository)
         }
     }

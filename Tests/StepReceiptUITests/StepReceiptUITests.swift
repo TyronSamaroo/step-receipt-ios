@@ -17,8 +17,32 @@ final class StepReceiptUITests: XCTestCase {
         if quietHoursToggle.waitForExistence(timeout: 2) {
             quietHoursToggle.tap()
             XCTAssertTrue(app.staticTexts["Hide quiet hours"].waitForExistence(timeout: 2))
+            XCTAssertTrue(app.staticTexts["Hour"].waitForExistence(timeout: 2))
+            XCTAssertTrue(app.staticTexts["Steps"].waitForExistence(timeout: 2))
             quietHoursToggle.tap()
         }
+    }
+
+    @MainActor
+    func testDayFlowPatternDrillInOpensSheet() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        let dayFlow = app.otherElements["today-day-flow"]
+        XCTAssertTrue(scrollToElement(dayFlow, in: app, timeout: 5, maxSwipes: 4))
+
+        let patternButton = app.buttons["day-flow-pattern-button"]
+        XCTAssertTrue(patternButton.waitForExistence(timeout: 3))
+        patternButton.tap()
+
+        XCTAssertTrue(app.otherElements["day-flow-pattern-sheet"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["day-flow-pattern-scope-picker"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["day-flow-pattern-heatmap"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.otherElements["day-flow-pattern-hour-profile"].waitForExistence(timeout: 3))
+
+        app.buttons["Done"].tap()
+        XCTAssertTrue(dayFlow.waitForExistence(timeout: 3))
     }
 
     @MainActor

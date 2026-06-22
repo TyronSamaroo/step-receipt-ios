@@ -1409,6 +1409,12 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         return hourlyBuckets
     }
 
+    func fetchHourlyBuckets(from startDate: Date, to endDate: Date) async throws -> [HealthMetricBucket] {
+        if let hourlyFetchError { throw hourlyFetchError }
+        if let fetchError { throw fetchError }
+        return hourlyBuckets.filter { $0.startDate >= startDate && $0.startDate < endDate }
+    }
+
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket] {
         if let dailyFetchError { throw dailyFetchError }
         if let fetchError { throw fetchError }

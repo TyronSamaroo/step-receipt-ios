@@ -247,6 +247,7 @@ struct LeaderboardRowView: View {
     let row: LeaderboardRow
     let distanceUnit: DistanceUnit
     var isSampleRow: Bool = false
+    var onMemberTap: ((LeaderboardRow) -> Void)?
 
     var body: some View {
         HStack(spacing: 12) {
@@ -264,14 +265,38 @@ struct LeaderboardRowView: View {
 
             VStack(alignment: .leading, spacing: 3) {
                 HStack(spacing: 6) {
-                    Text(row.competitor.displayName)
-                        .font(.headline)
-                        .foregroundStyle(Color.stepInk)
-                        .lineLimit(1)
-                    if row.rank == 1 {
-                        Image(systemName: "crown.fill")
-                            .font(.caption2)
-                            .foregroundStyle(Color.stepWarning)
+                    if let onMemberTap {
+                        Button {
+                            onMemberTap(row)
+                        } label: {
+                            HStack(spacing: 6) {
+                                Text(row.competitor.displayName)
+                                    .font(.headline)
+                                    .foregroundStyle(Color.stepInk)
+                                    .lineLimit(1)
+                                if row.rank == 1 {
+                                    Image(systemName: "crown.fill")
+                                        .font(.caption2)
+                                        .foregroundStyle(Color.stepWarning)
+                                }
+                                Image(systemName: "chevron.right")
+                                    .font(.caption2.weight(.bold))
+                                    .foregroundStyle(Color.stepMuted.opacity(0.8))
+                            }
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("compete-leaderboard-row-name-\(row.competitor.id.uuidString)")
+                        .accessibilityLabel("View \(row.competitor.displayName) breakdown")
+                    } else {
+                        Text(row.competitor.displayName)
+                            .font(.headline)
+                            .foregroundStyle(Color.stepInk)
+                            .lineLimit(1)
+                        if row.rank == 1 {
+                            Image(systemName: "crown.fill")
+                                .font(.caption2)
+                                .foregroundStyle(Color.stepWarning)
+                        }
                     }
                 }
                 Text(rowSubtitle)
@@ -292,6 +317,7 @@ struct LeaderboardRowView: View {
         .padding(12)
         .background(row.isCurrentUser ? Color.stepAccent.opacity(0.10) : Color.stepBackground)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .accessibilityIdentifier("compete-leaderboard-row-\(row.competitor.id.uuidString)")
     }
 
     private var rowSubtitle: String {

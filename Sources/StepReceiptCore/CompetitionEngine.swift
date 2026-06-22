@@ -162,11 +162,6 @@ public struct CompetitionEngine: Sendable {
         }
     }
 
-    private func date(fromDayKey dayKey: String) -> Date? {
-        let parts = dayKey.split(separator: "-").compactMap { Int($0) }
-        guard parts.count == 3 else { return nil }
-        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
-    }
 
     private func scoreForMetric(
         _ metric: CompetitionMetric,

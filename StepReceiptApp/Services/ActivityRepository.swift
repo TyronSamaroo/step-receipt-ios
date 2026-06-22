@@ -1505,6 +1505,44 @@ final class ActivityRepository: ObservableObject {
         !entriesForSharedCompetitionSync().isEmpty
     }
 
+    func allCompetitionEntries() -> [CompetitionEntry] {
+        householdCompetitionEntries()
+    }
+
+    func competeMemberPeriodBreakdown(
+        for competitor: CompetitorProfile,
+        scope: ActivityPeriodScope,
+        metric: CompetitionMetric,
+        now: Date = Date()
+    ) -> CompeteMemberPeriodBreakdown {
+        competitionEngine.memberPeriodBreakdown(
+            entries: allCompetitionEntries(),
+            competitor: competitor,
+            scope: scope,
+            metric: metric,
+            goals: goals,
+            now: now
+        )
+    }
+
+    func competeMemberHeatmapPeriod(
+        for competitor: CompetitorProfile,
+        scope: ActivityPeriodScope,
+        now: Date = Date()
+    ) -> PeriodActivitySummary {
+        let summaries = competitionEngine.dailySummaries(
+            from: allCompetitionEntries().filter { $0.competitor.id == competitor.id },
+            goals: goals
+        )
+        return engine.periodSummary(
+            scope: scope,
+            containing: now,
+            summaries: summaries,
+            goals: goals,
+            now: now
+        )
+    }
+
     private func refreshCompetition() {
         var entries: [CompetitionEntry] = []
         var entriesByID: [String: CompetitionEntry] = [:]

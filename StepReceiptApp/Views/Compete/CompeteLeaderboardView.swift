@@ -10,6 +10,7 @@ struct CompeteLeaderboardView: View {
     let onInvitePartner: () -> Void
 
     @State private var showDiagnostics = false
+    @State private var selectedMember: CompeteMemberDrillInSelection?
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -38,6 +39,14 @@ struct CompeteLeaderboardView: View {
         .sheet(isPresented: $showDiagnostics) {
             CompeteDiagnosticsSheet()
                 .environmentObject(repository)
+        }
+        .sheet(item: $selectedMember) { selection in
+            CompeteMemberDrillInSheet(
+                row: selection.row,
+                metric: receipt.metric,
+                distanceUnit: repository.preferences.distanceUnit
+            )
+            .environmentObject(repository)
         }
         .accessibilityIdentifier("compete-leaderboard")
     }
@@ -165,7 +174,8 @@ struct CompeteLeaderboardView: View {
                     LeaderboardRowView(
                         row: row,
                         distanceUnit: repository.preferences.distanceUnit,
-                        isSampleRow: showsSampleBoard && !row.isCurrentUser
+                        isSampleRow: showsSampleBoard && !row.isCurrentUser,
+                        onMemberTap: { selectedMember = CompeteMemberDrillInSelection(row: $0) }
                     )
                 }
             }

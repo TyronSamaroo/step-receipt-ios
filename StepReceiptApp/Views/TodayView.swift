@@ -18,14 +18,14 @@ struct TodayView: View {
 
                     if let summary = repository.todaySummary {
                         todayHero(summary)
+                        workoutSection(summary)
+                        weekPulseCard
                         DayFlowCard(
                             summary: summary,
                             selectedDate: repository.selectedDate,
                             distanceUnit: repository.preferences.distanceUnit,
                             onPatternTap: { isDayFlowPatternPresented = true }
                         )
-                        workoutSection(summary)
-                        weekPulseCard
                         todayQuickDigestCard(summary)
                         healthSyncStatusCard
                     } else {
@@ -502,37 +502,37 @@ struct TodayView: View {
     }
 
     private func todayHero(_ summary: DailyActivitySummary) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 14) {
             heroHeaderBlock(summary)
 
             heroDateControls
 
-            HStack(alignment: .center, spacing: 12) {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .center, spacing: 16) {
+                VStack(alignment: .leading, spacing: 8) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
                         Text(summary.steps.formatted())
-                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .font(.system(size: 56, weight: .bold, design: .rounded))
                             .foregroundStyle(Color.stepInk)
                             .lineLimit(1)
                             .minimumScaleFactor(0.62)
                             .contentTransition(.numericText())
                             .accessibilityIdentifier("today-hero-steps")
                         Text("steps")
-                            .font(.subheadline.weight(.bold))
+                            .font(.callout.weight(.bold))
                             .foregroundStyle(Color.stepMuted)
                     }
 
                     Text(goalRemainingLine(for: summary))
-                        .font(.caption.weight(.bold))
+                        .font(.subheadline.weight(.bold))
                         .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
                         .fixedSize(horizontal: false, vertical: true)
 
                     if summary.stepGoalProgress >= 1 {
                         Label("Goal crushed", systemImage: "party.popper.fill")
-                            .font(.caption2.weight(.bold))
+                            .font(.caption.weight(.bold))
                             .foregroundStyle(Color.stepAccent)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 5)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
                             .background(Color.stepAccent.opacity(0.15))
                             .clipShape(Capsule())
                             .accessibilityIdentifier("today-goal-crushed")
@@ -541,15 +541,19 @@ struct TodayView: View {
 
                 Spacer(minLength: 8)
 
-                ProgressRing(progress: summary.stepGoalProgress)
-                    .frame(width: 90, height: 90)
+                ProgressRing(
+                    progress: summary.stepGoalProgress,
+                    lineWidth: 14,
+                    labelFont: .subheadline.weight(.bold)
+                )
+                    .frame(width: 115, height: 115)
                     .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
             }
 
             heroMetricsRow(summary)
             heroCoachFooter(repository.todayCoachInsights())
         }
-        .padding(14)
+        .padding(18)
         .background(
             LinearGradient(
                 colors: [
@@ -653,16 +657,16 @@ struct TodayView: View {
         HStack(alignment: .top, spacing: 10) {
             if isViewingToday, repository.preferences.dailyAffirmationEnabled {
                 let greeting = dailyGreeting
-                VStack(alignment: .leading, spacing: 4) {
+                VStack(alignment: .leading, spacing: 5) {
                     Text(greeting.greetingLine)
-                        .font(.title3.weight(.bold))
+                        .font(.title2.weight(.bold))
                         .foregroundStyle(Color.stepInk)
                         .accessibilityIdentifier("today-greeting-line")
 
                     Text(greeting.affirmationLine)
-                        .font(.caption)
+                        .font(.subheadline)
                         .foregroundStyle(Color.stepMuted)
-                        .lineLimit(1)
+                        .lineLimit(2)
                         .minimumScaleFactor(0.85)
                         .accessibilityIdentifier("today-affirmation-line")
                 }
@@ -737,7 +741,7 @@ struct TodayView: View {
         let avgHRText = avgHeartRate.map { "\(Int($0.rounded())) bpm" } ?? "--"
         let heartTint = Color(red: 0.640, green: 0.430, blue: 1.000)
 
-        return HStack(spacing: 6) {
+        return HStack(spacing: 8) {
             heroMetricPill(
                 "Distance",
                 ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
@@ -777,17 +781,17 @@ struct TodayView: View {
     }
 
     private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: 6) {
+        HStack(spacing: 7) {
             Image(systemName: icon)
-                .font(.caption2.weight(.bold))
+                .font(.caption.weight(.bold))
                 .foregroundStyle(color)
-                .frame(width: 20, height: 20)
+                .frame(width: 24, height: 24)
                 .background(color.opacity(0.16))
                 .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 1) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(value)
-                    .font(.caption2.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
                     .minimumScaleFactor(0.68)
@@ -798,7 +802,8 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(8)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 10)
         .background(Color.stepSurface.opacity(0.76))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -886,14 +891,15 @@ struct TodayView: View {
                 .background(coachAccent(for: insight.kind).opacity(0.14))
                 .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 3) {
                 Text(insight.title)
-                    .font(.caption.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Text(insight.detail)
-                    .font(.caption2.weight(.semibold))
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
-                    .lineLimit(1)
+                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 if showsCompeteLink {
                     Text("Open Compete")
                         .font(.caption2.weight(.bold))
@@ -1194,11 +1200,13 @@ struct MetricTile: View {
 
 struct ProgressRing: View {
     let progress: Double
+    var lineWidth: CGFloat = 12
+    var labelFont: Font = .caption.weight(.bold)
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.stepAccent.opacity(0.18), lineWidth: 12)
+                .stroke(Color.stepAccent.opacity(0.18), lineWidth: lineWidth)
             Circle()
                 .trim(from: 0, to: min(1, max(0, progress)))
                 .stroke(
@@ -1206,11 +1214,11 @@ struct ProgressRing: View {
                         colors: [Color.stepAccent, Color.stepDistance, Color.stepEnergy, Color.stepAccent],
                         center: .center
                     ),
-                    style: StrokeStyle(lineWidth: 12, lineCap: .round)
+                    style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
             Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%")
-                .font(.caption.weight(.bold))
+                .font(labelFont)
                 .foregroundStyle(Color.stepInk)
         }
     }

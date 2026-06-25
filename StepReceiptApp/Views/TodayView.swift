@@ -682,54 +682,57 @@ struct TodayView: View {
     }
 
     private func heroProgressRing(_ summary: DailyActivitySummary) -> some View {
-        let ringSize: CGFloat = 136
-        let ringLineWidth: CGFloat = 12
+        let ringSize: CGFloat = 176
+        let ringLineWidth: CGFloat = 9
+        let innerMaxWidth = ringSize * 0.55
 
-        return ZStack {
-            ProgressRing(
-                progress: summary.stepGoalProgress,
-                lineWidth: ringLineWidth,
-                showsPercentageLabel: false
-            )
-            .frame(width: ringSize, height: ringSize)
+        return VStack(spacing: 8) {
+            ZStack {
+                ProgressRing(
+                    progress: summary.stepGoalProgress,
+                    lineWidth: ringLineWidth,
+                    showsPercentageLabel: false
+                )
+                .frame(width: ringSize, height: ringSize)
 
-            VStack(spacing: 6) {
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                VStack(spacing: 3) {
                     Text(summary.steps.formatted())
-                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.55)
+                        .minimumScaleFactor(0.7)
+                        .monospacedDigit()
                         .contentTransition(.numericText())
                         .accessibilityIdentifier("today-hero-steps")
+
                     Text("steps")
                         .font(.caption.weight(.bold))
                         .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
 
-                Text(goalRemainingLine(for: summary))
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(2)
-                    .minimumScaleFactor(0.75)
-                    .fixedSize(horizontal: false, vertical: true)
-
-                if summary.stepGoalProgress >= 1 {
-                    Label("Goal crushed", systemImage: "party.popper.fill")
+                    Text(goalRemainingLine(for: summary))
                         .font(.caption2.weight(.bold))
-                        .foregroundStyle(Color.stepAccent)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(Color.stepAccent.opacity(0.15))
-                        .clipShape(Capsule())
-                        .accessibilityIdentifier("today-goal-crushed")
+                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
                 }
+                .frame(maxWidth: innerMaxWidth)
+                .padding(.horizontal, ringLineWidth + 6)
             }
-            .padding(.horizontal, ringLineWidth + 10)
-            .frame(width: ringSize - (ringLineWidth * 2))
+            .frame(width: ringSize, height: ringSize)
+
+            if summary.stepGoalProgress >= 1 {
+                Label("Goal crushed", systemImage: "party.popper.fill")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .lineLimit(1)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(Color.stepAccent.opacity(0.15))
+                    .clipShape(Capsule())
+                    .accessibilityIdentifier("today-goal-crushed")
+            }
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 4)

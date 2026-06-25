@@ -8,6 +8,7 @@ struct TodayView: View {
     @State private var shareImage: ShareImage?
     @State private var isWeatherDetailPresented = false
     @State private var isCoachInsightsPresented = false
+    @State private var coachExpanded = false
     @State private var isDayFlowPatternPresented = false
 
     var body: some View {
@@ -684,7 +685,7 @@ struct TodayView: View {
     private func heroProgressRing(_ summary: DailyActivitySummary) -> some View {
         let ringSize: CGFloat = 176
         let ringLineWidth: CGFloat = 9
-        let innerMaxWidth = ringSize * 0.55
+        let innerMaxWidth = ringSize * 0.68
 
         return VStack(spacing: 8) {
             ZStack {
@@ -695,7 +696,7 @@ struct TodayView: View {
                 )
                 .frame(width: ringSize, height: ringSize)
 
-                VStack(spacing: 3) {
+                VStack(spacing: 2) {
                     Text(summary.steps.formatted())
                         .font(.system(size: 32, weight: .bold, design: .rounded))
                         .foregroundStyle(Color.stepInk)
@@ -710,15 +711,10 @@ struct TodayView: View {
                         .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
 
-                    Text(goalRemainingLine(for: summary))
-                        .font(.caption2.weight(.bold))
-                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
-                        .multilineTextAlignment(.center)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.85)
+                    heroGoalStatusInsideRing(for: summary)
                 }
                 .frame(maxWidth: innerMaxWidth)
-                .padding(.horizontal, ringLineWidth + 6)
+                .padding(.horizontal, ringLineWidth + 4)
             }
             .frame(width: ringSize, height: ringSize)
 
@@ -740,6 +736,35 @@ struct TodayView: View {
         .accessibilityLabel(
             "\(summary.steps.formatted()) steps. \(goalRemainingLine(for: summary)). Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent"
         )
+    }
+
+    @ViewBuilder
+    private func heroGoalStatusInsideRing(for summary: DailyActivitySummary) -> some View {
+        if summary.stepGoalProgress >= 1 {
+            VStack(spacing: 0) {
+                Text("Goal cleared")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                Text(summary.goals.stepsPerDay.formatted())
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .monospacedDigit()
+            }
+            .multilineTextAlignment(.center)
+        } else {
+            let remainingSteps = max(0, summary.goals.stepsPerDay - summary.steps)
+            VStack(spacing: 0) {
+                Text("\(remainingSteps.formatted()) left")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                    .monospacedDigit()
+                Text("to \(summary.goals.stepsPerDay.formatted())")
+                    .font(.caption2.weight(.bold))
+                    .foregroundStyle(Color.stepMuted)
+                    .monospacedDigit()
+            }
+            .multilineTextAlignment(.center)
+        }
     }
 
     private func goalRemainingLine(for summary: DailyActivitySummary) -> String {
@@ -843,34 +868,78 @@ struct TodayView: View {
                 Divider()
                     .padding(.top, 2)
 
-                Label("Coach", systemImage: "sparkles")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepInk)
+                HStack(spacing: 8) {
+                    Label("Coach", systemImage: "sparkles")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
 
-                Button {
-                    isCoachInsightsPresented = true
-                } label: {
-                    coachRow(primary, showsCompeteLink: false)
+                    Spacer(minLength: 0)
+
+                    Button {
+                        coachExpanded.toggle()
+                    } label: {
+                        Image(systemName: coachExpanded ? "chevron.up.circle.fill" : "chevron.down.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(Color.stepAccent)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(coachExpanded ? "Collapse coach insights" : "Expand coach insights")
+                    .accessibilityIdentifier("today-coach-expand-toggle")
+
+                    Button {
+                        isCoachInsightsPresented = true
+                    } label: {
+                        Image(systemName: "list.bullet.circle.fill")
+                            .font(.body)
+                            .foregroundStyle(Color.stepMuted)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Open all coach insights")
+                    .accessibilityIdentifier("today-coach-insights-button")
                 }
-                .buttonStyle(.plain)
 
-                if !secondary.isEmpty {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            ForEach(secondary) { insight in
+                if coachExpanded {
+                    VStack(spacing: 10) {
+                        ForEach(insights) { insight in
+                            if insight.kind == .household {
                                 Button {
-                                    isCoachInsightsPresented = true
+                                    repository.openCompeteTab()
                                 } label: {
-                                    coachInsightChip(insight)
+                                    coachRow(insight, showsCompeteLink: true)
                                 }
                                 .buttonStyle(.plain)
+                            } else {
+                                coachRow(insight, showsCompeteLink: false)
                             }
                         }
-                        .padding(.trailing, 16)
                     }
-                    .scrollClipDisabled()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+                } else {
+                    if primary.kind == .household {
+                        Button {
+                            repository.openCompeteTab()
+                        } label: {
+                            coachRow(primary, showsCompeteLink: true)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        coachRow(primary, showsCompeteLink: false)
+                    }
+
+                    if !secondary.isEmpty {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                ForEach(secondary) { insight in
+                                    coachInsightChip(insight)
+                                }
+                            }
+                            .padding(.trailing, 16)
+                        }
+                        .scrollClipDisabled()
+                    }
                 }
             }
+            .animation(.easeInOut(duration: 0.2), value: coachExpanded)
             .accessibilityIdentifier("today-hero-coach")
         }
     }

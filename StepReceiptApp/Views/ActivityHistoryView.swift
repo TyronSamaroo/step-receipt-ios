@@ -642,30 +642,54 @@ struct WorkoutRow: View {
 
     @ViewBuilder
     private func workoutStatsFooter(_ summary: WorkoutListRowSummary) -> some View {
-        VStack(alignment: .leading, spacing: 2) {
-            HStack(spacing: 0) {
+        let heartTint = Color(red: 0.640, green: 0.430, blue: 1.000)
+
+        VStack(alignment: .leading, spacing: 5) {
+            HStack(spacing: 6) {
                 if let averageHeartRateText = summary.averageHeartRateText {
-                    Text(averageHeartRateText)
+                    statChip("heart.fill", "Avg HR", averageHeartRateText, heartTint)
                 }
                 if let burnRateText = summary.burnRateText {
-                    if summary.averageHeartRateText != nil {
-                        Text(" · ")
-                    }
-                    Text(burnRateText)
+                    statChip("flame.fill", "Burn", burnRateText, Color.stepEnergy)
                 }
             }
             .accessibilityIdentifier("workout-row-stats-metrics-\(workout.sourceIdentifier)")
 
             if let insightText = summary.insightText {
-                Text(insightText)
-                    .foregroundStyle(summary.insightTone.listColor)
-                    .lineLimit(1)
-                    .accessibilityIdentifier("workout-row-stats-insight-\(workout.sourceIdentifier)")
+                statChip(
+                    summary.insightTone.trendSymbol,
+                    "vs last",
+                    insightText,
+                    summary.insightTone.listColor
+                )
+                .accessibilityIdentifier("workout-row-stats-insight-\(workout.sourceIdentifier)")
             }
         }
-        .font(.caption2.weight(.semibold))
-        .foregroundStyle(Color.stepMuted)
         .accessibilityIdentifier("workout-row-stats-line-\(workout.sourceIdentifier)")
+    }
+
+    private func statChip(_ icon: String, _ label: String, _ value: String, _ tint: Color) -> some View {
+        HStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 9, weight: .heavy))
+                .foregroundStyle(tint)
+
+            Text(label)
+                .font(.system(size: 9, weight: .heavy))
+                .foregroundStyle(tint.opacity(0.9))
+                .textCase(.uppercase)
+
+            Text(value)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .monospacedDigit()
+        }
+        .lineLimit(1)
+        .minimumScaleFactor(0.7)
+        .padding(.horizontal, 7)
+        .padding(.vertical, 3)
+        .background(tint.opacity(0.12))
+        .clipShape(Capsule())
     }
 }
 
@@ -730,10 +754,23 @@ private struct DayWorkoutQuickLink: View {
 private extension WorkoutInsightTone {
     var listColor: Color {
         switch self {
-        case .neutral, .down:
+        case .neutral:
             Color.stepMuted
         case .up:
             Color.stepEnergy
+        case .down:
+            Color.stepWarning
+        }
+    }
+
+    var trendSymbol: String {
+        switch self {
+        case .up:
+            "arrow.up.right"
+        case .down:
+            "arrow.down.right"
+        case .neutral:
+            "minus"
         }
     }
 }

@@ -692,26 +692,35 @@ struct TodayView: View {
                 ProgressRing(
                     progress: summary.stepGoalProgress,
                     lineWidth: ringLineWidth,
-                    showsPercentageLabel: false
+                    showsPercentageLabel: false,
+                    glows: true
                 )
                 .frame(width: ringSize, height: ringSize)
 
-                VStack(spacing: 2) {
+                VStack(spacing: 3) {
                     Text(summary.steps.formatted())
-                        .font(.system(size: 32, weight: .bold, design: .rounded))
-                        .foregroundStyle(Color.stepInk)
+                        .font(.system(size: 40, weight: .bold, design: .rounded))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [Color.stepAccent, Color.stepDistance],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
                         .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .minimumScaleFactor(0.6)
                         .monospacedDigit()
                         .contentTransition(.numericText())
                         .accessibilityIdentifier("today-hero-steps")
 
-                    Text("steps")
-                        .font(.caption.weight(.bold))
+                    Text("STEPS")
+                        .font(.caption2.weight(.heavy))
+                        .tracking(1.5)
                         .foregroundStyle(Color.stepMuted)
                         .lineLimit(1)
 
                     heroGoalStatusInsideRing(for: summary)
+                        .padding(.top, 1)
                 }
                 .frame(maxWidth: innerMaxWidth)
                 .padding(.horizontal, ringLineWidth + 4)
@@ -741,27 +750,30 @@ struct TodayView: View {
     @ViewBuilder
     private func heroGoalStatusInsideRing(for summary: DailyActivitySummary) -> some View {
         if summary.stepGoalProgress >= 1 {
-            VStack(spacing: 0) {
-                Text("Goal cleared")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-                Text(summary.goals.stepsPerDay.formatted())
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-                    .monospacedDigit()
-            }
-            .multilineTextAlignment(.center)
+            Text("Goal cleared")
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.stepAccent)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .padding(.horizontal, 9)
+                .padding(.vertical, 3)
+                .background(Color.stepAccent.opacity(0.14))
+                .clipShape(Capsule())
         } else {
             let remainingSteps = max(0, summary.goals.stepsPerDay - summary.steps)
             VStack(spacing: 0) {
-                Text("\(remainingSteps.formatted()) left")
+                Text("\(remainingSteps.formatted()) to go")
                     .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.stepMuted)
                     .monospacedDigit()
-                Text("to \(summary.goals.stepsPerDay.formatted())")
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
+                Text("of \(summary.goals.stepsPerDay.formatted())")
                     .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color.stepMuted)
+                    .foregroundStyle(Color.stepAccent)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             .multilineTextAlignment(.center)
         }
@@ -830,33 +842,37 @@ struct TodayView: View {
     }
 
     private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 10) {
             Image(systemName: icon)
-                .font(.caption.weight(.bold))
+                .font(.subheadline.weight(.bold))
                 .foregroundStyle(color)
-                .frame(width: 24, height: 24)
+                .frame(width: 28, height: 28)
                 .background(color.opacity(0.16))
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
 
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .leading, spacing: 1) {
                 Text(value)
-                    .font(.caption.weight(.bold))
+                    .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.75)
+                    .minimumScaleFactor(0.7)
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.9)
+                    .minimumScaleFactor(0.85)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 11)
-        .padding(.vertical, 11)
-        .background(Color.stepSurface.opacity(0.76))
-        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.vertical, 10)
+        .background(color.opacity(0.07))
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(color.opacity(0.22), lineWidth: 1)
+        )
     }
 
     @ViewBuilder
@@ -1302,11 +1318,12 @@ struct ProgressRing: View {
     var lineWidth: CGFloat = 12
     var labelFont: Font = .caption.weight(.bold)
     var showsPercentageLabel: Bool = true
+    var glows: Bool = false
 
     var body: some View {
         ZStack {
             Circle()
-                .stroke(Color.stepAccent.opacity(0.18), lineWidth: lineWidth)
+                .stroke(Color.stepAccent.opacity(glows ? 0.12 : 0.18), lineWidth: glows ? lineWidth + 1 : lineWidth)
             Circle()
                 .trim(from: 0, to: min(1, max(0, progress)))
                 .stroke(
@@ -1317,6 +1334,7 @@ struct ProgressRing: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
+                .shadow(color: glows ? Color.stepAccent.opacity(0.35) : .clear, radius: glows ? 6 : 0)
             if showsPercentageLabel {
                 Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%")
                     .font(labelFont)

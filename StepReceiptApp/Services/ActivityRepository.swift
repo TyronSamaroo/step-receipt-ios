@@ -619,6 +619,14 @@ final class ActivityRepository: ObservableObject {
         workoutComparisonService.compare(current: current, baseline: baseline)
     }
 
+    func workoutListRowSummary(for workout: WorkoutActivity) -> WorkoutListRowSummary {
+        WorkoutListRowSummaryBuilder.build(
+            workout: workout,
+            peers: workoutComparisonPeers(for: workout),
+            lastSession: workoutLastSession(before: workout)
+        )
+    }
+
     func adjacentInsightPeriodAnchor(scope: ActivityPeriodScope, containing date: Date, offset: Int, now: Date = Date()) -> Date? {
         let range = selectableDateRange(now: now)
         return engine.adjacentPeriodAnchor(

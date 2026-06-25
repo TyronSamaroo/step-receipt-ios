@@ -62,6 +62,8 @@
 		826C7C86868B0795B44C4776 /* CompeteJoinDeepLinkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 50F357340DDD9DDF45F237C8 /* CompeteJoinDeepLinkTests.swift */; };
 		828B4549153DA224B8DD7B13 /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 959A2CCCF4B42D0CEACF96F6 /* CloudKitSummarySync.swift */; };
+		8B03B1FBB200549055E8F372 /* WorkoutListRowSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6438A40DE447E694E7C7A2 /* WorkoutListRowSummary.swift */; };
+		8B14B3A2B932529AE36BF4B5 /* WorkoutListRowSummaryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */; };
 		8D4A0C350BEFE4DE3499A434 /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
 		8E8036A6926EF7AB002E04D1 /* WeatherKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 5FB0CC2E1A04C1B20AE95BDB /* WeatherKit.framework */; };
 		91A727FC5BFA6D2B3CBF4C5F /* DailyStepGoalAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55633B2D928640B24E32CC63 /* DailyStepGoalAttributes.swift */; };
@@ -88,6 +90,7 @@
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
 		D269C71AC24C4C5963A909ED /* CompeteSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */; };
 		D2F8EDEDB73225DA2D092EB1 /* CompeteMemberDrillInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FFA6CED0C12705921209C5 /* CompeteMemberDrillInTests.swift */; };
+		D65FFF9DE8A8F44AEE86EAD5 /* WorkoutListRowSummary.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C6438A40DE447E694E7C7A2 /* WorkoutListRowSummary.swift */; };
 		D99BEFADF067168BE07054B7 /* ActivityRepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */; };
 		DA254D0A49D1F5754D20937D /* DailyStepGoalLiveActivityWidget.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */; };
 		DAAD0FA5B78121BCFFFD1704 /* AppViewPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */; };
@@ -215,6 +218,7 @@
 		42A559BD53296F30FB6E3975 /* WeatherAttributionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherAttributionView.swift; sourceTree = "<group>"; };
 		454E46A98159F502B4E02190 /* StepReceiptWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = StepReceiptWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		4AF7A5DA430DADDEC1AFCC5A /* WeatherCardStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeatherCardStyle.swift; sourceTree = "<group>"; };
+		4C6438A40DE447E694E7C7A2 /* WorkoutListRowSummary.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListRowSummary.swift; sourceTree = "<group>"; };
 		4D00E52B658C60744BEABEE1 /* StepReceiptWatchExtensionApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StepReceiptWatchExtensionApp.swift; sourceTree = "<group>"; };
 		4DCC0C1304839C961A50B33C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		4DE8335880DF5D9D93CCF5FA /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
@@ -238,6 +242,7 @@
 		7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistoryView.swift; sourceTree = "<group>"; };
 		7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepository.swift; sourceTree = "<group>"; };
 		845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplateTests.swift; sourceTree = "<group>"; };
+		85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListRowSummaryTests.swift; sourceTree = "<group>"; };
 		8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityWidget.swift; sourceTree = "<group>"; };
 		8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionSync.swift; sourceTree = "<group>"; };
 		8CFC434133058F80C65C14F7 /* CompeteDiagnosticsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteDiagnosticsSheet.swift; sourceTree = "<group>"; };
@@ -383,6 +388,7 @@
 				BFC828839F225D766AD0E781 /* InsightEngine.swift */,
 				14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */,
 				9EC951931AE64E918C49E372 /* WeekPattern.swift */,
+				4C6438A40DE447E694E7C7A2 /* WorkoutListRowSummary.swift */,
 				01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */,
 			);
 			name = StepReceiptCore;
@@ -434,6 +440,7 @@
 				383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */,
 				AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */,
 				92A596D67267D846622D7C10 /* WeekPatternBuilderTests.swift */,
+				85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */,
 				845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */,
 			);
 			name = StepReceiptCoreTests;
@@ -790,6 +797,8 @@
 				71D9E00A68D89060557EFE14 /* WeatherKitClient.swift in Sources */,
 				C33B5944BE85B9CBB011A8BC /* WeekPattern.swift in Sources */,
 				189A4982598A338D03A0C78C /* WeekPatternBuilderTests.swift in Sources */,
+				D65FFF9DE8A8F44AEE86EAD5 /* WorkoutListRowSummary.swift in Sources */,
+				8B14B3A2B932529AE36BF4B5 /* WorkoutListRowSummaryTests.swift in Sources */,
 				6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */,
 				7937BD85DBFDD55EAEC28111 /* WorkoutTemplateTests.swift in Sources */,
 			);
@@ -855,6 +864,7 @@
 				5B4F62AE4342985C296FF083 /* WeatherKitClient.swift in Sources */,
 				E6FAC42C0D9AD221C54A18C2 /* WeekPattern.swift in Sources */,
 				F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */,
+				8B03B1FBB200549055E8F372 /* WorkoutListRowSummary.swift in Sources */,
 				A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

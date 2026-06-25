@@ -6,6 +6,7 @@ struct ActivityHistoryView: View {
     @AppStorage(AppViewPreferenceKey.activityWorkoutFilter) private var selectedWorkoutFilterRaw = AppViewPreferenceDefault.activityWorkoutFilter
     @AppStorage(AppViewPreferenceKey.activityDayFilter) private var selectedDayFilterRaw = AppViewPreferenceDefault.activityDayFilter
     @AppStorage(AppViewPreferenceKey.activityDaySort) private var selectedDaySortRaw = AppViewPreferenceDefault.activityDaySort
+    @AppStorage(AppViewPreferenceKey.activityWorkoutShowStats) private var showWorkoutStats = AppViewPreferenceDefault.activityWorkoutShowStats
 
     private var selectedMode: ActivityHistoryMode {
         ActivityHistoryMode(rawValue: selectedModeRaw) ?? .days
@@ -151,7 +152,11 @@ struct ActivityHistoryView: View {
                     NavigationLink {
                         WorkoutDetailView(workout: workout)
                     } label: {
-                        WorkoutRow(workout: workout, tag: repository.workoutTag(for: workout))
+                        WorkoutRow(
+                            workout: workout,
+                            tag: repository.workoutTag(for: workout),
+                            statsSummary: showWorkoutStats ? repository.workoutListRowSummary(for: workout) : nil
+                        )
                             .foregroundStyle(Color.stepInk)
                     }
                     .buttonStyle(.plain)
@@ -169,6 +174,13 @@ struct ActivityHistoryView: View {
                     }
                     .accessibilityIdentifier("activity-workout-filter-\(filter.rawValue)")
                 }
+
+                Spacer(minLength: 8)
+
+                FilterChip(title: "Stats", isSelected: showWorkoutStats) {
+                    showWorkoutStats.toggle()
+                }
+                .accessibilityIdentifier("activity-workout-stats-toggle")
             }
             .padding(.vertical, 4)
         }
@@ -509,10 +521,12 @@ struct FilterChip: View {
 struct WorkoutRow: View {
     let workout: WorkoutActivity
     let tag: String?
+    var statsSummary: WorkoutListRowSummary?
 
-    init(workout: WorkoutActivity, tag: String? = nil) {
+    init(workout: WorkoutActivity, tag: String? = nil, statsSummary: WorkoutListRowSummary? = nil) {
         self.workout = workout
         self.tag = tag
+        self.statsSummary = statsSummary
     }
 
     private var style: WorkoutVisualStyle {
@@ -536,6 +550,10 @@ struct WorkoutRow: View {
                     .font(.caption)
                     .foregroundStyle(Color.stepMuted)
                     .lineLimit(1)
+
+                if let statsSummary, statsSummary.hasVisibleContent {
+                    workoutStatsFooter(statsSummary)
+                }
             }
             .layoutPriority(1)
 
@@ -562,7 +580,7 @@ struct WorkoutRow: View {
         .padding(14)
         .background(Color.stepSurface)
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
-        .accessibilityElement(children: .combine)
+        .accessibilityElement(children: statsSummary == nil ? .combine : .contain)
         .accessibilityIdentifier("workout-row-\(workout.sourceIdentifier)")
     }
 
@@ -574,6 +592,33 @@ struct WorkoutRow: View {
         let dateText = workout.startDate.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day().hour().minute())
         guard tag != nil else { return dateText }
         return "\(workout.displayTitle) · \(dateText)"
+    }
+
+    @ViewBuilder
+    private func workoutStatsFooter(_ summary: WorkoutListRowSummary) -> some View {
+        HStack(spacing: 0) {
+            if let averageHeartRateText = summary.averageHeartRateText {
+                Text(averageHeartRateText)
+            }
+            if let burnRateText = summary.burnRateText {
+                if summary.averageHeartRateText != nil {
+                    Text(" · ")
+                }
+                Text(burnRateText)
+            }
+            if let insightText = summary.insightText {
+                if summary.averageHeartRateText != nil || summary.burnRateText != nil {
+                    Text(" · ")
+                }
+                Text(insightText)
+                    .foregroundStyle(summary.insightTone.listColor)
+            }
+        }
+        .font(.caption2.weight(.semibold))
+        .foregroundStyle(Color.stepMuted)
+        .lineLimit(1)
+        .minimumScaleFactor(0.85)
+        .accessibilityIdentifier("workout-row-stats-line-\(workout.sourceIdentifier)")
     }
 }
 
@@ -632,5 +677,16 @@ private struct DayWorkoutQuickLink: View {
         )
         .accessibilityElement(children: .combine)
         .accessibilityIdentifier("day-workout-\(workout.sourceIdentifier)")
+    }
+}
+
+private extension WorkoutInsightTone {
+    var listColor: Color {
+        switch self {
+        case .neutral, .down:
+            Color.stepMuted
+        case .up:
+            Color.stepEnergy
+        }
     }
 }

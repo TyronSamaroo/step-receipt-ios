@@ -24,6 +24,40 @@ final class StepReceiptUITests: XCTestCase {
     }
 
     @MainActor
+    func testActivityWorkoutStatsToggleShowsRowStats() throws {
+        continueAfterFailure = false
+        let app = XCUIApplication()
+        launchWithSampleData(app)
+
+        app.tabBars.buttons["Activity"].tap()
+        let modePicker = app.segmentedControls["activity-history-mode-picker"]
+        XCTAssertTrue(modePicker.buttons["Workouts"].waitForExistence(timeout: 3))
+        modePicker.buttons["Workouts"].tap()
+
+        let statsToggle = app.buttons["activity-workout-stats-toggle"]
+        XCTAssertTrue(statsToggle.waitForExistence(timeout: 3))
+        XCTAssertFalse(statsToggle.isSelected)
+
+        let firstWorkoutRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-'")).firstMatch
+        XCTAssertTrue(firstWorkoutRow.waitForExistence(timeout: 3))
+        XCTAssertEqual(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-stats-line-'")).count,
+            0
+        )
+
+        statsToggle.tap()
+        XCTAssertTrue(statsToggle.isSelected)
+        XCTAssertTrue(
+            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-stats-line-'")).firstMatch
+                .waitForExistence(timeout: 3)
+        )
+        XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'kcal/min'")).firstMatch.exists)
+
+        statsToggle.tap()
+        XCTAssertFalse(statsToggle.isSelected)
+    }
+
+    @MainActor
     func testDayFlowPatternDrillInOpensSheet() throws {
         continueAfterFailure = false
         let app = XCUIApplication()

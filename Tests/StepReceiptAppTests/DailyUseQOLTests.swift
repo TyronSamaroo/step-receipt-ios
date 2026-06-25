@@ -31,6 +31,11 @@ struct DailyUseQOLTests {
         #expect(restoredStore.string(for: AppViewPreferenceKey.activityWorkoutFilter, defaultValue: AppViewPreferenceDefault.activityWorkoutFilter) == "outdoorWalk")
         #expect(restoredStore.string(for: AppViewPreferenceKey.insightsScope, defaultValue: AppViewPreferenceDefault.insightsScope) == "month")
         #expect(restoredStore.string(for: AppViewPreferenceKey.insightsTrendFilter, defaultValue: AppViewPreferenceDefault.insightsTrendFilter) == "strength")
+        #expect(restoredStore.string(for: AppViewPreferenceKey.activityWorkoutShowStats, defaultValue: "false") == "false")
+
+        store.set("true", for: AppViewPreferenceKey.activityWorkoutShowStats)
+        let statsStore = AppViewPreferenceStore(userDefaults: defaults)
+        #expect(statsStore.string(for: AppViewPreferenceKey.activityWorkoutShowStats, defaultValue: "false") == "true")
     }
 
     @Test

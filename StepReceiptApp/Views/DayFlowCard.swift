@@ -7,6 +7,8 @@ struct DayFlowCard: View {
     let distanceUnit: DistanceUnit
     var onPatternTap: (() -> Void)? = nil
 
+    @State private var showHourlyRows = false
+
     private var digest: TodayQuickDigest {
         TodayQuickDigestBuilder.digest(for: summary)
     }
@@ -63,7 +65,7 @@ struct DayFlowCard: View {
                     .foregroundStyle(barColor(for: bucket))
                     .cornerRadius(3)
                 }
-                .frame(height: 170)
+                .frame(height: 115)
                 .chartXAxis {
                     AxisMarks(values: .stride(by: .hour, count: 4)) { value in
                         AxisGridLine()
@@ -91,14 +93,31 @@ struct DayFlowCard: View {
                     }
                 }
 
-                Divider()
-                    .padding(.top, 4)
+                Button {
+                    showHourlyRows.toggle()
+                } label: {
+                    HStack(spacing: 4) {
+                        Text("Hourly breakdown")
+                        Image(systemName: showHourlyRows ? "chevron.up" : "chevron.down")
+                            .font(.caption2.weight(.bold))
+                    }
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("day-flow-hourly-breakdown-toggle")
 
-                CompactHourlyTimetableRows(
-                    buckets: summary.buckets,
-                    distanceUnit: distanceUnit,
-                    peakHourStart: digest.peakHourStart
-                )
+                if showHourlyRows {
+                    Divider()
+                        .padding(.top, 4)
+
+                    CompactHourlyTimetableRows(
+                        buckets: summary.buckets,
+                        distanceUnit: distanceUnit,
+                        peakHourStart: digest.peakHourStart
+                    )
+                }
             }
         }
         .metricCard()

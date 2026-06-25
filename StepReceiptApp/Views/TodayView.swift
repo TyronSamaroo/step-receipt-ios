@@ -6,18 +6,17 @@ import UIKit
 struct TodayView: View {
     @EnvironmentObject private var repository: ActivityRepository
     @State private var shareImage: ShareImage?
-    @State private var coachExpanded = false
     @State private var isWeatherDetailPresented = false
+    @State private var isCoachInsightsPresented = false
     @State private var isDayFlowPatternPresented = false
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 12) {
                     healthConnectionCard
 
                     if let summary = repository.todaySummary {
-                        weatherStripCard
                         todayHero(summary)
                         DayFlowCard(
                             summary: summary,
@@ -87,6 +86,10 @@ struct TodayView: View {
         }
         .sheet(isPresented: $isDayFlowPatternPresented) {
             DayFlowPatternSheet(date: repository.selectedDate)
+                .environmentObject(repository)
+        }
+        .sheet(isPresented: $isCoachInsightsPresented) {
+            CoachInsightsSheet(insights: repository.todayCoachInsights())
                 .environmentObject(repository)
         }
     }
@@ -465,7 +468,7 @@ struct TodayView: View {
                 Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: -1, to: repository.selectedDate) ?? repository.selectedDate) }
             } label: {
                 Image(systemName: "chevron.left")
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.bordered)
             .disabled(!canMoveBackward)
@@ -490,7 +493,7 @@ struct TodayView: View {
                 Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: 1, to: repository.selectedDate) ?? repository.selectedDate) }
             } label: {
                 Image(systemName: "chevron.right")
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.bordered)
             .disabled(!canMoveForward)
@@ -499,56 +502,54 @@ struct TodayView: View {
     }
 
     private func todayHero(_ summary: DailyActivitySummary) -> some View {
-        VStack(alignment: .leading, spacing: 18) {
-            if isViewingToday, repository.preferences.dailyAffirmationEnabled {
-                todayGreetingBlock(summary)
-            } else {
-                Text(heroDateLine(for: summary))
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-            }
+        VStack(alignment: .leading, spacing: 10) {
+            heroHeaderBlock(summary)
 
             heroDateControls
 
-            VStack(alignment: .center, spacing: 12) {
-                Text("\(summary.steps.formatted()) steps")
-                    .font(.system(size: 58, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.stepInk)
-                    .frame(maxWidth: .infinity)
-                    .multilineTextAlignment(.center)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.62)
-                    .contentTransition(.numericText())
-                    .accessibilityIdentifier("today-hero-steps")
+            HStack(alignment: .center, spacing: 12) {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                        Text(summary.steps.formatted())
+                            .font(.system(size: 42, weight: .bold, design: .rounded))
+                            .foregroundStyle(Color.stepInk)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.62)
+                            .contentTransition(.numericText())
+                            .accessibilityIdentifier("today-hero-steps")
+                        Text("steps")
+                            .font(.subheadline.weight(.bold))
+                            .foregroundStyle(Color.stepMuted)
+                    }
 
-                Text(goalRemainingLine(for: summary))
-                    .font(.subheadline.weight(.bold))
-                    .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
-                    .multilineTextAlignment(.center)
-                    .frame(maxWidth: .infinity)
-                    .fixedSize(horizontal: false, vertical: true)
+                    Text(goalRemainingLine(for: summary))
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    if summary.stepGoalProgress >= 1 {
+                        Label("Goal crushed", systemImage: "party.popper.fill")
+                            .font(.caption2.weight(.bold))
+                            .foregroundStyle(Color.stepAccent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(Color.stepAccent.opacity(0.15))
+                            .clipShape(Capsule())
+                            .accessibilityIdentifier("today-goal-crushed")
+                    }
+                }
+
+                Spacer(minLength: 8)
 
                 ProgressRing(progress: summary.stepGoalProgress)
-                    .frame(width: 114, height: 114)
+                    .frame(width: 90, height: 90)
                     .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
-            }
-
-            if summary.stepGoalProgress >= 1 {
-                Label("Goal crushed", systemImage: "party.popper.fill")
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 8)
-                    .background(Color.stepAccent.opacity(0.15))
-                    .clipShape(Capsule())
-                    .frame(maxWidth: .infinity)
-                    .accessibilityIdentifier("today-goal-crushed")
             }
 
             heroMetricsRow(summary)
             heroCoachFooter(repository.todayCoachInsights())
         }
-        .padding(18)
+        .padding(14)
         .background(
             LinearGradient(
                 colors: [
@@ -566,7 +567,7 @@ struct TodayView: View {
             RoundedRectangle(cornerRadius: 8, style: .continuous)
                 .stroke(Color.stepAccent.opacity(0.16), lineWidth: 1)
         )
-        .shadow(color: Color.stepAccent.opacity(0.08), radius: 20, x: 0, y: 12)
+        .shadow(color: Color.stepAccent.opacity(0.08), radius: 14, x: 0, y: 12)
         .accessibilityElement(children: .contain)
     }
 
@@ -576,7 +577,7 @@ struct TodayView: View {
                 Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: -1, to: repository.selectedDate) ?? repository.selectedDate) }
             } label: {
                 Image(systemName: "chevron.left")
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
             .foregroundStyle(canMoveBackward ? Color.stepAccent : Color.stepMuted.opacity(0.45))
@@ -608,7 +609,7 @@ struct TodayView: View {
                 Task { await repository.selectDate(Calendar.current.date(byAdding: .day, value: 1, to: repository.selectedDate) ?? repository.selectedDate) }
             } label: {
                 Image(systemName: "chevron.right")
-                    .frame(width: 34, height: 34)
+                    .frame(width: 30, height: 30)
             }
             .buttonStyle(.plain)
             .foregroundStyle(canMoveForward ? Color.stepAccent : Color.stepMuted.opacity(0.45))
@@ -648,24 +649,64 @@ struct TodayView: View {
     }
 
     @ViewBuilder
-    private func todayGreetingBlock(_ summary: DailyActivitySummary) -> some View {
-        let greeting = dailyGreeting
-        VStack(alignment: .leading, spacing: 6) {
-            Text(greeting.greetingLine)
-                .font(.title2.weight(.bold))
-                .foregroundStyle(Color.stepInk)
-                .accessibilityIdentifier("today-greeting-line")
+    private func heroHeaderBlock(_ summary: DailyActivitySummary) -> some View {
+        HStack(alignment: .top, spacing: 10) {
+            if isViewingToday, repository.preferences.dailyAffirmationEnabled {
+                let greeting = dailyGreeting
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(greeting.greetingLine)
+                        .font(.title3.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                        .accessibilityIdentifier("today-greeting-line")
 
-            Text(greeting.affirmationLine)
-                .font(.subheadline)
-                .foregroundStyle(Color.stepMuted)
-                .lineLimit(2)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("today-affirmation-line")
+                    Text(greeting.affirmationLine)
+                        .font(.caption)
+                        .foregroundStyle(Color.stepMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.85)
+                        .accessibilityIdentifier("today-affirmation-line")
+                }
+            } else {
+                Text(heroDateLine(for: summary))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+            }
 
-            Text(heroDateLine(for: summary))
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(Color.stepAccent)
+            Spacer(minLength: 8)
+
+            inlineWeatherChip
+        }
+    }
+
+    @ViewBuilder
+    private var inlineWeatherChip: some View {
+        if repository.isLoadingDayWeather, repository.dayWeather == nil {
+            ProgressView()
+                .controlSize(.small)
+                .frame(width: 44, height: 32)
+                .accessibilityIdentifier("today-weather-strip")
+        } else if let weather = repository.dayWeather {
+            Button {
+                isWeatherDetailPresented = true
+            } label: {
+                HStack(spacing: 4) {
+                    Image(systemName: weather.displayConditionSymbolName)
+                        .font(.body)
+                        .symbolRenderingMode(.multicolor)
+                    Text(weather.formattedTemperatureFahrenheit)
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepInk)
+                        .monospacedDigit()
+                }
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color.stepSurface.opacity(0.82))
+                .clipShape(Capsule())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(weatherAccessibilityLabel(for: weather))
+            .accessibilityHint("Opens detailed weather forecast")
+            .accessibilityIdentifier("today-weather-strip")
         }
     }
 
@@ -696,171 +737,27 @@ struct TodayView: View {
         let avgHRText = avgHeartRate.map { "\(Int($0.rounded())) bpm" } ?? "--"
         let heartTint = Color(red: 0.640, green: 0.430, blue: 1.000)
 
-        return ViewThatFits(in: .horizontal) {
-            HStack(spacing: 8) {
-                heroMetricPill(
-                    "Distance",
-                    ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
-                    StepReceiptSymbol.distance,
-                    Color.stepDistance
-                )
-                heroMetricPill(
-                    "Active Burn",
-                    ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories),
-                    StepReceiptSymbol.activeEnergy,
-                    Color.stepEnergy
-                )
-                heroMetricPill("Avg HR", avgHRText, "heart.fill", heartTint)
-                heroMetricPill(
-                    "Workout",
-                    ActivityFormatting.formattedMinutes(summary.workoutMinutes),
-                    StepReceiptSymbol.workout,
-                    Color.stepAccent
-                )
-            }
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                heroMetricPill(
-                    "Distance",
-                    ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
-                    StepReceiptSymbol.distance,
-                    Color.stepDistance
-                )
-                heroMetricPill(
-                    "Active Burn",
-                    ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories),
-                    StepReceiptSymbol.activeEnergy,
-                    Color.stepEnergy
-                )
-                heroMetricPill("Avg HR", avgHRText, "heart.fill", heartTint)
-                heroMetricPill(
-                    "Workout",
-                    ActivityFormatting.formattedMinutes(summary.workoutMinutes),
-                    StepReceiptSymbol.workout,
-                    Color.stepAccent
-                )
-            }
-        }
-    }
-
-    @ViewBuilder
-    private var weatherStripCard: some View {
-        if repository.isLoadingDayWeather, repository.dayWeather == nil {
-            HStack(spacing: 10) {
-                ProgressView()
-                    .controlSize(.small)
-                Text("Loading weather…")
-                    .font(.caption.weight(.semibold))
-                    .foregroundStyle(Color.stepMuted)
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-            .metricCard()
-            .accessibilityIdentifier("today-weather-strip")
-        } else if let weather = repository.dayWeather {
-            Button {
-                isWeatherDetailPresented = true
-            } label: {
-                weatherCardContent(weather)
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("today-weather-strip")
-        }
-    }
-
-    private func weatherCardContent(_ weather: DayWeatherSnapshot) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            HStack(alignment: .center, spacing: 8) {
-                Image(systemName: weather.displayConditionSymbolName)
-                    .font(.system(size: 24))
-                    .symbolRenderingMode(.multicolor)
-                    .frame(width: 28, height: 28)
-
-                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                    Text(weather.formattedTemperatureFahrenheit)
-                        .font(.title3.weight(.bold))
-                        .foregroundStyle(Color.stepInk)
-                        .monospacedDigit()
-
-                    Text(weather.displayConditionDescription)
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(Color.stepMuted)
-                        .lineLimit(1)
-
-                    if let highLow = weather.formattedHighLowFahrenheit {
-                        Text(highLow)
-                            .font(.caption2.weight(.bold))
-                            .foregroundStyle(Color.stepDistance)
-                            .lineLimit(1)
-                    }
-                }
-                .layoutPriority(1)
-
-                Spacer(minLength: 4)
-
-                Text(compactWeatherStatsLine(for: weather))
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.stepMuted)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.72)
-
-                Image(systemName: "chevron.right")
-                    .font(.caption2.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
-            }
-
-            if let hint = compactWeatherHint {
-                Text(hint)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(Color.stepAccent)
-                    .lineLimit(1)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 10)
-        .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
-        .background(
-            LinearGradient(
-                colors: WeatherCardStyle.gradientColors(for: weather),
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
+        return HStack(spacing: 6) {
+            heroMetricPill(
+                "Distance",
+                ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
+                StepReceiptSymbol.distance,
+                Color.stepDistance
             )
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .stroke(Color.stepDistance.opacity(0.16), lineWidth: 1)
-        )
-        .shadow(color: Color.black.opacity(0.04), radius: 4, y: 2)
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(weatherAccessibilityLabel(for: weather))
-        .accessibilityHint("Opens detailed weather forecast")
-    }
-
-    private func compactWeatherStatsLine(for weather: DayWeatherSnapshot) -> String {
-        [
-            "Feels \(weather.displayApparentTemperatureFahrenheit)",
-            weather.formattedHumidity,
-            weather.displayWind,
-            "UV \(weather.displayUVIndex)"
-        ].joined(separator: " · ")
-    }
-
-    private var compactWeatherHint: String? {
-        if repository.weatherKitJWTAuthFailed {
-            return "WeatherKit setup needed — tap for details"
+            heroMetricPill(
+                "Active Burn",
+                ActivityFormatting.formattedCalories(summary.activeEnergyKilocalories),
+                StepReceiptSymbol.activeEnergy,
+                Color.stepEnergy
+            )
+            heroMetricPill("Avg HR", avgHRText, "heart.fill", heartTint)
+            heroMetricPill(
+                "Workout",
+                ActivityFormatting.formattedMinutes(summary.workoutMinutes),
+                StepReceiptSymbol.workout,
+                Color.stepAccent
+            )
         }
-        if repository.weatherNeedsLocation {
-            return "Enable Location for live wind and UV"
-        }
-        if repository.weatherKitUnavailable {
-            return "Live weather unavailable — tap to retry"
-        }
-        if repository.dayWeather?.source == .healthKitWorkout {
-            return "Workout weather only — tap for full forecast"
-        }
-        return nil
     }
 
     private func weatherAccessibilityLabel(for weather: DayWeatherSnapshot) -> String {
@@ -880,20 +777,20 @@ struct TodayView: View {
     }
 
     private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: 8) {
+        HStack(spacing: 6) {
             Image(systemName: icon)
-                .font(.caption.weight(.bold))
+                .font(.caption2.weight(.bold))
                 .foregroundStyle(color)
-                .frame(width: 22, height: 22)
+                .frame(width: 20, height: 20)
                 .background(color.opacity(0.16))
                 .clipShape(Circle())
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(value)
-                    .font(.caption.weight(.bold))
+                    .font(.caption2.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.72)
+                    .minimumScaleFactor(0.68)
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
@@ -901,70 +798,102 @@ struct TodayView: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(10)
+        .padding(8)
         .background(Color.stepSurface.opacity(0.76))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
 
     @ViewBuilder
     private func heroCoachFooter(_ insights: [TodayCoachInsight]) -> some View {
-        if !insights.isEmpty {
-            let visible = coachExpanded ? insights : Array(insights.prefix(2))
+        if !insights.isEmpty, let primary = primaryCoachInsight(from: insights) {
+            let secondary = insights.filter { $0.id != primary.id }
 
-            VStack(alignment: .leading, spacing: 10) {
+            VStack(alignment: .leading, spacing: 8) {
                 Divider()
-                    .padding(.top, 4)
+                    .padding(.top, 2)
 
                 Label("Coach", systemImage: "sparkles")
-                    .font(.subheadline.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepInk)
 
-                VStack(spacing: 10) {
-                    ForEach(visible) { insight in
-                        Group {
-                            if insight.kind == .household {
+                Button {
+                    isCoachInsightsPresented = true
+                } label: {
+                    coachRow(primary, showsCompeteLink: false)
+                }
+                .buttonStyle(.plain)
+
+                if !secondary.isEmpty {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(secondary) { insight in
                                 Button {
-                                    repository.openCompeteTab()
+                                    isCoachInsightsPresented = true
                                 } label: {
-                                    coachRow(insight, showsCompeteLink: true)
+                                    coachInsightChip(insight)
                                 }
                                 .buttonStyle(.plain)
-                            } else {
-                                coachRow(insight, showsCompeteLink: false)
                             }
                         }
                     }
-                }
-
-                if insights.count > 2 {
-                    Button(coachExpanded ? "Show less" : "+\(insights.count - 2) more") {
-                        coachExpanded.toggle()
-                    }
-                    .font(.caption.weight(.bold))
-                    .foregroundStyle(Color.stepAccent)
                 }
             }
             .accessibilityIdentifier("today-hero-coach")
         }
     }
 
-    private func coachRow(_ insight: TodayCoachInsight, showsCompeteLink: Bool) -> some View {
-        HStack(alignment: .top, spacing: 10) {
+    private func primaryCoachInsight(from insights: [TodayCoachInsight]) -> TodayCoachInsight? {
+        insights.max { coachKindRank($0.kind) < coachKindRank($1.kind) }
+    }
+
+    private func coachKindRank(_ kind: TodayCoachInsightKind) -> Int {
+        switch kind {
+        case .goal, .projection:
+            4
+        case .streak:
+            3
+        case .workout:
+            2
+        case .pace, .peakHour:
+            1
+        case .household, .general:
+            0
+        }
+    }
+
+    private func coachInsightChip(_ insight: TodayCoachInsight) -> some View {
+        HStack(spacing: 5) {
             Image(systemName: insight.systemImage)
-                .font(.subheadline.weight(.bold))
+                .font(.caption2.weight(.bold))
                 .foregroundStyle(coachAccent(for: insight.kind))
-                .frame(width: 32, height: 32)
+            Text(insight.title)
+                .font(.caption2.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .lineLimit(1)
+        }
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(coachAccent(for: insight.kind).opacity(0.12))
+        .clipShape(Capsule())
+    }
+
+    private func coachRow(_ insight: TodayCoachInsight, showsCompeteLink: Bool) -> some View {
+        HStack(alignment: .top, spacing: 8) {
+            Image(systemName: insight.systemImage)
+                .font(.caption.weight(.bold))
+                .foregroundStyle(coachAccent(for: insight.kind))
+                .frame(width: 28, height: 28)
                 .background(coachAccent(for: insight.kind).opacity(0.14))
                 .clipShape(Circle())
 
-            VStack(alignment: .leading, spacing: 3) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(insight.title)
-                    .font(.subheadline.weight(.bold))
+                    .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                 Text(insight.detail)
-                    .font(.caption.weight(.semibold))
+                    .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .lineLimit(1)
                 if showsCompeteLink {
                     Text("Open Compete")
                         .font(.caption2.weight(.bold))

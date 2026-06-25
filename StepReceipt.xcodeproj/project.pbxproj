@@ -31,6 +31,7 @@
 		29D8DC6F74AE440A56F95795 /* WorkoutExportBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3633B44059157A8A7099B095 /* WorkoutExportBuilder.swift */; };
 		2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */; };
 		2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
+		2BA2E97C0EAD14C4F9523B6F /* CoachInsightsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818A88A8C5697024CAAEED65 /* CoachInsightsSheet.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		3812333BC7EA105F28F0E9DD /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
@@ -254,6 +255,7 @@
 		7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = StepReceiptLiveActivityWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistoryView.swift; sourceTree = "<group>"; };
 		7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepository.swift; sourceTree = "<group>"; };
+		818A88A8C5697024CAAEED65 /* CoachInsightsSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachInsightsSheet.swift; sourceTree = "<group>"; };
 		83C876E2BC4C76F64CC18FCD /* WorkoutHeartRateAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHeartRateAnalysis.swift; sourceTree = "<group>"; };
 		845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplateTests.swift; sourceTree = "<group>"; };
 		85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListRowSummaryTests.swift; sourceTree = "<group>"; };
@@ -377,6 +379,7 @@
 			children = (
 				7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */,
 				DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */,
+				818A88A8C5697024CAAEED65 /* CoachInsightsSheet.swift */,
 				C419C531AB76EA4334533C31 /* CompetitionView.swift */,
 				5A249F2968826E55703ADEF4 /* DayFlowCard.swift */,
 				0FBDAB0D044D30F7B106CB35 /* DayFlowPatternSheet.swift */,
@@ -850,6 +853,7 @@
 				72F3120A804D6813A348B52A /* CloudKitCompetitionSubscriptionService.swift in Sources */,
 				079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */,
 				8456C1378FA759E912016E92 /* CloudKitSummarySync.swift in Sources */,
+				2BA2E97C0EAD14C4F9523B6F /* CoachInsightsSheet.swift in Sources */,
 				DC70F02B7D2CAE247B84CF37 /* CompeteDiagnosticsSheet.swift in Sources */,
 				46F78EE080CF8484018326B7 /* CompeteHouseholdSheet.swift in Sources */,
 				AD30D97DA4A28DBC18B924C9 /* CompeteJoinConfirmationSheet.swift in Sources */,
@@ -1152,7 +1156,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1231,7 +1235,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 30;
+				CURRENT_PROJECT_VERSION = 31;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

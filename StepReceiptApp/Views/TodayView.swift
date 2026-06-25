@@ -507,48 +507,7 @@ struct TodayView: View {
 
             heroDateControls
 
-            HStack(alignment: .center, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text(summary.steps.formatted())
-                            .font(.system(size: 56, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color.stepInk)
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.62)
-                            .contentTransition(.numericText())
-                            .accessibilityIdentifier("today-hero-steps")
-                        Text("steps")
-                            .font(.callout.weight(.bold))
-                            .foregroundStyle(Color.stepMuted)
-                    }
-
-                    Text(goalRemainingLine(for: summary))
-                        .font(.subheadline.weight(.bold))
-                        .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    if summary.stepGoalProgress >= 1 {
-                        Label("Goal crushed", systemImage: "party.popper.fill")
-                            .font(.caption.weight(.bold))
-                            .foregroundStyle(Color.stepAccent)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(Color.stepAccent.opacity(0.15))
-                            .clipShape(Capsule())
-                            .accessibilityIdentifier("today-goal-crushed")
-                    }
-                }
-
-                Spacer(minLength: 8)
-
-                ProgressRing(
-                    progress: summary.stepGoalProgress,
-                    lineWidth: 14,
-                    labelFont: .subheadline.weight(.bold)
-                )
-                    .frame(width: 115, height: 115)
-                    .accessibilityLabel("Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent")
-            }
+            heroProgressRing(summary)
 
             heroMetricsRow(summary)
             heroCoachFooter(repository.todayCoachInsights())
@@ -720,6 +679,64 @@ struct TodayView: View {
             return "Today, \(dateText)"
         }
         return summary.dateStart.formatted(.dateTime.weekday(.wide).month(.wide).day())
+    }
+
+    private func heroProgressRing(_ summary: DailyActivitySummary) -> some View {
+        let ringSize: CGFloat = 136
+        let ringLineWidth: CGFloat = 12
+
+        return ZStack {
+            ProgressRing(
+                progress: summary.stepGoalProgress,
+                lineWidth: ringLineWidth,
+                showsPercentageLabel: false
+            )
+            .frame(width: ringSize, height: ringSize)
+
+            VStack(spacing: 6) {
+                HStack(alignment: .firstTextBaseline, spacing: 4) {
+                    Text(summary.steps.formatted())
+                        .font(.system(size: 26, weight: .bold, design: .rounded))
+                        .foregroundStyle(Color.stepInk)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.55)
+                        .contentTransition(.numericText())
+                        .accessibilityIdentifier("today-hero-steps")
+                    Text("steps")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(Color.stepMuted)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+
+                Text(goalRemainingLine(for: summary))
+                    .font(.caption.weight(.bold))
+                    .foregroundStyle(summary.stepGoalProgress >= 1 ? Color.stepAccent : Color.stepMuted)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+                    .minimumScaleFactor(0.75)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                if summary.stepGoalProgress >= 1 {
+                    Label("Goal crushed", systemImage: "party.popper.fill")
+                        .font(.caption2.weight(.bold))
+                        .foregroundStyle(Color.stepAccent)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.stepAccent.opacity(0.15))
+                        .clipShape(Capsule())
+                        .accessibilityIdentifier("today-goal-crushed")
+                }
+            }
+            .padding(.horizontal, ringLineWidth + 10)
+            .frame(width: ringSize - (ringLineWidth * 2))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 4)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(summary.steps.formatted()) steps. \(goalRemainingLine(for: summary)). Step goal progress \(Int((summary.stepGoalProgress * 100).rounded())) percent"
+        )
     }
 
     private func goalRemainingLine(for summary: DailyActivitySummary) -> String {
@@ -1212,6 +1229,7 @@ struct ProgressRing: View {
     let progress: Double
     var lineWidth: CGFloat = 12
     var labelFont: Font = .caption.weight(.bold)
+    var showsPercentageLabel: Bool = true
 
     var body: some View {
         ZStack {
@@ -1227,9 +1245,11 @@ struct ProgressRing: View {
                     style: StrokeStyle(lineWidth: lineWidth, lineCap: .round)
                 )
                 .rotationEffect(.degrees(-90))
-            Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%")
-                .font(labelFont)
-                .foregroundStyle(Color.stepInk)
+            if showsPercentageLabel {
+                Text("\(Int((min(1, max(0, progress)) * 100).rounded()))%")
+                    .font(labelFont)
+                    .foregroundStyle(Color.stepInk)
+            }
         }
     }
 }

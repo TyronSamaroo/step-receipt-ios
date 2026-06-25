@@ -18,14 +18,14 @@ struct TodayView: View {
 
                     if let summary = repository.todaySummary {
                         todayHero(summary)
-                        workoutSection(summary)
-                        weekPulseCard
                         DayFlowCard(
                             summary: summary,
                             selectedDate: repository.selectedDate,
                             distanceUnit: repository.preferences.distanceUnit,
                             onPatternTap: { isDayFlowPatternPresented = true }
                         )
+                        workoutSection(summary)
+                        weekPulseCard
                         todayQuickDigestCard(summary)
                         healthSyncStatusCard
                     } else {
@@ -740,8 +740,12 @@ struct TodayView: View {
         let avgHeartRate = dayAverageHeartRateBPM(for: summary)
         let avgHRText = avgHeartRate.map { "\(Int($0.rounded())) bpm" } ?? "--"
         let heartTint = Color(red: 0.640, green: 0.430, blue: 1.000)
+        let columns = [
+            GridItem(.flexible(), spacing: 8),
+            GridItem(.flexible(), spacing: 8)
+        ]
 
-        return HStack(spacing: 8) {
+        return LazyVGrid(columns: columns, spacing: 8) {
             heroMetricPill(
                 "Distance",
                 ActivityFormatting.formattedDistance(from: summary.distanceMeters, unit: repository.preferences.distanceUnit),
@@ -781,7 +785,7 @@ struct TodayView: View {
     }
 
     private func heroMetricPill(_ title: String, _ value: String, _ icon: String, _ color: Color) -> some View {
-        HStack(spacing: 7) {
+        HStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.caption.weight(.bold))
                 .foregroundStyle(color)
@@ -794,16 +798,18 @@ struct TodayView: View {
                     .font(.caption.weight(.bold))
                     .foregroundStyle(Color.stepInk)
                     .lineLimit(1)
-                    .minimumScaleFactor(0.68)
+                    .minimumScaleFactor(0.75)
                 Text(title)
                     .font(.caption2.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                     .lineLimit(1)
+                    .minimumScaleFactor(0.9)
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 9)
-        .padding(.vertical, 10)
+        .padding(.horizontal, 11)
+        .padding(.vertical, 11)
         .background(Color.stepSurface.opacity(0.76))
         .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
     }
@@ -840,7 +846,9 @@ struct TodayView: View {
                                 .buttonStyle(.plain)
                             }
                         }
+                        .padding(.trailing, 16)
                     }
+                    .scrollClipDisabled()
                 }
             }
             .accessibilityIdentifier("today-hero-coach")
@@ -874,7 +882,7 @@ struct TodayView: View {
             Text(insight.title)
                 .font(.caption2.weight(.bold))
                 .foregroundStyle(Color.stepInk)
-                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .padding(.horizontal, 10)
         .padding(.vertical, 6)
@@ -895,11 +903,13 @@ struct TodayView: View {
                 Text(insight.title)
                     .font(.subheadline.weight(.bold))
                     .foregroundStyle(Color.stepInk)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(insight.detail)
                     .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .multilineTextAlignment(.leading)
                 if showsCompeteLink {
                     Text("Open Compete")
                         .font(.caption2.weight(.bold))

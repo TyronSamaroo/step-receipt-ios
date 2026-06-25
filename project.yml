@@ -9,7 +9,7 @@ settings:
     SWIFT_VERSION: "6.0"
     IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     MARKETING_VERSION: "0.1.0"
-    CURRENT_PROJECT_VERSION: "37"
+    CURRENT_PROJECT_VERSION: "38"
     DEVELOPMENT_TEAM: "U63TLL4JY4"
 targets:
   StepReceipt:
@@ -34,7 +34,7 @@ targets:
         INFOPLIST_FILE: StepReceiptApp/Info.plist
         CODE_SIGN_ENTITLEMENTS: StepReceiptApp/StepReceipt.entitlements
         TARGETED_DEVICE_FAMILY: "1"
-        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_APPICON_NAME: StrideSlip-IconComposer-01-Receipt-Footsteps
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
       configs:
         Debug:

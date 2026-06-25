@@ -33,6 +33,7 @@
 		2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
 		2BA2E97C0EAD14C4F9523B6F /* CoachInsightsSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818A88A8C5697024CAAEED65 /* CoachInsightsSheet.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
+		2E7759BDC0543D3AF8A128D3 /* StrideSlip-IconComposer-01-Receipt-Footsteps.icon in Resources */ = {isa = PBXBuildFile; fileRef = 61315F3C077DEDDADBFF7068 /* StrideSlip-IconComposer-01-Receipt-Footsteps.icon */; };
 		30AF0BABD13FEF862BE4264E /* HealthKitClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D23BBA2446988C6BECABA5 /* HealthKitClient.swift */; };
 		3812333BC7EA105F28F0E9DD /* WatchAggregateSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */; };
 		3C921883901061F079C8FD41 /* CompeteJoinDeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */; };
@@ -242,6 +243,7 @@
 		58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshotTests.swift; sourceTree = "<group>"; };
 		5A249F2968826E55703ADEF4 /* DayFlowCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayFlowCard.swift; sourceTree = "<group>"; };
 		5FB0CC2E1A04C1B20AE95BDB /* WeatherKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = WeatherKit.framework; path = System/Library/Frameworks/WeatherKit.framework; sourceTree = SDKROOT; };
+		61315F3C077DEDDADBFF7068 /* StrideSlip-IconComposer-01-Receipt-Footsteps.icon */ = {isa = PBXFileReference; lastKnownFileType = wrapper.icon; path = "StrideSlip-IconComposer-01-Receipt-Footsteps.icon"; sourceTree = "<group>"; };
 		6277880B45319181EE54747C /* CompetitionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionEngine.swift; sourceTree = "<group>"; };
 		63A6EA53FBB377B2AB87EA82 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		65D7F6FE469BFE17BD358635 /* AppViewPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppViewPreferences.swift; sourceTree = "<group>"; };
@@ -345,6 +347,7 @@
 				99FD9C3C92479B3254D64726 /* StepReceipt.entitlements */,
 				CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */,
 				C6034645DB17C879B4BD7319 /* StepReceiptDebug.entitlements */,
+				61315F3C077DEDDADBFF7068 /* StrideSlip-IconComposer-01-Receipt-Footsteps.icon */,
 				1D76CF2A8C2C1E62869B1397 /* App */,
 				0A4786819E11CC5F26CBD1FD /* Design */,
 				E4CBC1BAE1A8EF644F5E9BBB /* Intents */,
@@ -750,6 +753,7 @@
 			files = (
 				E4C014561D71BFC16A3A8289 /* Assets.xcassets in Resources */,
 				B4CC36F293704EB2BC59E544 /* PrivacyInfo.xcprivacy in Resources */,
+				2E7759BDC0543D3AF8A128D3 /* StrideSlip-IconComposer-01-Receipt-Footsteps.icon in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1018,7 +1022,7 @@
 		289C207E905261EE5182A581 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "StrideSlip-IconComposer-01-Receipt-Footsteps";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = StepReceiptApp/StepReceipt.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1072,7 +1076,7 @@
 		807807B664F5D660B3137F28 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_APPICON_NAME = "StrideSlip-IconComposer-01-Receipt-Footsteps";
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_ENTITLEMENTS = StepReceiptApp/StepReceiptDebug.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
@@ -1156,7 +1160,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1235,7 +1239,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 37;
+				CURRENT_PROJECT_VERSION = 38;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

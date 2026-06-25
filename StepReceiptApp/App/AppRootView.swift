@@ -6,35 +6,38 @@ struct AppRootView: View {
 
     var body: some View {
         TabView(selection: $selectedTab) {
-            ActivityHistoryView()
+            ActivityTabRoot()
                 .tabItem {
                     Label("Activity", systemImage: StepReceiptSymbol.activityTab)
                 }
                 .tag(StepReceiptTab.activity)
 
-            InsightsView()
+            InsightsTabRoot()
                 .tabItem {
                     Label("Insights", systemImage: StepReceiptSymbol.insightsTab)
                 }
                 .tag(StepReceiptTab.insights)
 
-            TodayView()
+            TodayTabRoot()
                 .tabItem {
                     Label("Today", systemImage: StepReceiptSymbol.todayTab)
                 }
                 .tag(StepReceiptTab.today)
 
-            CompetitionView()
+            CompeteTabRoot()
                 .tabItem {
                     Label("Compete", systemImage: StepReceiptSymbol.competitionTab)
                 }
                 .tag(StepReceiptTab.compete)
 
-            SettingsView()
+            SettingsTabRoot()
                 .tabItem {
                     Label("Settings", systemImage: StepReceiptSymbol.settingsTab)
                 }
                 .tag(StepReceiptTab.settings)
+        }
+        .transaction { transaction in
+            transaction.animation = nil
         }
         .tint(.stepAccent)
         .preferredColorScheme(repository.preferences.appTheme.colorScheme)

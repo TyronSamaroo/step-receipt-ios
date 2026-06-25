@@ -12,3 +12,6 @@ DerivedData/
 *.dSYM.zip
 *.dSYM
 xcuserdata/
+
+# Local Cursor agent plans (may contain personal/household context)
+Docs/Plans/

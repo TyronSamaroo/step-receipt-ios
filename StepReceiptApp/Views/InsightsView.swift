@@ -6,6 +6,7 @@ struct InsightsView: View {
     @AppStorage(AppViewPreferenceKey.insightsTrendFilter) private var selectedTrendFilterRaw = AppViewPreferenceDefault.insightsTrendFilter
     @State private var periodAnchorDate = Date()
     @State private var shareImage: ShareImage?
+    @State private var hasLoadedHeavyContent = false
 
     private var selectedScope: ActivityPeriodScope {
         ActivityPeriodScope(rawValue: selectedScopeRaw) ?? .week
@@ -69,7 +70,7 @@ struct InsightsView: View {
                         )
                         .frame(maxWidth: .infinity, minHeight: 160)
                         .compactMetricCard()
-                    } else {
+                    } else if hasLoadedHeavyContent {
                     PeriodReceiptCard(period: period, distanceUnit: repository.preferences.distanceUnit)
 
                     if let weekComparison {
@@ -97,6 +98,10 @@ struct InsightsView: View {
                     if selectedScope != .day {
                         bestDays
                     }
+                    } else {
+                        ProgressView("Loading insights")
+                            .frame(maxWidth: .infinity, minHeight: 220)
+                            .compactMetricCard()
                     }
                 }
                 .padding(16)
@@ -108,7 +113,10 @@ struct InsightsView: View {
             .background(Color.stepBackground)
             .navigationTitle("Insights")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear(perform: clampPeriodAnchor)
+            .onAppear {
+                clampPeriodAnchor()
+                hasLoadedHeavyContent = true
+            }
             .onChange(of: selectedScope) { _, _ in
                 clampPeriodAnchor()
             }

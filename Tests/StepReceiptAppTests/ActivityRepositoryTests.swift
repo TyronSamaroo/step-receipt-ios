@@ -1421,7 +1421,12 @@ private final class FakeHealthKitProvider: HealthKitProviding, @unchecked Sendab
         return dailyBuckets
     }
 
-    func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity] {
+    func fetchWorkouts(
+        startDate: Date,
+        endDate: Date,
+        includeHeartRateSamples: Bool,
+        includeRoutePoints: Bool
+    ) async throws -> [WorkoutActivity] {
         if let workoutFetchError { throw workoutFetchError }
         if let fetchError { throw fetchError }
         return workouts

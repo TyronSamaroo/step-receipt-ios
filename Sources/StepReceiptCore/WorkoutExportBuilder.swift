@@ -14,15 +14,21 @@ public struct WorkoutExportRowContext: Sendable {
     public let workout: WorkoutActivity
     public let analysis: WorkoutHeartRateAnalysis
     public let vsLastBurnPercent: Double?
+    public let tag: String?
+    public let dominantZone: String?
 
     public init(
         workout: WorkoutActivity,
         analysis: WorkoutHeartRateAnalysis,
-        vsLastBurnPercent: Double? = nil
+        vsLastBurnPercent: Double? = nil,
+        tag: String? = nil,
+        dominantZone: String? = nil
     ) {
         self.workout = workout
         self.analysis = analysis
         self.vsLastBurnPercent = vsLastBurnPercent
+        self.tag = tag
+        self.dominantZone = dominantZone
     }
 }
 
@@ -61,7 +67,7 @@ public enum WorkoutExportBuilder {
 
     public static func summaryCSV(for rows: [WorkoutExportRowContext]) -> String {
         var lines = [
-            "date,type,duration_min,calories,cal_per_min,avg_hr,min_hr,max_hr,fade_bpm,vs_last_burn_pct"
+            "workout_id,date,type,tag,duration_min,calories,cal_per_min,steps,distance_m,avg_hr,min_hr,max_hr,peak_hr_bpm,peak_hr_time,fade_bpm,dominant_zone,vs_last_burn_pct,source,environment"
         ]
 
         for row in rows {
@@ -73,19 +79,56 @@ public enum WorkoutExportBuilder {
             let fade = row.analysis.fadeDeltaBPM.flatMap { delta in
                 delta >= 5 ? Int(-delta.rounded()) : nil
             }
+            let peakHRTime = row.analysis.peakElapsedMinutes.map {
+                String(format: "%.1f", $0)
+            }
 
             lines.append(
                 [
+                    csvField(workout.sourceIdentifier),
                     csvField(formattedTimestamp(workout.startDate)),
                     csvField(workout.displayTitle),
+                    csvField(row.tag),
                     csvField(String(format: "%.1f", workout.durationMinutes)),
                     csvField(calories.map { String(format: "%.0f", $0) }),
                     csvField(calPerMin.map { String(format: "%.1f", $0) }),
+                    csvField(workout.steps),
+                    csvField(workout.distanceMeters.map { String(format: "%.1f", $0) }),
                     csvField(workout.averageHeartRateBPM.map { Int($0.rounded()) }),
                     csvField(workout.minHeartRateBPM.map { Int($0.rounded()) }),
                     csvField(workout.maxHeartRateBPM.map { Int($0.rounded()) }),
+                    csvField(row.analysis.peakBPM.map { Int($0.rounded()) }),
+                    csvField(peakHRTime),
                     csvField(fade),
-                    csvField(row.vsLastBurnPercent.map { String(Int($0.rounded())) })
+                    csvField(row.dominantZone),
+                    csvField(row.vsLastBurnPercent.map { String(Int($0.rounded())) }),
+                    csvField(workout.sourceName),
+                    csvField(workout.environment?.displayName)
+                ].joined(separator: ",")
+            )
+        }
+
+        return lines.joined(separator: "\n")
+    }
+
+    public static func dailySummariesCSV(history: [DailyActivitySummary]) -> String {
+        var lines = [
+            "date,steps,distance_m,active_energy_kcal,flights,workout_min,goal_steps,goal_hit"
+        ]
+
+        let sortedHistory = history.sorted { $0.dateStart < $1.dateStart }
+        for summary in sortedHistory {
+            let goal = summary.goals.stepsPerDay
+            lines.append(
+                [
+                    csvField(formattedDate(summary.dateStart)),
+                    csvField(summary.steps),
+                    csvField(String(format: "%.1f", summary.distanceMeters)),
+                    csvField(String(format: "%.0f", summary.activeEnergyKilocalories)),
+                    csvField(summary.flightsClimbed),
+                    csvField(String(format: "%.1f", summary.workoutMinutes)),
+                    csvField(goal),
+                    csvField(summary.steps >= goal ? "yes" : "no")
                 ].joined(separator: ",")
             )
         }
@@ -133,6 +176,12 @@ public enum WorkoutExportBuilder {
     private static func formattedTimestamp(_ date: Date) -> String {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime]
+        return formatter.string(from: date)
+    }
+
+    private static func formattedDate(_ date: Date) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withFullDate]
         return formatter.string(from: date)
     }
 

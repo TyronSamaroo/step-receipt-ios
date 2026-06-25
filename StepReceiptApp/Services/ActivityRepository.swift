@@ -119,6 +119,7 @@ final class ActivityRepository: ObservableObject {
     private let sharedCompetitionSettingsKey = "stepReceipt.sharedCompetitionSettings.v1"
     private let workoutTagsKey = "stepReceipt.workoutTags.v1"
     private let activityCacheKey = "stepReceipt.derivedActivityCache.v1"
+    private let lastFullRefreshAtKey = "stepReceipt.lastFullRefreshAt.v1"
     private let healthBackgroundDeliveryConfiguredAtKey = "stepReceipt.healthBackgroundDeliveryConfiguredAt.v1"
     private let currentCompetitorID: UUID
     private var activityDataSource: ActivityDataSource = .none
@@ -173,6 +174,9 @@ final class ActivityRepository: ObservableObject {
             key: healthBackgroundDeliveryConfiguredAtKey,
             userDefaults: userDefaults
         )
+        if let lastFullRefresh = userDefaults.object(forKey: lastFullRefreshAtKey) as? Date {
+            healthRefreshStatus.lastFullRefreshAt = lastFullRefresh
+        }
     }
 
     func bootstrap() async {
@@ -207,7 +211,7 @@ final class ActivityRepository: ObservableObject {
             return
         }
 
-        await refresh()
+        await refresh(scope: .full)
         await configureActivityBackgroundDeliveryIfPossible()
     }
 
@@ -224,7 +228,7 @@ final class ActivityRepository: ObservableObject {
             }
 
             await configureActivityBackgroundDeliveryIfPossible()
-            await refresh()
+            await refresh(scope: .full)
         } catch {
             authorizationState = .deniedOrLimited
             lastError = error.localizedDescription
@@ -273,7 +277,7 @@ final class ActivityRepository: ObservableObject {
         }
 
         await configureActivityBackgroundDeliveryIfPossible(force: shouldForceBackgroundRepair)
-        await refresh()
+        await refresh(scope: .full)
 
         if !calendar.isDateInToday(selectedDate) {
             await refreshCurrentDayForLiveActivity()
@@ -288,9 +292,20 @@ final class ActivityRepository: ObservableObject {
     }
 
     func refresh() async {
+        let scope: ActivityRefreshScope
+        if let lastFullRefresh = lastFullRefreshAt, Date().timeIntervalSince(lastFullRefresh) < 15 * 60 {
+            scope = .quick
+        } else {
+            scope = .full
+        }
+        await refresh(scope: scope)
+    }
+
+    func refresh(scope: ActivityRefreshScope) async {
         guard !isLoading else { return }
         isLoading = true
-        healthRefreshStatus = healthRefreshStatus.refreshing(startedAt: Date())
+        let refreshStartedAt = Date()
+        healthRefreshStatus = healthRefreshStatus.refreshing(startedAt: refreshStartedAt, activeStep: "Starting")
         defer { isLoading = false }
 
         let now = Date()
@@ -302,22 +317,65 @@ final class ActivityRepository: ObservableObject {
         let historyEnd = calendar.date(byAdding: .day, value: 1, to: calendar.startOfDay(for: now)) ?? now.addingTimeInterval(86_400)
         let defaultHistoryStart = calendar.date(byAdding: .day, value: -historyLookbackDays, to: historyEnd) ?? historyEnd.addingTimeInterval(-Double(historyLookbackDays) * 86_400)
         let historyStart = min(defaultHistoryStart, selectedDate)
+        let todayStart = calendar.startOfDay(for: now)
 
+        let workoutFetchStart: Date
+        let includeHeartRateSamples: Bool
+        let includeRoutePoints: Bool
+        switch scope {
+        case .quick:
+            workoutFetchStart = todayStart
+            includeHeartRateSamples = false
+            includeRoutePoints = false
+        case .full:
+            if let newestWorkoutStart = previousWorkouts.map(\.startDate).max() {
+                workoutFetchStart = min(
+                    historyStart,
+                    calendar.date(byAdding: .day, value: -1, to: calendar.startOfDay(for: newestWorkoutStart)) ?? historyStart
+                )
+            } else {
+                workoutFetchStart = historyStart
+            }
+            includeHeartRateSamples = true
+            includeRoutePoints = true
+        }
+
+        setRefreshActiveStep("Hourly Apple Health activity")
         async let todayFetch = fetchHealthValue(label: "Hourly Apple Health activity") {
             try await healthKit.fetchHourlyBuckets(for: selectedDate)
         }
-        async let dailyFetch = fetchHealthValue(label: "Daily Apple Health history") {
-            try await healthKit.fetchDailyBuckets(daysBack: historyLookbackDays, endingAt: now)
-        }
-        async let workoutsFetch = fetchHealthValue(label: "Apple Health workouts") {
-            try await healthKit.fetchWorkouts(startDate: historyStart, endDate: historyEnd)
+
+        let dailyFetch: Task<HealthFetchResult<[HealthMetricBucket]>, Never>?
+        if scope == .full {
+            setRefreshActiveStep("Daily Apple Health history")
+            dailyFetch = Task {
+                await fetchHealthValue(label: "Daily Apple Health history") {
+                    try await healthKit.fetchDailyBuckets(daysBack: historyLookbackDays, endingAt: now)
+                }
+            }
+        } else {
+            dailyFetch = nil
         }
 
-        let fetches = await (today: todayFetch, daily: dailyFetch, workouts: workoutsFetch)
-        let fetchErrors = [fetches.today.errorDescription, fetches.daily.errorDescription, fetches.workouts.errorDescription]
+        setRefreshActiveStep("Apple Health workouts")
+        async let workoutsFetch = fetchHealthValue(label: "Apple Health workouts") {
+            try await healthKit.fetchWorkouts(
+                startDate: workoutFetchStart,
+                endDate: historyEnd,
+                includeHeartRateSamples: includeHeartRateSamples,
+                includeRoutePoints: includeRoutePoints
+            )
+        }
+
+        let fetches = await (
+            today: todayFetch,
+            daily: dailyFetch?.value,
+            workouts: workoutsFetch
+        )
+        let fetchErrors = [fetches.today.errorDescription, fetches.daily?.errorDescription, fetches.workouts.errorDescription]
             .compactMap { $0 }
 
-        if didReturnNoReadableHealthData(fetches: fetches) {
+        if didReturnNoReadableHealthData(fetches: (today: fetches.today, daily: fetches.daily, workouts: fetches.workouts)) {
             let loadedCache = loadCachedActivityData()
             if loadedCache {
                 let issue = "Apple Health returned no readable activity. Keeping saved data; check Health permissions if this stays wrong."
@@ -328,13 +386,12 @@ final class ActivityRepository: ObservableObject {
                     completedAt: Date(),
                     issue: issue
                 )
-                await updateLiveActivityIfNeeded(with: todaySummary)
-                await syncSharedCompetition()
+                backgroundRefreshTail(selectedDate: selectedDate, todaySummary: todaySummary)
                 return
             }
         }
 
-        guard fetches.today.value != nil || fetches.daily.value != nil || !previousHistory.isEmpty || previousSummary != nil else {
+        guard fetches.today.value != nil || fetches.daily?.value != nil || !previousHistory.isEmpty || previousSummary != nil else {
             let loadedCache = loadCachedActivityData()
             if !loadedCache {
                 loadEmptyActivityState()
@@ -346,14 +403,29 @@ final class ActivityRepository: ObservableObject {
                 completedAt: Date(),
                 issue: lastError
             )
-            await updateLiveActivityIfNeeded(with: todaySummary)
-            await syncSharedCompetition()
+            backgroundRefreshTail(selectedDate: selectedDate, todaySummary: todaySummary)
             return
         }
 
-        let resolvedWorkouts = fetches.workouts.value ?? previousWorkouts
+        let fetchedWorkouts = fetches.workouts.value ?? []
+        let resolvedWorkouts: [WorkoutActivity]
+        switch scope {
+        case .quick:
+            resolvedWorkouts = mergeTodayWorkouts(
+                cached: previousWorkouts,
+                todayFetched: fetchedWorkouts,
+                todayStart: todayStart
+            )
+        case .full:
+            resolvedWorkouts = mergeWorkouts(cached: previousWorkouts, fetched: fetchedWorkouts)
+        }
+
+        if let workoutCount = fetches.workouts.value?.count {
+            setRefreshActiveStep("Apple Health workouts (\(workoutCount))")
+        }
+
         var resolvedHistory: [DailyActivitySummary]
-        if let dailyBuckets = fetches.daily.value {
+        if let dailyBuckets = fetches.daily?.value {
             resolvedHistory = engine.dailySummaries(
                 from: dailyBuckets,
                 workouts: resolvedWorkouts,
@@ -385,27 +457,119 @@ final class ActivityRepository: ObservableObject {
         }
 
         resolvedHistory = replacingSummary(resolvedSummary, in: resolvedHistory)
-        workouts = resolvedWorkouts
-        history = resolvedHistory
+        if workouts != resolvedWorkouts {
+            workouts = resolvedWorkouts
+        }
+        if history != resolvedHistory {
+            history = resolvedHistory
+        }
         todaySummary = resolvedSummary
         receipt = engine.receipt(for: history, goals: goals)
         refreshCompetition()
         activityDataSource = .healthKit
         authorizationState = .authorized
         lastError = fetchErrors.isEmpty ? nil : fetchErrors.joined(separator: "\n")
+
+        let completedAt = Date()
+        if scope == .full {
+            recordFullRefresh(at: completedAt)
+        }
         healthRefreshStatus = healthRefreshStatus.completed(
             outcome: fetchErrors.isEmpty ? .current : .partial,
-            completedAt: Date(),
-            successfulAt: Date(),
-            issue: lastError
+            completedAt: completedAt,
+            successfulAt: completedAt,
+            issue: lastError,
+            lastFullRefreshAt: scope == .full ? completedAt : healthRefreshStatus.lastFullRefreshAt
         )
         saveDerivedActivityCache(selectedSummary: todaySummary)
+        setRefreshActiveStep(nil)
         await updateLiveActivityIfNeeded(with: todaySummary)
+        backgroundRefreshTail(selectedDate: selectedDate, todaySummary: resolvedSummary)
+    }
 
-        await syncAggregateSummaries(selectedSummary: todaySummary)
-        await syncSharedCompetition()
-        await fetchDayWeather(for: selectedDate)
-        scheduleDeferredOutdoorWorkoutWeatherBackfill(for: selectedDate)
+    private var lastFullRefreshAt: Date? {
+        userDefaults.object(forKey: lastFullRefreshAtKey) as? Date
+    }
+
+    private func recordFullRefresh(at date: Date) {
+        userDefaults.set(date, forKey: lastFullRefreshAtKey)
+    }
+
+    private func setRefreshActiveStep(_ step: String?) {
+        healthRefreshStatus = HealthRefreshStatus(
+            outcome: .refreshing,
+            startedAt: healthRefreshStatus.startedAt ?? Date(),
+            lastCompletedAt: healthRefreshStatus.lastCompletedAt,
+            lastSuccessfulAt: healthRefreshStatus.lastSuccessfulAt,
+            lastFullRefreshAt: healthRefreshStatus.lastFullRefreshAt,
+            activeStep: step,
+            issue: nil
+        )
+    }
+
+    private func mergeWorkouts(cached: [WorkoutActivity], fetched: [WorkoutActivity]) -> [WorkoutActivity] {
+        var byID = Dictionary(uniqueKeysWithValues: cached.map { ($0.sourceIdentifier, $0) })
+        for workout in fetched {
+            byID[workout.sourceIdentifier] = workout
+        }
+        return byID.values.sorted { $0.startDate > $1.startDate }
+    }
+
+    private func mergeTodayWorkouts(
+        cached: [WorkoutActivity],
+        todayFetched: [WorkoutActivity],
+        todayStart: Date
+    ) -> [WorkoutActivity] {
+        let nonToday = cached.filter { !calendar.isDate($0.startDate, inSameDayAs: todayStart) }
+        return mergeWorkouts(cached: nonToday, fetched: todayFetched)
+    }
+
+    private func backgroundRefreshTail(selectedDate: Date, todaySummary: DailyActivitySummary?) {
+        Task { @MainActor in
+            await syncAggregateSummaries(selectedSummary: todaySummary)
+            await syncSharedCompetition()
+            await fetchDayWeather(for: selectedDate)
+            scheduleDeferredOutdoorWorkoutWeatherBackfill(for: selectedDate)
+        }
+    }
+
+    func refreshWorkoutHeartRateIfNeeded(for workout: WorkoutActivity) async {
+        guard workout.heartRateSamples.isEmpty else { return }
+        guard healthKit.isAvailable, hasRequestedHealthAuthorization else { return }
+
+        let dayStart = calendar.startOfDay(for: workout.startDate)
+        let dayEnd = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? dayStart.addingTimeInterval(86_400)
+        let fetch = await fetchHealthValue(label: "Workout heart rate samples") {
+            try await healthKit.fetchWorkouts(
+                startDate: dayStart,
+                endDate: dayEnd,
+                includeHeartRateSamples: true,
+                includeRoutePoints: false
+            )
+        }
+
+        guard let enriched = fetch.value?.first(where: { $0.sourceIdentifier == workout.sourceIdentifier }),
+              !enriched.heartRateSamples.isEmpty
+        else {
+            return
+        }
+
+        let merged = mergeWorkouts(cached: workouts, fetched: [enriched])
+        if workouts != merged {
+            workouts = merged
+        }
+        if let todaySummary {
+            let updatedSummary = engine.aggregateDay(
+                containing: selectedDate,
+                buckets: todaySummary.buckets,
+                workouts: workouts,
+                goals: goals
+            )
+            self.todaySummary = updatedSummary
+            history = replacingSummary(updatedSummary, in: history)
+            receipt = engine.receipt(for: history, goals: goals)
+            saveDerivedActivityCache(selectedSummary: updatedSummary)
+        }
     }
 
     private func scheduleDeferredOutdoorWorkoutWeatherBackfill(for selectedDate: Date) {
@@ -676,6 +840,10 @@ final class ActivityRepository: ObservableObject {
                 analysis: WorkoutHeartRateAnalyzer.analyze(workout: workout),
                 vsLastBurnPercent: workoutLastSession(before: workout).flatMap {
                     WorkoutExportBuilder.burnRatePercentChange(current: workout, baseline: $0)
+                },
+                tag: workoutTag(for: workout),
+                dominantZone: workout.dominantHeartRateZone(using: preferences.heartRateZoneConfiguration).map {
+                    "Zone \($0.level)"
                 }
             )
         }
@@ -703,6 +871,36 @@ final class ActivityRepository: ObservableObject {
             }
         }
 
+        return urls
+    }
+
+    func exportURLs(for preset: ActivityDataExportPreset) -> [URL] {
+        switch preset {
+        case .stairSessionsSummary:
+            let stairs = workouts.filter { $0.type == .stairClimbing }
+            return writeWorkoutExportFiles(
+                bulkWorkoutExport(workouts: stairs, includeHeartRateSamples: false)
+            )
+        case .allWorkoutsWithHeartRateSamples:
+            return writeWorkoutExportFiles(
+                bulkWorkoutExport(workouts: workouts, includeHeartRateSamples: true)
+            )
+        case .fullActivityCache:
+            return writeFullActivityExportFiles()
+        }
+    }
+
+    func writeFullActivityExportFiles() -> [URL] {
+        var urls = writeWorkoutExportFiles(
+            bulkWorkoutExport(workouts: workouts, includeHeartRateSamples: true)
+        )
+        let dailyCSV = WorkoutExportBuilder.dailySummariesCSV(history: history)
+        let timestamp = exportTimestampToken()
+        let dailyURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("daily_summaries-\(timestamp).csv")
+        if (try? dailyCSV.write(to: dailyURL, atomically: true, encoding: .utf8)) != nil {
+            urls.append(dailyURL)
+        }
         return urls
     }
 
@@ -1265,20 +1463,26 @@ final class ActivityRepository: ObservableObject {
     private func didReturnNoReadableHealthData(
         fetches: (
             today: HealthFetchResult<[HealthMetricBucket]>,
-            daily: HealthFetchResult<[HealthMetricBucket]>,
+            daily: HealthFetchResult<[HealthMetricBucket]>?,
             workouts: HealthFetchResult<[WorkoutActivity]>
         )
     ) -> Bool {
         guard
             let todayBuckets = fetches.today.value,
-            let dailyBuckets = fetches.daily.value,
             let workouts = fetches.workouts.value
         else {
             return false
         }
 
+        let dailyIsEmpty: Bool
+        if let dailyBuckets = fetches.daily?.value {
+            dailyIsEmpty = dailyBuckets.allSatisfy(\.hasNoActivity)
+        } else {
+            dailyIsEmpty = true
+        }
+
         return todayBuckets.allSatisfy(\.hasNoActivity)
-            && dailyBuckets.allSatisfy(\.hasNoActivity)
+            && dailyIsEmpty
             && workouts.isEmpty
     }
 
@@ -2149,6 +2353,7 @@ final class ActivityRepository: ObservableObject {
         visibleDashboardMetrics: [DashboardMetric]? = nil,
         appTheme: AppTheme? = nil,
         dailyStepGoalLiveActivityEnabled: Bool? = nil,
+        dailyAffirmationEnabled: Bool? = nil,
         heartRateZoneConfiguration: HeartRateZoneConfiguration? = nil
     ) {
         preferences = UserPreferences(
@@ -2157,6 +2362,7 @@ final class ActivityRepository: ObservableObject {
             visibleDashboardMetrics: visibleDashboardMetrics ?? preferences.visibleDashboardMetrics,
             appTheme: appTheme ?? preferences.appTheme,
             dailyStepGoalLiveActivityEnabled: dailyStepGoalLiveActivityEnabled ?? preferences.dailyStepGoalLiveActivityEnabled,
+            dailyAffirmationEnabled: dailyAffirmationEnabled ?? preferences.dailyAffirmationEnabled,
             heartRateZoneConfiguration: heartRateZoneConfiguration ?? preferences.heartRateZoneConfiguration
         )
     }
@@ -2320,14 +2526,18 @@ struct HealthRefreshStatus: Equatable, Sendable {
     var startedAt: Date?
     var lastCompletedAt: Date?
     var lastSuccessfulAt: Date?
+    var lastFullRefreshAt: Date?
+    var activeStep: String?
     var issue: String?
 
-    func refreshing(startedAt: Date) -> HealthRefreshStatus {
+    func refreshing(startedAt: Date, activeStep: String? = nil) -> HealthRefreshStatus {
         HealthRefreshStatus(
             outcome: .refreshing,
             startedAt: startedAt,
             lastCompletedAt: lastCompletedAt,
             lastSuccessfulAt: lastSuccessfulAt,
+            lastFullRefreshAt: lastFullRefreshAt,
+            activeStep: activeStep,
             issue: issue
         )
     }
@@ -2336,16 +2546,30 @@ struct HealthRefreshStatus: Equatable, Sendable {
         outcome: HealthRefreshOutcome,
         completedAt: Date,
         successfulAt: Date? = nil,
-        issue: String? = nil
+        issue: String? = nil,
+        lastFullRefreshAt: Date? = nil
     ) -> HealthRefreshStatus {
         HealthRefreshStatus(
             outcome: outcome,
             startedAt: nil,
             lastCompletedAt: completedAt,
             lastSuccessfulAt: successfulAt ?? lastSuccessfulAt,
+            lastFullRefreshAt: lastFullRefreshAt ?? self.lastFullRefreshAt,
+            activeStep: nil,
             issue: issue
         )
     }
+}
+
+enum ActivityRefreshScope: Sendable {
+    case quick
+    case full
+}
+
+enum ActivityDataExportPreset: Sendable {
+    case stairSessionsSummary
+    case allWorkoutsWithHeartRateSamples
+    case fullActivityCache
 }
 
 enum HealthBackgroundDeliveryState: Equatable, Sendable {

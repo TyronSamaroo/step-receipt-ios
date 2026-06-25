@@ -6,25 +6,27 @@ struct WorkoutDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
     let workout: WorkoutActivity
     @State private var shareImage: ShareImage?
-    @State private var heartRateExportURL: URL?
-    @State private var isPresentingHeartRateExport = false
     @State private var tagDraft = ""
     @State private var selectedCompareBaseline: WorkoutActivity?
 
+    private var activeWorkout: WorkoutActivity {
+        repository.workouts.first(where: { $0.sourceIdentifier == workout.sourceIdentifier }) ?? workout
+    }
+
     private var style: WorkoutVisualStyle {
-        WorkoutVisualStyle(kind: workout.type)
+        WorkoutVisualStyle(kind: activeWorkout.type)
     }
 
     private var workoutTag: String? {
-        repository.workoutTag(for: workout)
+        repository.workoutTag(for: activeWorkout)
     }
 
     private var selectedTemplate: WorkoutTemplate? {
-        WorkoutTemplate.preferred(for: workout, tag: workoutTag)
+        WorkoutTemplate.preferred(for: activeWorkout, tag: workoutTag)
     }
 
     private var templateSuggestions: [WorkoutTemplate] {
-        let primary = WorkoutTemplate.suggestions(for: workout)
+        let primary = WorkoutTemplate.suggestions(for: activeWorkout)
         guard !primary.isEmpty else {
             return Array(WorkoutTemplate.allCases)
         }
@@ -35,17 +37,17 @@ struct WorkoutDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 16) {
-                WorkoutHero(workout: workout, style: style, tag: workoutTag)
+                WorkoutHero(workout: activeWorkout, style: style, tag: workoutTag)
                 templatePanel
                 metricGrid
                 heartRateStoryCard
                 workoutComparePanel
-                HeartRatePanel(workout: workout)
-                WorkoutRoutePanel(workout: workout, style: style)
+                HeartRatePanel(workout: activeWorkout)
+                WorkoutRoutePanel(workout: activeWorkout, style: style)
                 insightPanel
                 detailPanel
                 WorkoutShareCard(
-                    workout: workout,
+                    workout: activeWorkout,
                     distanceUnit: repository.preferences.distanceUnit,
                     tag: workoutTag,
                     heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
@@ -55,24 +57,13 @@ struct WorkoutDetailView: View {
         }
         .safeAreaPadding(.bottom, 84)
         .background(Color.stepBackground)
-        .navigationTitle(workoutTag ?? workout.displayTitle)
+        .navigationTitle(workoutTag ?? activeWorkout.displayTitle)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                if !workout.heartRateSamples.isEmpty {
-                    Button {
-                        heartRateExportURL = repository.writeSingleWorkoutHeartRateExport(for: workout)
-                        isPresentingHeartRateExport = heartRateExportURL != nil
-                    } label: {
-                        Image(systemName: "tablecells")
-                    }
-                    .accessibilityLabel("Export heart rate CSV")
-                    .accessibilityIdentifier("workout-export-hr-csv")
-                }
-
                 Button {
                     shareImage = ShareImageRenderer.render {
                         WorkoutShareCard(
-                            workout: workout,
+                            workout: activeWorkout,
                             distanceUnit: repository.preferences.distanceUnit,
                             tag: workoutTag,
                             heartRateZoneConfiguration: repository.preferences.heartRateZoneConfiguration
@@ -91,10 +82,8 @@ struct WorkoutDetailView: View {
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
         }
-        .sheet(isPresented: $isPresentingHeartRateExport) {
-            if let heartRateExportURL {
-                ShareSheet(items: [heartRateExportURL])
-            }
+        .task {
+            await repository.refreshWorkoutHeartRateIfNeeded(for: workout)
         }
         .onAppear {
             tagDraft = workoutTag ?? ""
@@ -105,7 +94,7 @@ struct WorkoutDetailView: View {
     }
 
     private var heartRateAnalysis: WorkoutHeartRateAnalysis {
-        WorkoutHeartRateAnalyzer.analyze(workout: workout)
+        WorkoutHeartRateAnalyzer.analyze(workout: activeWorkout)
     }
 
     @ViewBuilder

@@ -500,9 +500,13 @@ struct TodayView: View {
 
     private func todayHero(_ summary: DailyActivitySummary) -> some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text(heroDateLine(for: summary))
-                .font(.subheadline.weight(.bold))
-                .foregroundStyle(Color.stepAccent)
+            if isViewingToday, repository.preferences.dailyAffirmationEnabled {
+                todayGreetingBlock(summary)
+            } else {
+                Text(heroDateLine(for: summary))
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepAccent)
+            }
 
             heroDateControls
 
@@ -612,6 +616,56 @@ struct TodayView: View {
             .clipShape(Circle())
             .disabled(!canMoveForward)
             .accessibilityLabel("Next day")
+        }
+    }
+
+    private var isViewingToday: Bool {
+        Calendar.current.isDateInToday(repository.selectedDate)
+    }
+
+    private var dailyGreeting: DailyGreeting {
+        DailyGreetingBuilder.build(
+            displayName: repository.preferences.displayName,
+            date: repository.selectedDate,
+            summary: repository.todaySummary ?? emptyGreetingSummary,
+            history: repository.history,
+            weekComparison: repository.weekComparison(containing: repository.selectedDate)
+        )
+    }
+
+    private var emptyGreetingSummary: DailyActivitySummary {
+        DailyActivitySummary(
+            dateStart: Calendar.current.startOfDay(for: repository.selectedDate),
+            steps: 0,
+            distanceMeters: 0,
+            activeEnergyKilocalories: 0,
+            flightsClimbed: 0,
+            workoutMinutes: 0,
+            buckets: [],
+            workouts: [],
+            goals: repository.goals
+        )
+    }
+
+    @ViewBuilder
+    private func todayGreetingBlock(_ summary: DailyActivitySummary) -> some View {
+        let greeting = dailyGreeting
+        VStack(alignment: .leading, spacing: 6) {
+            Text(greeting.greetingLine)
+                .font(.title2.weight(.bold))
+                .foregroundStyle(Color.stepInk)
+                .accessibilityIdentifier("today-greeting-line")
+
+            Text(greeting.affirmationLine)
+                .font(.subheadline)
+                .foregroundStyle(Color.stepMuted)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityIdentifier("today-affirmation-line")
+
+            Text(heroDateLine(for: summary))
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(Color.stepAccent)
         }
     }
 
@@ -1171,7 +1225,10 @@ struct TodayView: View {
     }
 
     private var selectedNavigationTitle: String {
-        Calendar.current.isDateInToday(repository.selectedDate) ? "Today" : "Day"
+        if isViewingToday, repository.preferences.dailyAffirmationEnabled {
+            return ""
+        }
+        return isViewingToday ? "Today" : "Day"
     }
 
     private func shortHourLabel(for date: Date) -> String {

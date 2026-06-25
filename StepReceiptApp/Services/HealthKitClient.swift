@@ -18,7 +18,23 @@ protocol HealthKitProviding: Sendable {
     func fetchHourlyBuckets(for date: Date) async throws -> [HealthMetricBucket]
     func fetchHourlyBuckets(from startDate: Date, to endDate: Date) async throws -> [HealthMetricBucket]
     func fetchDailyBuckets(daysBack: Int, endingAt endDate: Date) async throws -> [HealthMetricBucket]
-    func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity]
+    func fetchWorkouts(
+        startDate: Date,
+        endDate: Date,
+        includeHeartRateSamples: Bool,
+        includeRoutePoints: Bool
+    ) async throws -> [WorkoutActivity]
+}
+
+extension HealthKitProviding {
+    func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity] {
+        try await fetchWorkouts(
+            startDate: startDate,
+            endDate: endDate,
+            includeHeartRateSamples: true,
+            includeRoutePoints: true
+        )
+    }
 }
 
 enum HealthKitBackgroundDeliveryError: LocalizedError, Sendable {
@@ -110,7 +126,12 @@ final class HealthKitClient: @unchecked Sendable {
         return try await fetchMetricBuckets(startDate: start, endDate: end, interval: DateComponents(day: 1))
     }
 
-    func fetchWorkouts(startDate: Date, endDate: Date) async throws -> [WorkoutActivity] {
+    func fetchWorkouts(
+        startDate: Date,
+        endDate: Date,
+        includeHeartRateSamples: Bool = true,
+        includeRoutePoints: Bool = true
+    ) async throws -> [WorkoutActivity] {
         guard isAvailable else { return [] }
         let predicate = HKQuery.predicateForSamples(withStart: startDate, end: endDate, options: [.strictStartDate])
         let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
@@ -140,7 +161,14 @@ final class HealthKitClient: @unchecked Sendable {
             func enqueue(at index: Int) {
                 let workout = healthWorkouts[index]
                 group.addTask {
-                    (index, await self.enrichWorkout(workout))
+                    (
+                        index,
+                        await self.enrichWorkout(
+                            workout,
+                            includeHeartRateSamples: includeHeartRateSamples,
+                            includeRoutePoints: includeRoutePoints
+                        )
+                    )
                 }
             }
 
@@ -164,12 +192,18 @@ final class HealthKitClient: @unchecked Sendable {
         }
     }
 
-    private func enrichWorkout(_ workout: HKWorkout) async -> WorkoutActivity {
+    private func enrichWorkout(
+        _ workout: HKWorkout,
+        includeHeartRateSamples: Bool,
+        includeRoutePoints: Bool
+    ) async -> WorkoutActivity {
         let activity = Self.mapWorkout(workout)
-        async let heartRateSamples = safelyFetchHeartRateSamples(for: workout)
+        async let heartRateSamples: [WorkoutHeartRateSample] = includeHeartRateSamples
+            ? await safelyFetchHeartRateSamples(for: workout)
+            : []
         async let workoutSteps = safelyFetchWorkoutSteps(for: workout)
-        async let routePoints = activity.environment == .outdoor
-            ? safelyFetchRoutePoints(for: workout)
+        async let routePoints: [WorkoutRoutePoint] = includeRoutePoints && activity.environment == .outdoor
+            ? await safelyFetchRoutePoints(for: workout)
             : []
         return activity.replacingDerivedHealthData(
             steps: await workoutSteps ?? activity.steps,

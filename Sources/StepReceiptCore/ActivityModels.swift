@@ -741,6 +741,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
     public var visibleDashboardMetrics: [DashboardMetric]
     public var appTheme: AppTheme
     public var dailyStepGoalLiveActivityEnabled: Bool
+    public var dailyAffirmationEnabled: Bool
     public var heartRateZoneConfiguration: HeartRateZoneConfiguration
 
     public init(
@@ -749,6 +750,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         visibleDashboardMetrics: [DashboardMetric] = DashboardMetric.allCases,
         appTheme: AppTheme = .light,
         dailyStepGoalLiveActivityEnabled: Bool = false,
+        dailyAffirmationEnabled: Bool = true,
         heartRateZoneConfiguration: HeartRateZoneConfiguration = .default
     ) {
         let trimmedName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -757,6 +759,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         self.visibleDashboardMetrics = visibleDashboardMetrics.isEmpty ? DashboardMetric.allCases : visibleDashboardMetrics
         self.appTheme = appTheme
         self.dailyStepGoalLiveActivityEnabled = dailyStepGoalLiveActivityEnabled
+        self.dailyAffirmationEnabled = dailyAffirmationEnabled
         self.heartRateZoneConfiguration = heartRateZoneConfiguration
     }
 
@@ -770,6 +773,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         case visibleDashboardMetrics
         case appTheme
         case dailyStepGoalLiveActivityEnabled
+        case dailyAffirmationEnabled
         case heartRateZoneConfiguration
     }
 
@@ -781,6 +785,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
             visibleDashboardMetrics: try container.decodeIfPresent([DashboardMetric].self, forKey: .visibleDashboardMetrics) ?? DashboardMetric.allCases,
             appTheme: try container.decodeIfPresent(AppTheme.self, forKey: .appTheme) ?? .light,
             dailyStepGoalLiveActivityEnabled: try container.decodeIfPresent(Bool.self, forKey: .dailyStepGoalLiveActivityEnabled) ?? false,
+            dailyAffirmationEnabled: try container.decodeIfPresent(Bool.self, forKey: .dailyAffirmationEnabled) ?? true,
             heartRateZoneConfiguration: try container.decodeIfPresent(HeartRateZoneConfiguration.self, forKey: .heartRateZoneConfiguration) ?? .default
         )
     }
@@ -792,6 +797,7 @@ public struct UserPreferences: Codable, Equatable, Sendable {
         try container.encode(visibleDashboardMetrics, forKey: .visibleDashboardMetrics)
         try container.encode(appTheme, forKey: .appTheme)
         try container.encode(dailyStepGoalLiveActivityEnabled, forKey: .dailyStepGoalLiveActivityEnabled)
+        try container.encode(dailyAffirmationEnabled, forKey: .dailyAffirmationEnabled)
         try container.encode(heartRateZoneConfiguration, forKey: .heartRateZoneConfiguration)
     }
 }

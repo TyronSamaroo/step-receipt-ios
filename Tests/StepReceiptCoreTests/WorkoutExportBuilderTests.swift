@@ -60,7 +60,7 @@ struct WorkoutExportBuilderTests {
         let summaryLines = export.summaryCSV.split(separator: "\n")
         let sampleLines = export.heartRateSamplesCSV?.split(separator: "\n") ?? []
 
-        #expect(summaryLines.first == "date,type,duration_min,calories,cal_per_min,avg_hr,min_hr,max_hr,fade_bpm,vs_last_burn_pct")
+        #expect(summaryLines.first == "workout_id,date,type,tag,duration_min,calories,cal_per_min,steps,distance_m,avg_hr,min_hr,max_hr,peak_hr_bpm,peak_hr_time,fade_bpm,dominant_zone,vs_last_burn_pct,source,environment")
         #expect(summaryLines.count == 2)
         #expect(summaryLines[1].contains("Stair"))
         #expect(sampleLines.first == "workout_id,timestamp,bpm,elapsed_min,zone")

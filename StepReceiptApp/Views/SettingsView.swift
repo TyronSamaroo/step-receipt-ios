@@ -11,6 +11,8 @@ struct SettingsView: View {
     @State private var selectedAppTheme: AppTheme = .light
     @State private var visibleDashboardMetrics = Set(DashboardMetric.allCases)
     @State private var copiedDiagnostics = false
+    @State private var exportURLs: [URL] = []
+    @State private var isPresentingExport = false
 
     var body: some View {
         NavigationStack {
@@ -24,6 +26,13 @@ struct SettingsView: View {
                             Text(unit.displayName).tag(unit)
                         }
                     }
+
+                    Toggle("Daily affirmation", isOn: Binding(
+                        get: { repository.preferences.dailyAffirmationEnabled },
+                        set: { isEnabled in
+                            repository.updatePreferences(dailyAffirmationEnabled: isEnabled)
+                        }
+                    ))
 
                     Button("Save Profile") {
                         repository.updatePreferences(
@@ -96,9 +105,45 @@ struct SettingsView: View {
                     }
                 }
 
+                Section("Data Export") {
+                    Button {
+                        exportURLs = repository.exportURLs(for: .stairSessionsSummary)
+                        isPresentingExport = !exportURLs.isEmpty
+                    } label: {
+                        Label("Stair sessions (summary)", systemImage: "figure.stairs")
+                    }
+                    .accessibilityIdentifier("settings-export-stair-summary")
+
+                    Button {
+                        exportURLs = repository.exportURLs(for: .allWorkoutsWithHeartRateSamples)
+                        isPresentingExport = !exportURLs.isEmpty
+                    } label: {
+                        Label("All workouts + HR samples", systemImage: "heart.text.square")
+                    }
+                    .accessibilityIdentifier("settings-export-all-workouts-hr")
+
+                    Button {
+                        exportURLs = repository.exportURLs(for: .fullActivityCache)
+                        isPresentingExport = !exportURLs.isEmpty
+                    } label: {
+                        Label("Full activity cache (90 days)", systemImage: "externaldrive")
+                    }
+                    .accessibilityIdentifier("settings-export-full-cache")
+
+                    Text("Exports from data stored on this device. Heart rate samples are not uploaded to iCloud.")
+                        .font(.footnote)
+                        .foregroundStyle(Color.stepMuted)
+                }
+
                 Section("Health") {
                     statusRow("Apple Health", healthStatusText, StepReceiptSymbol.healthCard)
                     statusRow("Data Refresh", healthRefreshStatusText, healthRefreshStatusIcon)
+                    if let activeStep = repository.healthRefreshStatus.activeStep, repository.isLoading {
+                        statusRow("Refreshing", activeStep, "arrow.triangle.2.circlepath")
+                    }
+                    if let lastFullSync = healthLastFullSyncText {
+                        statusRow("Last full sync", lastFullSync, "clock.arrow.circlepath")
+                    }
                     if let lastUpdated = healthLastUpdatedText {
                         statusRow("Last Updated", lastUpdated, "clock")
                     }
@@ -115,7 +160,7 @@ struct SettingsView: View {
                     }
 
                     Button {
-                        Task { await repository.refresh() }
+                        Task { await repository.refresh(scope: .full) }
                     } label: {
                         Label(repository.isLoading ? "Refreshing Apple Health" : "Refresh Apple Health", systemImage: StepReceiptSymbol.refresh)
                     }
@@ -199,6 +244,11 @@ struct SettingsView: View {
                 selectedDistanceUnit = repository.preferences.distanceUnit
                 selectedAppTheme = repository.preferences.appTheme
                 visibleDashboardMetrics = Set(repository.preferences.visibleDashboardMetrics)
+            }
+            .sheet(isPresented: $isPresentingExport) {
+                if !exportURLs.isEmpty {
+                    ShareSheet(items: exportURLs)
+                }
             }
         }
     }
@@ -340,6 +390,13 @@ struct SettingsView: View {
         }
 
         return date.formatted(.dateTime.month(.abbreviated).day().hour().minute())
+    }
+
+    private var healthLastFullSyncText: String? {
+        guard let date = repository.healthRefreshStatus.lastFullRefreshAt else {
+            return nil
+        }
+        return formattedStatusDate(date)
     }
 
     private func formattedStatusDate(_ date: Date) -> String {

@@ -7,8 +7,6 @@ struct ActivityHistoryView: View {
     @AppStorage(AppViewPreferenceKey.activityDayFilter) private var selectedDayFilterRaw = AppViewPreferenceDefault.activityDayFilter
     @AppStorage(AppViewPreferenceKey.activityDaySort) private var selectedDaySortRaw = AppViewPreferenceDefault.activityDaySort
     @AppStorage(AppViewPreferenceKey.activityWorkoutShowStats) private var showWorkoutStats = AppViewPreferenceDefault.activityWorkoutShowStats
-    @State private var bulkExportURLs: [URL] = []
-    @State private var isPresentingBulkExport = false
 
     private var selectedMode: ActivityHistoryMode {
         ActivityHistoryMode(rawValue: selectedModeRaw) ?? .days
@@ -75,19 +73,6 @@ struct ActivityHistoryView: View {
             .toolbar {
                 if selectedMode == .workouts {
                     ToolbarItemGroup(placement: .topBarTrailing) {
-                        Menu {
-                            Button("Summary CSV") {
-                                presentBulkExport(includeHeartRateSamples: false)
-                            }
-                            Button("Summary + HR Samples") {
-                                presentBulkExport(includeHeartRateSamples: true)
-                            }
-                        } label: {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                        .accessibilityLabel("Export workouts")
-                        .accessibilityIdentifier("activity-workout-export-menu")
-
                         Button {
                             showWorkoutStats.toggle()
                         } label: {
@@ -98,11 +83,6 @@ struct ActivityHistoryView: View {
                         .accessibilityIdentifier("activity-workout-stats-toggle")
                         .accessibilityAddTraits(showWorkoutStats ? .isSelected : [])
                     }
-                }
-            }
-            .sheet(isPresented: $isPresentingBulkExport) {
-                if !bulkExportURLs.isEmpty {
-                    ShareSheet(items: bulkExportURLs)
                 }
             }
             .refreshable {
@@ -246,15 +226,6 @@ struct ActivityHistoryView: View {
         .foregroundStyle(isMoreSelected ? .white : Color.stepInk)
         .clipShape(Capsule())
         .accessibilityAddTraits(isMoreSelected ? .isSelected : [])
-    }
-
-    private func presentBulkExport(includeHeartRateSamples: Bool) {
-        let export = repository.bulkWorkoutExport(
-            workouts: filteredWorkouts,
-            includeHeartRateSamples: includeHeartRateSamples
-        )
-        bulkExportURLs = repository.writeWorkoutExportFiles(export)
-        isPresentingBulkExport = !bulkExportURLs.isEmpty
     }
 }
 

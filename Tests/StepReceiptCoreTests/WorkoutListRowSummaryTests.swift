@@ -38,7 +38,8 @@ struct WorkoutListRowSummaryTests {
             lastSession: last
         )
 
-        #expect(summary.insightText?.contains("burn vs last") == true)
+        #expect(summary.insightText?.contains("vs last") == true)
+        #expect(summary.insightText?.contains("burn") == false)
         #expect(summary.insightText?.contains("%") == true)
     }
 

@@ -20,7 +20,13 @@ final class ActivityRepository: ObservableObject {
     @Published private(set) var weatherKitJWTAuthFailed = false
     @Published var todaySummary: DailyActivitySummary?
     @Published var history: [DailyActivitySummary] = []
-    @Published var workouts: [WorkoutActivity] = []
+    @Published var workouts: [WorkoutActivity] = [] {
+        didSet {
+            if workouts.map(\.sourceIdentifier) != oldValue.map(\.sourceIdentifier) {
+                invalidateWorkoutListRowSummaryCache()
+            }
+        }
+    }
     @Published var receipt: InsightReceipt?
     @Published var competitionReceipt: CompetitionReceipt?
     @Published private(set) var activityNavigationToken = UUID()
@@ -399,16 +405,38 @@ final class ActivityRepository: ObservableObject {
         await syncAggregateSummaries(selectedSummary: todaySummary)
         await syncSharedCompetition()
         await fetchDayWeather(for: selectedDate)
-        workouts = await backfillOutdoorWorkoutWeather(workouts)
-        if let todaySummary {
+        scheduleDeferredOutdoorWorkoutWeatherBackfill(for: selectedDate)
+    }
+
+    private func scheduleDeferredOutdoorWorkoutWeatherBackfill(for selectedDate: Date) {
+        Task { @MainActor in
+            let updatedWorkouts = await backfillOutdoorWorkoutWeather(workouts)
+            workouts = updatedWorkouts
+            guard let todaySummary else { return }
             self.todaySummary = engine.aggregateDay(
                 containing: selectedDate,
                 buckets: todaySummary.buckets,
-                workouts: workouts,
+                workouts: updatedWorkouts,
                 goals: goals
             )
             history = replacingSummary(self.todaySummary!, in: history)
         }
+    }
+
+    private struct WorkoutListRowSummaryCacheKey: Hashable {
+        let sourceIdentifier: String
+        let peerCount: Int
+    }
+
+    private var workoutListRowSummaryCache: [WorkoutListRowSummaryCacheKey: WorkoutListRowSummary] = [:]
+
+    private func invalidateWorkoutListRowSummaryCache() {
+        workoutListRowSummaryCache.removeAll()
+    }
+
+    private func exportTimestampToken() -> String {
+        ISO8601DateFormatter().string(from: Date())
+            .replacingOccurrences(of: ":", with: "-")
     }
 
     func refreshAfterAppBecameActive() async {
@@ -620,11 +648,77 @@ final class ActivityRepository: ObservableObject {
     }
 
     func workoutListRowSummary(for workout: WorkoutActivity) -> WorkoutListRowSummary {
-        WorkoutListRowSummaryBuilder.build(
+        let peers = workoutComparisonPeers(for: workout)
+        let cacheKey = WorkoutListRowSummaryCacheKey(
+            sourceIdentifier: workout.sourceIdentifier,
+            peerCount: peers.count
+        )
+        if let cached = workoutListRowSummaryCache[cacheKey] {
+            return cached
+        }
+
+        let summary = WorkoutListRowSummaryBuilder.build(
             workout: workout,
-            peers: workoutComparisonPeers(for: workout),
+            peers: peers,
             lastSession: workoutLastSession(before: workout)
         )
+        workoutListRowSummaryCache[cacheKey] = summary
+        return summary
+    }
+
+    func bulkWorkoutExport(
+        workouts: [WorkoutActivity],
+        includeHeartRateSamples: Bool
+    ) -> WorkoutBulkExport {
+        let rows = workouts.map { workout in
+            WorkoutExportRowContext(
+                workout: workout,
+                analysis: WorkoutHeartRateAnalyzer.analyze(workout: workout),
+                vsLastBurnPercent: workoutLastSession(before: workout).flatMap {
+                    WorkoutExportBuilder.burnRatePercentChange(current: workout, baseline: $0)
+                }
+            )
+        }
+        return WorkoutExportBuilder.bulkExport(
+            rows: rows,
+            includeHeartRateSamples: includeHeartRateSamples,
+            zoneConfiguration: preferences.heartRateZoneConfiguration
+        )
+    }
+
+    func writeWorkoutExportFiles(_ export: WorkoutBulkExport) -> [URL] {
+        let directory = FileManager.default.temporaryDirectory
+        let timestamp = exportTimestampToken()
+        var urls: [URL] = []
+
+        let summaryURL = directory.appendingPathComponent("workouts-summary-\(timestamp).csv")
+        if (try? export.summaryCSV.write(to: summaryURL, atomically: true, encoding: .utf8)) != nil {
+            urls.append(summaryURL)
+        }
+
+        if let heartRateSamplesCSV = export.heartRateSamplesCSV {
+            let samplesURL = directory.appendingPathComponent("heart_rate_samples-\(timestamp).csv")
+            if (try? heartRateSamplesCSV.write(to: samplesURL, atomically: true, encoding: .utf8)) != nil {
+                urls.append(samplesURL)
+            }
+        }
+
+        return urls
+    }
+
+    func writeSingleWorkoutHeartRateExport(for workout: WorkoutActivity) -> URL? {
+        guard !workout.heartRateSamples.isEmpty else { return nil }
+
+        let csv = WorkoutExportBuilder.heartRateSamplesCSV(
+            workout: workout,
+            zoneConfiguration: preferences.heartRateZoneConfiguration
+        )
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("workout-hr-\(workout.sourceIdentifier).csv")
+        guard (try? csv.write(to: url, atomically: true, encoding: .utf8)) != nil else {
+            return nil
+        }
+        return url
     }
 
     func adjacentInsightPeriodAnchor(scope: ActivityPeriodScope, containing date: Date, offset: Int, now: Date = Date()) -> Date? {

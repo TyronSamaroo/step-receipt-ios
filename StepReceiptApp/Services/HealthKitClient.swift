@@ -132,27 +132,50 @@ final class HealthKitClient: @unchecked Sendable {
             store.execute(query)
         }
 
-        var workouts: [WorkoutActivity] = []
-        workouts.reserveCapacity(healthWorkouts.count)
+        return await withTaskGroup(of: (Int, WorkoutActivity).self) { group in
+            var results = Array<WorkoutActivity?>(repeating: nil, count: healthWorkouts.count)
+            var nextIndex = 0
+            let maxConcurrent = 4
 
-        for workout in healthWorkouts {
-            let activity = Self.mapWorkout(workout)
-            async let heartRateSamples = safelyFetchHeartRateSamples(for: workout)
-            async let workoutSteps = safelyFetchWorkoutSteps(for: workout)
-            async let routePoints = activity.environment == .outdoor
-                ? safelyFetchRoutePoints(for: workout)
-                : []
+            func enqueue(at index: Int) {
+                let workout = healthWorkouts[index]
+                group.addTask {
+                    (index, await self.enrichWorkout(workout))
+                }
+            }
 
-            workouts.append(
-                activity.replacingDerivedHealthData(
-                    steps: await workoutSteps ?? activity.steps,
-                    heartRateSamples: await heartRateSamples,
-                    routePoints: await routePoints
-                )
-            )
+            let initialCount = min(maxConcurrent, healthWorkouts.count)
+            if initialCount > 0 {
+                for index in 0..<initialCount {
+                    enqueue(at: index)
+                }
+                nextIndex = initialCount
+            }
+
+            for await (index, activity) in group {
+                results[index] = activity
+                if nextIndex < healthWorkouts.count {
+                    enqueue(at: nextIndex)
+                    nextIndex += 1
+                }
+            }
+
+            return results.compactMap { $0 }
         }
+    }
 
-        return workouts
+    private func enrichWorkout(_ workout: HKWorkout) async -> WorkoutActivity {
+        let activity = Self.mapWorkout(workout)
+        async let heartRateSamples = safelyFetchHeartRateSamples(for: workout)
+        async let workoutSteps = safelyFetchWorkoutSteps(for: workout)
+        async let routePoints = activity.environment == .outdoor
+            ? safelyFetchRoutePoints(for: workout)
+            : []
+        return activity.replacingDerivedHealthData(
+            steps: await workoutSteps ?? activity.steps,
+            heartRateSamples: await heartRateSamples,
+            routePoints: await routePoints
+        )
     }
 
     private func fetchMetricBuckets(

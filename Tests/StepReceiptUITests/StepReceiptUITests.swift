@@ -36,7 +36,6 @@ final class StepReceiptUITests: XCTestCase {
 
         let statsToggle = app.buttons["activity-workout-stats-toggle"]
         XCTAssertTrue(statsToggle.waitForExistence(timeout: 3))
-        XCTAssertFalse(statsToggle.isSelected)
 
         let firstWorkoutRow = app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-'")).firstMatch
         XCTAssertTrue(firstWorkoutRow.waitForExistence(timeout: 3))
@@ -46,15 +45,17 @@ final class StepReceiptUITests: XCTestCase {
         )
 
         statsToggle.tap()
-        XCTAssertTrue(statsToggle.isSelected)
         XCTAssertTrue(
-            app.buttons.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-stats-line-'")).firstMatch
+            app.otherElements.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-stats-metrics-'")).firstMatch
                 .waitForExistence(timeout: 3)
         )
         XCTAssertTrue(app.staticTexts.matching(NSPredicate(format: "label CONTAINS 'kcal/min'")).firstMatch.exists)
 
         statsToggle.tap()
-        XCTAssertFalse(statsToggle.isSelected)
+        XCTAssertEqual(
+            app.otherElements.matching(NSPredicate(format: "identifier BEGINSWITH 'workout-row-stats-metrics-'")).count,
+            0
+        )
     }
 
     @MainActor
@@ -225,14 +226,16 @@ final class StepReceiptUITests: XCTestCase {
         XCTAssertTrue(workoutsSegment.waitForExistence(timeout: 3))
         workoutsSegment.tap()
 
-        for filter in ["All", "Stairs", "Strength", "Outdoor Walk", "Indoor Walk", "Other"] {
+        for filter in ["All", "Stairs", "Strength"] {
             XCTAssertTrue(app.buttons[filter].waitForExistence(timeout: 3), "Missing workout filter \(filter)")
         }
+        XCTAssertTrue(app.buttons["activity-workout-filter-more-menu"].waitForExistence(timeout: 3))
 
         app.buttons["Strength"].tap()
         let strengthRow = workoutRow(containing: "Traditional Strength Training", in: app).firstMatch
         XCTAssertTrue(strengthRow.waitForExistence(timeout: 3))
 
+        app.buttons["activity-workout-filter-more-menu"].tap()
         app.buttons["Outdoor Walk"].tap()
         let outdoorWalkRow = workoutRow(containing: "Outdoor Walk", in: app)
             .firstMatch
@@ -327,8 +330,9 @@ final class StepReceiptUITests: XCTestCase {
         let modePicker = app.segmentedControls["activity-history-mode-picker"]
         XCTAssertTrue(modePicker.buttons["Workouts"].waitForExistence(timeout: 3))
         modePicker.buttons["Workouts"].tap()
-        XCTAssertTrue(app.buttons["activity-workout-filter-outdoorWalk"].waitForExistence(timeout: 3))
-        app.buttons["activity-workout-filter-outdoorWalk"].tap()
+        XCTAssertTrue(app.buttons["activity-workout-filter-more-menu"].waitForExistence(timeout: 3))
+        app.buttons["activity-workout-filter-more-menu"].tap()
+        app.buttons["Outdoor Walk"].tap()
 
         app.tabBars.buttons["Insights"].tap()
         let scopePicker = app.segmentedControls["insights-scope-picker"]
@@ -342,7 +346,8 @@ final class StepReceiptUITests: XCTestCase {
         let restoredModePicker = app.segmentedControls["activity-history-mode-picker"]
         XCTAssertTrue(restoredModePicker.buttons["Workouts"].waitForExistence(timeout: 3))
         XCTAssertTrue(restoredModePicker.buttons["Workouts"].isSelected)
-        let restoredOutdoorFilter = app.buttons["activity-workout-filter-outdoorWalk"]
+        app.buttons["activity-workout-filter-more-menu"].tap()
+        let restoredOutdoorFilter = app.buttons["Outdoor Walk"]
         XCTAssertTrue(restoredOutdoorFilter.waitForExistence(timeout: 3))
         XCTAssertTrue(restoredOutdoorFilter.isSelected)
 

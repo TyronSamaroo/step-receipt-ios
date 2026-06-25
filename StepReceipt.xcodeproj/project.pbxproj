@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0736670F918E1647B9D5EEC1 /* WorkoutHeartRateAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C876E2BC4C76F64CC18FCD /* WorkoutHeartRateAnalysis.swift */; };
 		079E049BFB39BD333ABF5A97 /* CloudKitCompetitionSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C0B3575FC5BB1E53ADCF564 /* CloudKitCompetitionSync.swift */; };
 		0893E66787EEEDDC31A6C629 /* OpenCompeteIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDA504AF04C5EA25DC6F1C38 /* OpenCompeteIntent.swift */; };
 		0B20CA2EDB8676D9846F1922 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374F92C33B4292C4AA9C5A30 /* LocationProvider.swift */; };
@@ -21,10 +22,12 @@
 		17EA7DF6D0C8E002B554E3B2 /* CompeteMemberDrillInSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1B94A051AE67972A1FFCCC6D /* CompeteMemberDrillInSheet.swift */; };
 		1886BC936BDC5975F52C6B0E /* GetTodayStepsIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3E86DD2B190F3D1DC3536CD /* GetTodayStepsIntent.swift */; };
 		189A4982598A338D03A0C78C /* WeekPatternBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92A596D67267D846622D7C10 /* WeekPatternBuilderTests.swift */; };
+		1B6704D92572808736EDBB09 /* WorkoutExportBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3633B44059157A8A7099B095 /* WorkoutExportBuilder.swift */; };
 		1FFFC72512F5C1E9EF41BEEF /* CompetitionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6277880B45319181EE54747C /* CompetitionEngine.swift */; };
 		206946984273643EDFF08754 /* WeatherDetailSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ABD1F7EC05A558F48BCE9FA /* WeatherDetailSheet.swift */; };
 		2587F03071B919A47DF209E7 /* WatchAggregateSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 58E3FFE7A3CA96D1C0E60811 /* WatchAggregateSnapshotTests.swift */; };
 		25D3CB762540ED56086463F7 /* WeatherAttributionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42A559BD53296F30FB6E3975 /* WeatherAttributionView.swift */; };
+		29D8DC6F74AE440A56F95795 /* WorkoutExportBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3633B44059157A8A7099B095 /* WorkoutExportBuilder.swift */; };
 		2AA600716451E7296F0806E8 /* DailyUseQOLTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8A1FCC0A7B537DB50C6F395 /* DailyUseQOLTests.swift */; };
 		2AD2BFA9D3D4CC6EA6609ED2 /* WatchAggregateSyncService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA9489EE258B17E15163CE4F /* WatchAggregateSyncService.swift */; };
 		2C264BB384BC83F3864E876D /* DailyStepGoalLiveActivityService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */; };
@@ -87,6 +90,7 @@
 		C33B5944BE85B9CBB011A8BC /* WeekPattern.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EC951931AE64E918C49E372 /* WeekPattern.swift */; };
 		C4F58E35150E103BBCAD4646 /* ActivityModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = C91B022F49B7155BF630F06F /* ActivityModels.swift */; };
 		CC6D82C87E1B004A58AF4D3E /* ActivityFormattingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B005210EC9FD6A67E22A9279 /* ActivityFormattingTests.swift */; };
+		CF2954BF4AD2B317BC76DCA9 /* WorkoutHeartRateAnalysisTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6034BC04F9278E1F1F6A7C6 /* WorkoutHeartRateAnalysisTests.swift */; };
 		D10C9199346C4A1F5DB48E90 /* ShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7AA520E58D9123739472025 /* ShareSheet.swift */; };
 		D269C71AC24C4C5963A909ED /* CompeteSharedComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */; };
 		D2F8EDEDB73225DA2D092EB1 /* CompeteMemberDrillInTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2FFA6CED0C12705921209C5 /* CompeteMemberDrillInTests.swift */; };
@@ -107,12 +111,14 @@
 		EB9E548EA446DC5232B16AB5 /* CompetitionSyncDiagnostics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */; };
 		EBC302E607B6EF8DDAF41E0F /* CompetitionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C419C531AB76EA4334533C31 /* CompetitionView.swift */; };
 		ED92C447C5403E50B5038FFE /* StepReceiptWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 454E46A98159F502B4E02190 /* StepReceiptWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		EDCD5E66CAF207873C7DD96B /* WorkoutHeartRateAnalysis.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83C876E2BC4C76F64CC18FCD /* WorkoutHeartRateAnalysis.swift */; };
 		EE1B261341D0D51090BE6FF5 /* CloudKitCompetitionShareExtractionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 272FF1A898D4D0ACEC7AAD0B /* CloudKitCompetitionShareExtractionTests.swift */; };
 		EFA6A6DD4D775DA58ED259A5 /* CompeteMemberDrillIn.swift in Sources */ = {isa = PBXBuildFile; fileRef = A344231B2C970D14DB3BAB1E /* CompeteMemberDrillIn.swift */; };
 		F01091AA2982319451277810 /* DayWeatherSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F6E7D6D146F0D0C00E3D4DB /* DayWeatherSnapshot.swift */; };
 		F0DD436648182B71394BD0E8 /* LocationProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 374F92C33B4292C4AA9C5A30 /* LocationProvider.swift */; };
 		F14FB17701C332C2936A9371 /* InsightEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */; };
 		F25315E1DD8F54125E4C73B5 /* CompetitionModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2247C8402E42C438C53D5D0 /* CompetitionModels.swift */; };
+		F2A572570282E8F2D7017835 /* WorkoutExportBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 025D4125647F91E85D430D99 /* WorkoutExportBuilderTests.swift */; };
 		F36D8680ADACC4A0D7D77497 /* StepReceiptApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1501D87A48987DED06CFD7D6 /* StepReceiptApp.swift */; };
 		F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 11D4678D07205B15BE59624E /* WorkoutDetailView.swift */; };
 		F5D7DAA3010CD140096EAE4D /* DisabledCloudSync.swift in Sources */ = {isa = PBXBuildFile; fileRef = F8424DD43B66EAE7C998AA28 /* DisabledCloudSync.swift */; };
@@ -192,6 +198,7 @@
 
 /* Begin PBXFileReference section */
 		01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplate.swift; sourceTree = "<group>"; };
+		025D4125647F91E85D430D99 /* WorkoutExportBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutExportBuilderTests.swift; sourceTree = "<group>"; };
 		03AE46AC632C6320A12DB319 /* CompeteSharedComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteSharedComponents.swift; sourceTree = "<group>"; };
 		057211AE7F56C8663846C412 /* CompeteJoinDeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompeteJoinDeepLink.swift; sourceTree = "<group>"; };
 		0B868AAEB8261EFDA8152935 /* CompetitionSyncDiagnostics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CompetitionSyncDiagnostics.swift; sourceTree = "<group>"; };
@@ -211,6 +218,7 @@
 		26B16BA2972BEB05E04E8839 /* DayWeatherSnapshotTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DayWeatherSnapshotTests.swift; sourceTree = "<group>"; };
 		272FF1A898D4D0ACEC7AAD0B /* CloudKitCompetitionShareExtractionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudKitCompetitionShareExtractionTests.swift; sourceTree = "<group>"; };
 		314F8863B0EEF88213334031 /* WatchAggregateSnapshot.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchAggregateSnapshot.swift; sourceTree = "<group>"; };
+		3633B44059157A8A7099B095 /* WorkoutExportBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutExportBuilder.swift; sourceTree = "<group>"; };
 		374F92C33B4292C4AA9C5A30 /* LocationProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationProvider.swift; sourceTree = "<group>"; };
 		383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightEngineTests.swift; sourceTree = "<group>"; };
 		39DFFFFFB6B508BE490DBA0C /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
@@ -241,6 +249,7 @@
 		7E357606AC0CD984549A73DB /* StepReceiptLiveActivityWidget.appex */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = "wrapper.app-extension"; path = StepReceiptLiveActivityWidget.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		7E7A92B4C354B314020D7686 /* ActivityHistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityHistoryView.swift; sourceTree = "<group>"; };
 		7FF9F703777D1EEDBD277A26 /* ActivityRepository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepository.swift; sourceTree = "<group>"; };
+		83C876E2BC4C76F64CC18FCD /* WorkoutHeartRateAnalysis.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHeartRateAnalysis.swift; sourceTree = "<group>"; };
 		845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutTemplateTests.swift; sourceTree = "<group>"; };
 		85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutListRowSummaryTests.swift; sourceTree = "<group>"; };
 		8833EC5E2D2E550C3938FB3D /* DailyStepGoalLiveActivityWidget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityWidget.swift; sourceTree = "<group>"; };
@@ -274,6 +283,7 @@
 		CDF2410BC86F829C2541EEFD /* StepReceipt.LocalPersonal.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = StepReceipt.LocalPersonal.entitlements; sourceTree = "<group>"; };
 		D00F117E254792CDF334A71F /* DailyStepGoalLiveActivityService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DailyStepGoalLiveActivityService.swift; sourceTree = "<group>"; };
 		D59919A8F9748A60F3DF35DD /* StepReceipt.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = StepReceipt.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		D6034BC04F9278E1F1F6A7C6 /* WorkoutHeartRateAnalysisTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutHeartRateAnalysisTests.swift; sourceTree = "<group>"; };
 		D7AA520E58D9123739472025 /* ShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareSheet.swift; sourceTree = "<group>"; };
 		DE9962B3C5C4F169D9C56B6A /* ActivityShareCards.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityShareCards.swift; sourceTree = "<group>"; };
 		DF7B1B0129ECD29E4863ED33 /* ActivityRepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityRepositoryTests.swift; sourceTree = "<group>"; };
@@ -388,6 +398,8 @@
 				BFC828839F225D766AD0E781 /* InsightEngine.swift */,
 				14E7359C5691E26FD4279190 /* TodayQuickDigest.swift */,
 				9EC951931AE64E918C49E372 /* WeekPattern.swift */,
+				3633B44059157A8A7099B095 /* WorkoutExportBuilder.swift */,
+				83C876E2BC4C76F64CC18FCD /* WorkoutHeartRateAnalysis.swift */,
 				4C6438A40DE447E694E7C7A2 /* WorkoutListRowSummary.swift */,
 				01FE8FC31B754F965BEE4F10 /* WorkoutTemplate.swift */,
 			);
@@ -440,6 +452,8 @@
 				383189D076B4A58BE3AAC873 /* InsightEngineTests.swift */,
 				AD6B7417D3EFDD9888B040DF /* TodayQuickDigestTests.swift */,
 				92A596D67267D846622D7C10 /* WeekPatternBuilderTests.swift */,
+				025D4125647F91E85D430D99 /* WorkoutExportBuilderTests.swift */,
+				D6034BC04F9278E1F1F6A7C6 /* WorkoutHeartRateAnalysisTests.swift */,
 				85009525BF2500CD45F380F3 /* WorkoutListRowSummaryTests.swift */,
 				845F5FA4AF425A68DF122B9F /* WorkoutTemplateTests.swift */,
 			);
@@ -797,6 +811,10 @@
 				71D9E00A68D89060557EFE14 /* WeatherKitClient.swift in Sources */,
 				C33B5944BE85B9CBB011A8BC /* WeekPattern.swift in Sources */,
 				189A4982598A338D03A0C78C /* WeekPatternBuilderTests.swift in Sources */,
+				1B6704D92572808736EDBB09 /* WorkoutExportBuilder.swift in Sources */,
+				F2A572570282E8F2D7017835 /* WorkoutExportBuilderTests.swift in Sources */,
+				EDCD5E66CAF207873C7DD96B /* WorkoutHeartRateAnalysis.swift in Sources */,
+				CF2954BF4AD2B317BC76DCA9 /* WorkoutHeartRateAnalysisTests.swift in Sources */,
 				D65FFF9DE8A8F44AEE86EAD5 /* WorkoutListRowSummary.swift in Sources */,
 				8B14B3A2B932529AE36BF4B5 /* WorkoutListRowSummaryTests.swift in Sources */,
 				6FEE4DE01B53699E9F370077 /* WorkoutTemplate.swift in Sources */,
@@ -864,6 +882,8 @@
 				5B4F62AE4342985C296FF083 /* WeatherKitClient.swift in Sources */,
 				E6FAC42C0D9AD221C54A18C2 /* WeekPattern.swift in Sources */,
 				F49A75EAA9D49AC5AA04FF96 /* WorkoutDetailView.swift in Sources */,
+				29D8DC6F74AE440A56F95795 /* WorkoutExportBuilder.swift in Sources */,
+				0736670F918E1647B9D5EEC1 /* WorkoutHeartRateAnalysis.swift in Sources */,
 				8B03B1FBB200549055E8F372 /* WorkoutListRowSummary.swift in Sources */,
 				A6FB71FDCBE5D68333AF1CFF /* WorkoutTemplate.swift in Sources */,
 			);
@@ -1118,7 +1138,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 29;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
@@ -1197,7 +1217,7 @@
 				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 26;
+				CURRENT_PROJECT_VERSION = 29;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = U63TLL4JY4;
 				ENABLE_NS_ASSERTIONS = NO;

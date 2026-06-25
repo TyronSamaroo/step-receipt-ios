@@ -7,6 +7,8 @@ struct ActivityHistoryView: View {
     @AppStorage(AppViewPreferenceKey.activityDayFilter) private var selectedDayFilterRaw = AppViewPreferenceDefault.activityDayFilter
     @AppStorage(AppViewPreferenceKey.activityDaySort) private var selectedDaySortRaw = AppViewPreferenceDefault.activityDaySort
     @AppStorage(AppViewPreferenceKey.activityWorkoutShowStats) private var showWorkoutStats = AppViewPreferenceDefault.activityWorkoutShowStats
+    @State private var bulkExportURLs: [URL] = []
+    @State private var isPresentingBulkExport = false
 
     private var selectedMode: ActivityHistoryMode {
         ActivityHistoryMode(rawValue: selectedModeRaw) ?? .days
@@ -70,6 +72,39 @@ struct ActivityHistoryView: View {
             .background(Color.stepBackground)
             .navigationTitle("Activity")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                if selectedMode == .workouts {
+                    ToolbarItemGroup(placement: .topBarTrailing) {
+                        Menu {
+                            Button("Summary CSV") {
+                                presentBulkExport(includeHeartRateSamples: false)
+                            }
+                            Button("Summary + HR Samples") {
+                                presentBulkExport(includeHeartRateSamples: true)
+                            }
+                        } label: {
+                            Image(systemName: "square.and.arrow.up")
+                        }
+                        .accessibilityLabel("Export workouts")
+                        .accessibilityIdentifier("activity-workout-export-menu")
+
+                        Button {
+                            showWorkoutStats.toggle()
+                        } label: {
+                            Image(systemName: "chart.bar.doc.horizontal")
+                                .symbolVariant(showWorkoutStats ? .fill : .none)
+                        }
+                        .accessibilityLabel("Workout stats")
+                        .accessibilityIdentifier("activity-workout-stats-toggle")
+                        .accessibilityAddTraits(showWorkoutStats ? .isSelected : [])
+                    }
+                }
+            }
+            .sheet(isPresented: $isPresentingBulkExport) {
+                if !bulkExportURLs.isEmpty {
+                    ShareSheet(items: bulkExportURLs)
+                }
+            }
             .refreshable {
                 await repository.refresh()
             }
@@ -166,24 +201,60 @@ struct ActivityHistoryView: View {
     }
 
     private var filterStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(ActivityWorkoutFilter.allCases) { filter in
-                    FilterChip(title: filter.displayName, isSelected: selectedWorkoutFilter == filter) {
-                        selectedWorkoutFilterRaw = filter.rawValue
-                    }
-                    .accessibilityIdentifier("activity-workout-filter-\(filter.rawValue)")
+        HStack(spacing: 8) {
+            ForEach(ActivityWorkoutFilter.primaryFilters) { filter in
+                FilterChip(
+                    title: filter.displayName,
+                    isSelected: selectedWorkoutFilter == filter,
+                    accessibilityIdentifier: "activity-workout-filter-\(filter.rawValue)"
+                ) {
+                    selectedWorkoutFilterRaw = filter.rawValue
                 }
-
-                Spacer(minLength: 8)
-
-                FilterChip(title: "Stats", isSelected: showWorkoutStats) {
-                    showWorkoutStats.toggle()
-                }
-                .accessibilityIdentifier("activity-workout-stats-toggle")
             }
-            .padding(.vertical, 4)
+
+            Menu {
+                ForEach(ActivityWorkoutFilter.moreMenuFilters) { filter in
+                    Button {
+                        selectedWorkoutFilterRaw = filter.rawValue
+                    } label: {
+                        if selectedWorkoutFilter == filter {
+                            Label(filter.displayName, systemImage: "checkmark")
+                        } else {
+                            Text(filter.displayName)
+                        }
+                    }
+                }
+            } label: {
+                moreFilterChip
+            }
+            .accessibilityIdentifier("activity-workout-filter-more-menu")
         }
+        .padding(.vertical, 4)
+    }
+
+    private var moreFilterChip: some View {
+        let isMoreSelected = ActivityWorkoutFilter.moreMenuFilters.contains(selectedWorkoutFilter)
+        return HStack(spacing: 4) {
+            Text(isMoreSelected ? selectedWorkoutFilter.displayName : "More")
+                .font(.subheadline.weight(.semibold))
+            Image(systemName: "chevron.down")
+                .font(.caption2.weight(.bold))
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(isMoreSelected ? Color.stepAccent : Color.stepSurface)
+        .foregroundStyle(isMoreSelected ? .white : Color.stepInk)
+        .clipShape(Capsule())
+        .accessibilityAddTraits(isMoreSelected ? .isSelected : [])
+    }
+
+    private func presentBulkExport(includeHeartRateSamples: Bool) {
+        let export = repository.bulkWorkoutExport(
+            workouts: filteredWorkouts,
+            includeHeartRateSamples: includeHeartRateSamples
+        )
+        bulkExportURLs = repository.writeWorkoutExportFiles(export)
+        isPresentingBulkExport = !bulkExportURLs.isEmpty
     }
 }
 
@@ -207,6 +278,10 @@ enum ActivityWorkoutFilter: String, CaseIterable, Identifiable {
         case .other: "Other"
         }
     }
+
+    static let primaryFilters: [ActivityWorkoutFilter] = [.all, .stairClimber, .strength]
+
+    static let moreMenuFilters: [ActivityWorkoutFilter] = [.outdoorWalk, .indoorWalk, .other]
 
     func matches(_ workout: WorkoutActivity) -> Bool {
         switch self {
@@ -596,28 +671,29 @@ struct WorkoutRow: View {
 
     @ViewBuilder
     private func workoutStatsFooter(_ summary: WorkoutListRowSummary) -> some View {
-        HStack(spacing: 0) {
-            if let averageHeartRateText = summary.averageHeartRateText {
-                Text(averageHeartRateText)
-            }
-            if let burnRateText = summary.burnRateText {
-                if summary.averageHeartRateText != nil {
-                    Text(" · ")
+        VStack(alignment: .leading, spacing: 2) {
+            HStack(spacing: 0) {
+                if let averageHeartRateText = summary.averageHeartRateText {
+                    Text(averageHeartRateText)
                 }
-                Text(burnRateText)
+                if let burnRateText = summary.burnRateText {
+                    if summary.averageHeartRateText != nil {
+                        Text(" · ")
+                    }
+                    Text(burnRateText)
+                }
             }
+            .accessibilityIdentifier("workout-row-stats-metrics-\(workout.sourceIdentifier)")
+
             if let insightText = summary.insightText {
-                if summary.averageHeartRateText != nil || summary.burnRateText != nil {
-                    Text(" · ")
-                }
                 Text(insightText)
                     .foregroundStyle(summary.insightTone.listColor)
+                    .lineLimit(1)
+                    .accessibilityIdentifier("workout-row-stats-insight-\(workout.sourceIdentifier)")
             }
         }
         .font(.caption2.weight(.semibold))
         .foregroundStyle(Color.stepMuted)
-        .lineLimit(1)
-        .minimumScaleFactor(0.85)
         .accessibilityIdentifier("workout-row-stats-line-\(workout.sourceIdentifier)")
     }
 }

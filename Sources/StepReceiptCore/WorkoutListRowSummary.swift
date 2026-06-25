@@ -177,7 +177,8 @@ public enum WorkoutListRowSummaryBuilder {
     private static func formattedPercentInsight(_ percentChange: Double, metric: String, label: String) -> String {
         let rounded = Int(percentChange.rounded())
         let signed = rounded == 0 ? "0" : (rounded > 0 ? "+\(rounded)" : "\(rounded)")
-        return "\(signed)% \(metric) vs \(label)"
+        _ = metric
+        return "\(signed)% vs \(label)"
     }
 
     private static func formattedHeartRateInsight(_ delta: Double, label: String) -> String {

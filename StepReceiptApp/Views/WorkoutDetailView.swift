@@ -6,6 +6,8 @@ struct WorkoutDetailView: View {
     @EnvironmentObject private var repository: ActivityRepository
     let workout: WorkoutActivity
     @State private var shareImage: ShareImage?
+    @State private var heartRateExportURL: URL?
+    @State private var isPresentingHeartRateExport = false
     @State private var tagDraft = ""
     @State private var selectedCompareBaseline: WorkoutActivity?
 
@@ -36,6 +38,7 @@ struct WorkoutDetailView: View {
                 WorkoutHero(workout: workout, style: style, tag: workoutTag)
                 templatePanel
                 metricGrid
+                heartRateStoryCard
                 workoutComparePanel
                 HeartRatePanel(workout: workout)
                 WorkoutRoutePanel(workout: workout, style: style)
@@ -54,7 +57,18 @@ struct WorkoutDetailView: View {
         .background(Color.stepBackground)
         .navigationTitle(workoutTag ?? workout.displayTitle)
         .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                if !workout.heartRateSamples.isEmpty {
+                    Button {
+                        heartRateExportURL = repository.writeSingleWorkoutHeartRateExport(for: workout)
+                        isPresentingHeartRateExport = heartRateExportURL != nil
+                    } label: {
+                        Image(systemName: "tablecells")
+                    }
+                    .accessibilityLabel("Export heart rate CSV")
+                    .accessibilityIdentifier("workout-export-hr-csv")
+                }
+
                 Button {
                     shareImage = ShareImageRenderer.render {
                         WorkoutShareCard(
@@ -77,11 +91,40 @@ struct WorkoutDetailView: View {
         .sheet(item: $shareImage) { shareImage in
             ShareSheet(items: [shareImage.image])
         }
+        .sheet(isPresented: $isPresentingHeartRateExport) {
+            if let heartRateExportURL {
+                ShareSheet(items: [heartRateExportURL])
+            }
+        }
         .onAppear {
             tagDraft = workoutTag ?? ""
         }
         .onChange(of: workoutTag) { _, newValue in
             tagDraft = newValue ?? ""
+        }
+    }
+
+    private var heartRateAnalysis: WorkoutHeartRateAnalysis {
+        WorkoutHeartRateAnalyzer.analyze(workout: workout)
+    }
+
+    @ViewBuilder
+    private var heartRateStoryCard: some View {
+        if heartRateAnalysis.hasContent {
+            VStack(alignment: .leading, spacing: 8) {
+                Label("HR Story", systemImage: "waveform.path.ecg")
+                    .font(.subheadline.weight(.bold))
+                    .foregroundStyle(Color.stepInk)
+
+                ForEach(Array(heartRateAnalysis.storyLines.enumerated()), id: \.offset) { _, line in
+                    Text(line)
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Color.stepMuted)
+                        .lineLimit(1)
+                }
+            }
+            .compactMetricCard()
+            .accessibilityIdentifier("workout-hr-story-card")
         }
     }
 
@@ -706,7 +749,14 @@ struct HeartRatePanel: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 8)
             } else {
-                HStack(spacing: 18) {
+                LazyVGrid(
+                    columns: [
+                        GridItem(.flexible()),
+                        GridItem(.flexible()),
+                        GridItem(.flexible())
+                    ],
+                    spacing: 12
+                ) {
                     heartRateStat("Average", workout.averageHeartRateBPM)
                     heartRateStat("Min", workout.minHeartRateBPM)
                     heartRateStat("Max", workout.maxHeartRateBPM)
@@ -822,20 +872,24 @@ struct HeartRatePanel: View {
     }
 
     private func heartRateStat(_ title: String, _ value: Double?) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .center, spacing: 4) {
             Text(title)
                 .font(.subheadline)
                 .foregroundStyle(Color.stepMuted)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                .lineLimit(1)
+            VStack(spacing: 0) {
                 Text(value.map { Int($0.rounded()).formatted() } ?? "--")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
+                    .font(.system(size: 32, weight: .bold, design: .rounded))
                     .foregroundStyle(Color.stepInk)
                     .monospacedDigit()
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
                 Text("bpm")
-                    .font(.headline)
+                    .font(.caption.weight(.semibold))
                     .foregroundStyle(Color.stepMuted)
             }
         }
+        .frame(maxWidth: .infinity)
     }
 }
 
